@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)   // ← 用 alias
+    alias(libs.plugins.ksp)    // ← 用 alias
 }
 
 android {
@@ -40,6 +42,9 @@ android {
 }
 
 dependencies {
+    implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
     implementation("com.microsoft.identity.client:msal:6.2.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation(libs.androidx.core.ktx)
