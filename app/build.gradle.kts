@@ -40,6 +40,7 @@ android {
 }
 
 dependencies {
+    implementation("com.microsoft.identity.client:msal:6.2.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
