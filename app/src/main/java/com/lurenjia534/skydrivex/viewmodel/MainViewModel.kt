@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lurenjia534.skydrivex.auth.AuthManager
 import com.lurenjia534.skydrivex.data.local.ThemePreferenceRepository
+import com.lurenjia534.skydrivex.data.repository.UserRepository
 import com.microsoft.identity.client.AuthenticationCallback
 import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.IAuthenticationResult
@@ -24,7 +25,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val authManager: AuthManager,
-    private val themePreferenceRepository: ThemePreferenceRepository
+    private val themePreferenceRepository: ThemePreferenceRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     companion object {
@@ -33,6 +35,11 @@ class MainViewModel @Inject constructor(
 
     private val _account = MutableStateFlow<IAccount?>(null)
     val account: StateFlow<IAccount?> = _account.asStateFlow()
+
+    private val _userState = MutableStateFlow(UserUiState(data = null, isLoading = true, error = null))
+    val userState: StateFlow<UserUiState> = _userState.asStateFlow()
+
+    private var lastToken: String? = null
 
     val isDarkMode = themePreferenceRepository.isDarkMode.stateIn(
         viewModelScope,
@@ -60,6 +67,7 @@ class MainViewModel @Inject constructor(
         authManager.signIn(activity, SCOPES, object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
                 _account.value = authenticationResult.account
+                loadUser(authenticationResult.accessToken)
             }
 
             override fun onError(exception: MsalException) {
@@ -76,6 +84,7 @@ class MainViewModel @Inject constructor(
         authManager.acquireToken(activity, SCOPES, object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
                 _account.value = authenticationResult.account
+                loadUser(authenticationResult.accessToken)
             }
 
             override fun onError(exception: MsalException) {
@@ -92,6 +101,7 @@ class MainViewModel @Inject constructor(
         authManager.acquireTokenSilent(SCOPES, object : SilentAuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
                 _account.value = authenticationResult.account
+                loadUser(authenticationResult.accessToken)
             }
 
             override fun onError(exception: MsalException) {
@@ -116,6 +126,23 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             themePreferenceRepository.setDarkMode(enabled)
         }
+    }
+
+    private fun loadUser(token: String) {
+        lastToken = token
+        viewModelScope.launch {
+            _userState.value = UserUiState(data = null, isLoading = true, error = null)
+            try {
+                val user = userRepository.getUser("Bearer $token")
+                _userState.value = UserUiState(data = user, isLoading = false, error = null)
+            } catch (e: Exception) {
+                _userState.value = UserUiState(data = null, isLoading = false, error = e.message)
+            }
+        }
+    }
+
+    fun retry() {
+        lastToken?.let { loadUser(it) }
     }
 }
 
