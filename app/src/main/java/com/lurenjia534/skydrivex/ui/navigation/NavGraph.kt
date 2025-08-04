@@ -3,13 +3,17 @@ package com.lurenjia534.skydrivex.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.lurenjia534.skydrivex.ui.screens.FilesScreen
 import com.lurenjia534.skydrivex.ui.screens.HomeScreen
 import com.lurenjia534.skydrivex.ui.screens.ProfileScreen
+import com.lurenjia534.skydrivex.viewmodel.MainViewModel
 
 @Composable
 fun NavGraph(
@@ -28,7 +32,9 @@ fun NavGraph(
             FilesScreen()
         }
         composable(NavDestination.Profile.route) {
-            ProfileScreen()
+            val viewModel: MainViewModel = hiltViewModel()
+            val uiState by viewModel.userState.collectAsState()
+            ProfileScreen(uiState = uiState, onRefresh = viewModel::retry)
         }
         composable(NavDestination.Settings.route) {
             // 空白页面，点击导航时会启动SettingsActivity
