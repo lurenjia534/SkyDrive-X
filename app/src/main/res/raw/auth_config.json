@@ -1,6 +1,7 @@
 {
-  "client_id": "<YOUR_CLIENT_ID>",
-  "redirect_uri": "msauth://com.lurenjia534.skydrivex/<YOUR_BASE64_URL_ENCODED_PACKAGE_SIGNATURE>",
+  "client_id": "abffddca-03df-490f-bd20-ca633cc7a8c2",
+  "redirect_uri": "msauth://com.lurenjia534.skydrivex/x5p1okZQU3tQCjGqW3O3F3psQTE%3D",
+    "account_mode": "SINGLE",
   "authorities": [
     {
       "type": "AAD",
