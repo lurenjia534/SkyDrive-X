@@ -3,7 +3,9 @@ package com.lurenjia534.skydrivex.viewmodel
 import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.lurenjia534.skydrivex.auth.AuthManager
+import com.lurenjia534.skydrivex.data.local.ThemePreferenceRepository
 import com.microsoft.identity.client.AuthenticationCallback
 import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.IAuthenticationResult
@@ -14,11 +16,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val themePreferenceRepository: ThemePreferenceRepository
 ) : ViewModel() {
 
     companion object {
@@ -27,6 +33,12 @@ class MainViewModel @Inject constructor(
 
     private val _account = MutableStateFlow<IAccount?>(null)
     val account: StateFlow<IAccount?> = _account.asStateFlow()
+
+    val isDarkMode = themePreferenceRepository.isDarkMode.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        false
+    )
 
     init {
         authManager.getCurrentAccount(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
@@ -98,6 +110,12 @@ class MainViewModel @Inject constructor(
                 Log.e("MainViewModel", "Sign out error", exception)
             }
         })
+    }
+
+    fun setDarkMode(enabled: Boolean) {
+        viewModelScope.launch {
+            themePreferenceRepository.setDarkMode(enabled)
+        }
     }
 }
 

@@ -34,7 +34,8 @@ class SettingsActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            SkyDriveXTheme {
+            val isDarkMode by viewModel.isDarkMode.collectAsState()
+            SkyDriveXTheme(darkTheme = isDarkMode) {
                 SettingsScreen(
                     viewModel = viewModel,
                     onBackPressed = { finish() },
@@ -53,6 +54,7 @@ fun SettingsScreen(
     activity: ComponentActivity
 ) {
     val account by viewModel.account.collectAsState()
+    val isDarkMode by viewModel.isDarkMode.collectAsState()
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -196,6 +198,14 @@ fun SettingsScreen(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("深色模式")
+                        Switch(checked = isDarkMode, onCheckedChange = viewModel::setDarkMode)
+                    }
 
                     Text(
                         text = "其他设置选项即将推出...",
