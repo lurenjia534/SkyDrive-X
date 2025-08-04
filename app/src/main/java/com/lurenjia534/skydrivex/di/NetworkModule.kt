@@ -1,6 +1,7 @@
 package com.lurenjia534.skydrivex.di
 
 import com.lurenjia534.skydrivex.data.remote.GraphApiService
+import com.lurenjia534.skydrivex.data.repository.UserRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,4 +41,9 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
             .create(GraphApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(graphApiService: GraphApiService): UserRepository =
+        UserRepository(graphApiService)
 }
