@@ -1,0 +1,13 @@
+{
+  "client_id": "<YOUR_CLIENT_ID>",
+  "redirect_uri": "msauth://com.lurenjia534.skydrivex/<YOUR_BASE64_URL_ENCODED_PACKAGE_SIGNATURE>",
+  "authorities": [
+    {
+      "type": "AAD",
+      "audience": {
+        "type": "AzureADandPersonalMicrosoftAccount",
+        "tenant_id": "common"
+      }
+    }
+  ]
+}
