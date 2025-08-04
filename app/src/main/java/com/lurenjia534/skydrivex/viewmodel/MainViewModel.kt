@@ -36,7 +36,7 @@ class MainViewModel @Inject constructor(
     private val _account = MutableStateFlow<IAccount?>(null)
     val account: StateFlow<IAccount?> = _account.asStateFlow()
 
-    private val _userState = MutableStateFlow(UserUiState(data = null, isLoading = true, error = null))
+    private val _userState = MutableStateFlow(UserUiState(data = null, isLoading = false, error = null))
     val userState: StateFlow<UserUiState> = _userState.asStateFlow()
 
     private var lastToken: String? = null
@@ -106,6 +106,7 @@ class MainViewModel @Inject constructor(
 
             override fun onError(exception: MsalException) {
                 Log.e("MainViewModel", "Silent token error", exception)
+                _userState.value = UserUiState(data = null, isLoading = false, error = exception.message)
             }
         })
     }
@@ -114,6 +115,7 @@ class MainViewModel @Inject constructor(
         authManager.signOut(object : ISingleAccountPublicClientApplication.SignOutCallback {
             override fun onSignOut() {
                 _account.value = null
+                _userState.value = UserUiState(data = null, isLoading = false, error = null)
             }
 
             override fun onError(exception: MsalException) {
