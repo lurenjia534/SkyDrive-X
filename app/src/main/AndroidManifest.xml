@@ -39,6 +39,11 @@
                     android:path="/x5p1okZQU3tQCjGqW3O3F3psQTE=" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.activity.SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SkyDriveX" />
     </application>
 
 </manifest>
