@@ -50,6 +50,15 @@ fun ProfileScreen(
                     }
                 }
             }
+            else -> {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "请先登录或刷新")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = onRefresh) {
+                        Text(text = "刷新")
+                    }
+                }
+            }
         }
     }
 }
