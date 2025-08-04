@@ -36,7 +36,7 @@
                 <data
                     android:scheme="msauth"
                     android:host="com.lurenjia534.skydrivex"
-                    android:path="/<YOUR_BASE64_ENCODED_PACKAGE_SIGNATURE>" />
+                    android:path="/YOUR_BASE64_ENCODED_PACKAGE_SIGNATURE" />
             </intent-filter>
         </activity>
     </application>
