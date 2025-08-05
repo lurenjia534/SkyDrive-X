@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,7 +17,8 @@ import com.lurenjia534.skydrivex.viewmodel.MainViewModel
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: MainViewModel
 ) {
     NavHost(
         navController = navController,
@@ -32,7 +32,6 @@ fun NavGraph(
             FilesScreen()
         }
         composable(NavDestination.Profile.route) {
-            val viewModel: MainViewModel = hiltViewModel()
             val uiState by viewModel.userState.collectAsState()
             ProfileScreen(uiState = uiState, onRefresh = viewModel::retry)
         }

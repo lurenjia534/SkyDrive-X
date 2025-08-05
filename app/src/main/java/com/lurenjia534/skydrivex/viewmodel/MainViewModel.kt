@@ -51,10 +51,18 @@ class MainViewModel @Inject constructor(
         authManager.getCurrentAccount(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
             override fun onAccountLoaded(activeAccount: IAccount?) {
                 _account.value = activeAccount
+                if (activeAccount != null) {
+                    acquireTokenSilent()
+                }
             }
 
             override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
                 _account.value = currentAccount
+                if (currentAccount != null) {
+                    acquireTokenSilent()
+                } else {
+                    _userState.value = UserUiState(data = null, isLoading = false, error = null)
+                }
             }
 
             override fun onError(exception: MsalException) {
