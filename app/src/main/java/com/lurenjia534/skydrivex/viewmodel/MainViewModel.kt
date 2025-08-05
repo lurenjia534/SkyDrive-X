@@ -51,6 +51,9 @@ class MainViewModel @Inject constructor(
         authManager.getCurrentAccount(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
             override fun onAccountLoaded(activeAccount: IAccount?) {
                 _account.value = activeAccount
+//                if (activeAccount != null){
+//                    acquireTokenSilent()
+//                }
             }
 
             override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
@@ -106,7 +109,11 @@ class MainViewModel @Inject constructor(
 
             override fun onError(exception: MsalException) {
                 Log.e("MainViewModel", "Silent token error", exception)
-                _userState.value = UserUiState(data = null, isLoading = false, error = exception.message)
+                _userState.value = UserUiState(
+                    data = null,
+                    isLoading = false,
+                    error = exception.message ?: "Failed to acquire token"
+                )
             }
         })
     }
