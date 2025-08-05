@@ -18,6 +18,7 @@ import javax.inject.Singleton
 class AuthManager @Inject constructor(@ApplicationContext context: Context) {
 
     private var singleAccountApp: ISingleAccountPublicClientApplication? = null
+    private val authority = "https://login.microsoftonline.com/common"
 
     init {
         PublicClientApplication.createSingleAccountPublicClientApplication(
@@ -44,7 +45,7 @@ class AuthManager @Inject constructor(@ApplicationContext context: Context) {
     }
 
     fun acquireTokenSilent(scopes: Array<String>, callback: SilentAuthenticationCallback) {
-        singleAccountApp?.acquireTokenSilentAsync(scopes, "", callback)
+        singleAccountApp?.acquireTokenSilentAsync(scopes, authority, callback)
     }
 
     fun signOut(callback: ISingleAccountPublicClientApplication.SignOutCallback) {
