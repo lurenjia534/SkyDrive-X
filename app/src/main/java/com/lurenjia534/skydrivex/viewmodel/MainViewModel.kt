@@ -106,6 +106,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun acquireTokenSilent() {
+        _userState.value = UserUiState(data = null, isLoading = true, error = null)
         authManager.acquireTokenSilent(SCOPES, object : SilentAuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
                 _account.value = authenticationResult.account

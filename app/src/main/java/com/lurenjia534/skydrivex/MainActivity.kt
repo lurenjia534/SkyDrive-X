@@ -32,6 +32,11 @@ class MainActivity : ComponentActivity() {
             SkyDriveXAppContent(viewModel)
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.acquireTokenSilent()
+    }
 }
 
 @Composable
