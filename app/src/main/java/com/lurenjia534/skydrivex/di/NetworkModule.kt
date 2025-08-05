@@ -10,6 +10,8 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import javax.inject.Singleton
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -34,11 +36,18 @@ object NetworkModule {
             .build()
     @Provides
     @Singleton
-    fun provideGraphApiService(okHttpClient: OkHttpClient): GraphApiService =
+    fun provideMoshi(): Moshi =
+        Moshi.Builder()
+            .addLast(KotlinJsonAdapterFactory())
+            .build()
+
+    @Provides
+    @Singleton
+    fun provideGraphApiService(okHttpClient: OkHttpClient, moshi: Moshi): GraphApiService =
         Retrofit.Builder()
             .baseUrl("https://graph.microsoft.com/v1.0/")
             .client(okHttpClient)
-            .addConverterFactory(MoshiConverterFactory.create())
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(GraphApiService::class.java)
 
