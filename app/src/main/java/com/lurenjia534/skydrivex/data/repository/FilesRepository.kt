@@ -7,11 +7,11 @@ import javax.inject.Singleton
 
 @Singleton
 class FilesRepository @Inject constructor(
-    private val api: GraphApiService
+    private val graphApiService: GraphApiService
 ) {
     suspend fun getRootChildren(token: String): List<DriveItemDto> =
-        api.getRootChildren(token).value
+        graphApiService.getRootChildren(token).value
 
     suspend fun getChildren(itemId: String, token: String): List<DriveItemDto> =
-        api.getChildren(itemId, token).value
+        graphApiService.getChildren(itemId, token).value
 }
