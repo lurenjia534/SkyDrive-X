@@ -29,7 +29,7 @@ fun NavGraph(
             HomeScreen()
         }
         composable(NavDestination.Files.route) {
-            FilesScreen()
+            FilesScreen(token = viewModel.token)
         }
         composable(NavDestination.Profile.route) {
             val uiState by viewModel.userState.collectAsState()
