@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.InsertDriveFile
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,7 +64,7 @@ fun FilesScreen(
                         headlineContent = { Text(text = item.name ?: "") },
                         leadingContent = {
                             Icon(
-                                imageVector = if (isFolder) Icons.Outlined.Folder else Icons.Outlined.InsertDriveFile,
+                                imageVector = if (isFolder) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
                                 contentDescription = null,
                             )
                         },
