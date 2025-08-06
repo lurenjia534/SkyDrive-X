@@ -57,7 +57,7 @@ fun FilesScreen(
 
         else -> {
             LazyColumn(modifier = modifier.fillMaxSize()) {
-                items(uiState.items!!) { item ->
+                items(uiState.items.orEmpty()) { item ->
                     val isFolder = item.folder != null
                     ListItem(
                         headlineContent = { Text(text = item.name ?: "") },
