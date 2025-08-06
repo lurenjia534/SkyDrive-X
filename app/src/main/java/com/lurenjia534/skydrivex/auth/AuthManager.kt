@@ -10,6 +10,7 @@ import com.microsoft.identity.client.ISingleAccountPublicClientApplication
 import com.microsoft.identity.client.PublicClientApplication
 import com.microsoft.identity.client.SilentAuthenticationCallback
 import com.microsoft.identity.client.exception.MsalException
+import kotlinx.coroutines.CompletableDeferred
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +20,7 @@ class AuthManager @Inject constructor(@ApplicationContext context: Context) {
 
     private var singleAccountApp: ISingleAccountPublicClientApplication? = null
     private val authority = "https://login.microsoftonline.com/common"
+    private val initializationDeferred = CompletableDeferred<Boolean>()
 
     init {
         PublicClientApplication.createSingleAccountPublicClientApplication(
@@ -27,14 +29,18 @@ class AuthManager @Inject constructor(@ApplicationContext context: Context) {
             object : IPublicClientApplication.ISingleAccountApplicationCreatedListener {
                 override fun onCreated(application: ISingleAccountPublicClientApplication) {
                     singleAccountApp = application
+                    initializationDeferred.complete(true)
                 }
 
                 override fun onError(exception: MsalException) {
                     Log.e("AuthManager", "MSAL initialization failed", exception)
+                    initializationDeferred.complete(false)
                 }
             }
         )
     }
+
+    suspend fun awaitInitialization(): Boolean = initializationDeferred.await()
 
     fun signIn(activity: Activity, scopes: Array<String>, callback: AuthenticationCallback) {
         singleAccountApp?.signIn(activity, null, scopes, callback)

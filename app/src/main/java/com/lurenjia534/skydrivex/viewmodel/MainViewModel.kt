@@ -48,27 +48,34 @@ class MainViewModel @Inject constructor(
     )
 
     init {
-        authManager.getCurrentAccount(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
-            override fun onAccountLoaded(activeAccount: IAccount?) {
-                _account.value = activeAccount
-                if (activeAccount != null){
-                    acquireTokenSilent()
-                }
-            }
+        viewModelScope.launch {
+            val initialized = authManager.awaitInitialization()
+            if (initialized) {
+                authManager.getCurrentAccount(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
+                    override fun onAccountLoaded(activeAccount: IAccount?) {
+                        _account.value = activeAccount
+                        if (activeAccount != null) {
+                            acquireTokenSilent()
+                        }
+                    }
 
-            override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
-                _account.value = currentAccount
-                if (currentAccount != null) {
-                    acquireTokenSilent()
-                } else {
-                    _userState.value = UserUiState(data = null, isLoading = false, error = null)
-                }
-            }
+                    override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
+                        _account.value = currentAccount
+                        if (currentAccount != null) {
+                            acquireTokenSilent()
+                        } else {
+                            _userState.value = UserUiState(data = null, isLoading = false, error = null)
+                        }
+                    }
 
-            override fun onError(exception: MsalException) {
-                Log.e("MainViewModel", "Load account error", exception)
+                    override fun onError(exception: MsalException) {
+                        Log.e("MainViewModel", "Load account error", exception)
+                    }
+                })
+            } else {
+                _userState.value = UserUiState(data = null, isLoading = false, error = "MSAL initialization failed")
             }
-        })
+        }
     }
 
     fun signIn(activity: Activity) {
@@ -107,21 +114,31 @@ class MainViewModel @Inject constructor(
 
     fun acquireTokenSilent() {
         _userState.value = UserUiState(data = null, isLoading = true, error = null)
-        authManager.acquireTokenSilent(SCOPES, object : SilentAuthenticationCallback {
-            override fun onSuccess(authenticationResult: IAuthenticationResult) {
-                _account.value = authenticationResult.account
-                loadUser(authenticationResult.accessToken)
-            }
+        viewModelScope.launch {
+            if (authManager.awaitInitialization()) {
+                authManager.acquireTokenSilent(SCOPES, object : SilentAuthenticationCallback {
+                    override fun onSuccess(authenticationResult: IAuthenticationResult) {
+                        _account.value = authenticationResult.account
+                        loadUser(authenticationResult.accessToken)
+                    }
 
-            override fun onError(exception: MsalException) {
-                Log.e("MainViewModel", "Silent token error", exception)
+                    override fun onError(exception: MsalException) {
+                        Log.e("MainViewModel", "Silent token error", exception)
+                        _userState.value = UserUiState(
+                            data = null,
+                            isLoading = false,
+                            error = exception.message ?: "Failed to acquire token",
+                        )
+                    }
+                })
+            } else {
                 _userState.value = UserUiState(
                     data = null,
                     isLoading = false,
-                    error = exception.message ?: "Failed to acquire token"
+                    error = "MSAL initialization failed",
                 )
             }
-        })
+        }
     }
 
     fun signOut() {
