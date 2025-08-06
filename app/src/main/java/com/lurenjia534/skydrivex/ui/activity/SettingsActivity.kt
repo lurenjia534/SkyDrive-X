@@ -206,7 +206,13 @@ fun SettingsScreen(
                         Text("深色模式")
                         Switch(checked = isDarkMode, onCheckedChange = viewModel::setDarkMode)
                     }
-
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("通知设置")
+                    }
                     Text(
                         text = "其他设置选项即将推出...",
                         style = MaterialTheme.typography.bodyMedium,
