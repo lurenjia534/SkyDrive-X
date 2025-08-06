@@ -1,7 +1,11 @@
 package com.lurenjia534.skydrivex.viewmodel
 
 import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import android.util.Log
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lurenjia534.skydrivex.auth.AuthManager
@@ -14,6 +18,7 @@ import com.microsoft.identity.client.ISingleAccountPublicClientApplication
 import com.microsoft.identity.client.SilentAuthenticationCallback
 import com.microsoft.identity.client.exception.MsalException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +29,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val authManager: AuthManager,
     private val themePreferenceRepository: ThemePreferenceRepository,
     private val userRepository: UserRepository
@@ -51,7 +57,11 @@ class MainViewModel @Inject constructor(
         false
     )
 
+    private val _areNotificationsEnabled = MutableStateFlow(false)
+    val areNotificationsEnabled: StateFlow<Boolean> = _areNotificationsEnabled.asStateFlow()
+
     init {
+        checkNotificationStatus()
         viewModelScope.launch {
             val initialized = authManager.awaitInitialization()
             if (initialized) {
@@ -176,6 +186,19 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             themePreferenceRepository.setDarkMode(enabled)
         }
+    }
+
+    fun checkNotificationStatus() {
+        _areNotificationsEnabled.value = NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+    fun openNotificationSettings() {
+        val intent = Intent().apply {
+            action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
     }
 
     private fun loadData(token: String) {

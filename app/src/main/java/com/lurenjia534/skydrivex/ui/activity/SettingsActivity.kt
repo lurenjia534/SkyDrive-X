@@ -43,6 +43,11 @@ class SettingsActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.checkNotificationStatus()
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,6 +59,7 @@ fun SettingsScreen(
 ) {
     val account by viewModel.account.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
+    val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -211,6 +217,10 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("通知设置")
+                        Switch(
+                            checked = areNotificationsEnabled,
+                            onCheckedChange = { viewModel.openNotificationSettings() }
+                        )
                     }
                     Text(
                         text = "其他设置选项即将推出...",
