@@ -15,7 +15,7 @@ private val Context.dataStore by preferencesDataStore(name = PREFS_NAME)
 
 @Singleton
 class ThemePreferenceRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @field:ApplicationContext private val context: Context
 ) {
     private val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
 
