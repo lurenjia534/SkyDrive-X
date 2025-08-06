@@ -68,20 +68,48 @@ fun ProfileScreen(
 
                 uiState.data != null -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        uiState.data.id.let {
+                            Text(text = "ID: $it", fontSize = 16.sp)
+                        }
+                        uiState.data.businessPhones?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "商务电话: ${it.joinToString(", ")}")
+                        }
                         uiState.data.displayName?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(text = it, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         }
-                        uiState.data.mail?.let {
+                        uiState.data.givenName?.let {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = it)
+                            Text(text = "名: $it")
                         }
                         uiState.data.jobTitle?.let {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = it)
+                            Text(text = "职位: $it")
+                        }
+                        uiState.data.mail?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "邮箱: $it")
+                        }
+                        uiState.data.mobilePhone?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "手机: $it")
+                        }
+                        uiState.data.officeLocation?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "办公地点: $it")
                         }
                         uiState.data.preferredLanguage?.let {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = it)
+                            Text(text = "首选语言: $it")
+                        }
+                        uiState.data.surname?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "姓: $it")
+                        }
+                        uiState.data.userPrincipalName?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "用户主体名称: $it")
                         }
                     }
                 }
