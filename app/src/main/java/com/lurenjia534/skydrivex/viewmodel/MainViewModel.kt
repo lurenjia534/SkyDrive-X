@@ -30,7 +30,7 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private val SCOPES = arrayOf("User.Read")
+        private val SCOPES = arrayOf("User.Read", "Files.Read")
     }
 
     private val _account = MutableStateFlow<IAccount?>(null)
@@ -38,6 +38,9 @@ class MainViewModel @Inject constructor(
 
     private val _userState = MutableStateFlow(UserUiState(data = null, isLoading = false, error = null))
     val userState: StateFlow<UserUiState> = _userState.asStateFlow()
+
+    private val _driveState = MutableStateFlow(DriveUiState(data = null, isLoading = false, error = null))
+    val driveState: StateFlow<DriveUiState> = _driveState.asStateFlow()
 
     private var lastToken: String? = null
 
@@ -65,6 +68,7 @@ class MainViewModel @Inject constructor(
                             acquireTokenSilent()
                         } else {
                             _userState.value = UserUiState(data = null, isLoading = false, error = null)
+                            _driveState.value = DriveUiState(data = null, isLoading = false, error = null)
                         }
                     }
 
@@ -74,6 +78,7 @@ class MainViewModel @Inject constructor(
                 })
             } else {
                 _userState.value = UserUiState(data = null, isLoading = false, error = "MSAL initialization failed")
+                _driveState.value = DriveUiState(data = null, isLoading = false, error = "MSAL initialization failed")
             }
         }
     }
@@ -82,7 +87,7 @@ class MainViewModel @Inject constructor(
         authManager.signIn(activity, SCOPES, object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
                 _account.value = authenticationResult.account
-                loadUser(authenticationResult.accessToken)
+                loadData(authenticationResult.accessToken)
             }
 
             override fun onError(exception: MsalException) {
@@ -99,7 +104,7 @@ class MainViewModel @Inject constructor(
         authManager.acquireToken(activity, SCOPES, object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
                 _account.value = authenticationResult.account
-                loadUser(authenticationResult.accessToken)
+                loadData(authenticationResult.accessToken)
             }
 
             override fun onError(exception: MsalException) {
@@ -114,12 +119,13 @@ class MainViewModel @Inject constructor(
 
     fun acquireTokenSilent() {
         _userState.value = UserUiState(data = null, isLoading = true, error = null)
+        _driveState.value = DriveUiState(data = null, isLoading = true, error = null)
         viewModelScope.launch {
             if (authManager.awaitInitialization()) {
                 authManager.acquireTokenSilent(SCOPES, object : SilentAuthenticationCallback {
                     override fun onSuccess(authenticationResult: IAuthenticationResult) {
                         _account.value = authenticationResult.account
-                        loadUser(authenticationResult.accessToken)
+                        loadData(authenticationResult.accessToken)
                     }
 
                     override fun onError(exception: MsalException) {
@@ -129,10 +135,20 @@ class MainViewModel @Inject constructor(
                             isLoading = false,
                             error = exception.message ?: "Failed to acquire token",
                         )
+                        _driveState.value = DriveUiState(
+                            data = null,
+                            isLoading = false,
+                            error = exception.message ?: "Failed to acquire token",
+                        )
                     }
                 })
             } else {
                 _userState.value = UserUiState(
+                    data = null,
+                    isLoading = false,
+                    error = "MSAL initialization failed",
+                )
+                _driveState.value = DriveUiState(
                     data = null,
                     isLoading = false,
                     error = "MSAL initialization failed",
@@ -146,6 +162,7 @@ class MainViewModel @Inject constructor(
             override fun onSignOut() {
                 _account.value = null
                 _userState.value = UserUiState(data = null, isLoading = false, error = null)
+                _driveState.value = DriveUiState(data = null, isLoading = false, error = null)
             }
 
             override fun onError(exception: MsalException) {
@@ -160,8 +177,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun loadUser(token: String) {
+    private fun loadData(token: String) {
         lastToken = token
+        loadUser(token)
+        loadDrive(token)
+    }
+
+    private fun loadUser(token: String) {
         viewModelScope.launch {
             _userState.value = UserUiState(data = null, isLoading = true, error = null)
             try {
@@ -173,8 +195,20 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private fun loadDrive(token: String) {
+        viewModelScope.launch {
+            _driveState.value = DriveUiState(data = null, isLoading = true, error = null)
+            try {
+                val drive = userRepository.getDrive("Bearer $token")
+                _driveState.value = DriveUiState(data = drive, isLoading = false, error = null)
+            } catch (e: Exception) {
+                _driveState.value = DriveUiState(data = null, isLoading = false, error = e.message)
+            }
+        }
+    }
+
     fun retry() {
-        lastToken?.let { loadUser(it) }
+        lastToken?.let { loadData(it) }
     }
 }
 
