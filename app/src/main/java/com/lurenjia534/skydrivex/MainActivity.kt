@@ -60,9 +60,11 @@ fun SkyDriveXAppContent(viewModel: MainViewModel = hiltViewModel()) {
             modifier = Modifier.fillMaxSize(),
             bottomBar = { BottomNavBar(navController = navController) }
         ) { innerPadding ->
-            Box(modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = innerPadding.calculateBottomPadding())
+            ) {
                 NavGraph(
                     navController = navController,
                     modifier = Modifier.fillMaxSize(),
