@@ -1,36 +1,59 @@
 package com.lurenjia534.skydrivex.ui.screens
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBox
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.DataUsage
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Smartphone
+import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.SystemUpdate
+import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.lurenjia534.skydrivex.viewmodel.DriveUiState
 import com.lurenjia534.skydrivex.viewmodel.UserUiState
+import java.util.Locale
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProfileScreen(
     uiState: UserUiState,
@@ -65,7 +88,19 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                val isSuccess = data.visuals.message.contains("成功")
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = if (isSuccess) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    }
+                )
+            }
+        }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -89,81 +124,167 @@ fun ProfileScreen(
                 }
                 uiState.data != null && driveState.data != null -> {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            horizontal = 16.dp,
+                            vertical = 4.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        stickyHeader {
+                            Text(
+                                text = "个人信息",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.background)
+                                    .padding(vertical = 8.dp)
+                            )
+                        }
                         item {
                             OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                                 Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = "个人信息",
-                                        style = MaterialTheme.typography.titleMedium
+                                    InfoItem(
+                                        label = "ID",
+                                        value = uiState.data.id,
+                                        leadingIcon = Icons.Outlined.Badge
                                     )
-                                    InfoItem(label = "ID", value = uiState.data.id)
                                     uiState.data.businessPhones?.let {
                                         InfoItem(
                                             label = "商务电话",
-                                            value = it.joinToString(", ")
+                                            value = it.joinToString(", "),
+                                            leadingIcon = Icons.Outlined.Phone
                                         )
                                     }
                                     uiState.data.displayName?.let {
-                                        InfoItem(label = "显示名称", value = it)
+                                        InfoItem(
+                                            label = "显示名称",
+                                            value = it,
+                                            leadingIcon = Icons.Outlined.Person
+                                        )
                                     }
-                                    uiState.data.givenName?.let {
-                                        InfoItem(label = "名", value = it)
+                                    @OptIn(ExperimentalLayoutApi::class)
+                                    FlowRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        maxItemsInEachRow = 2
+                                    ) {
+                                        uiState.data.givenName?.let {
+                                            InfoItem(
+                                                label = "名",
+                                                value = it,
+                                                leadingIcon = Icons.Outlined.AccountBox,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                        uiState.data.surname?.let {
+                                            InfoItem(
+                                                label = "姓",
+                                                value = it,
+                                                leadingIcon = Icons.Outlined.AccountBox,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
                                     }
                                     uiState.data.jobTitle?.let {
-                                        InfoItem(label = "职位", value = it)
+                                        InfoItem(
+                                            label = "职位",
+                                            value = it,
+                                            leadingIcon = Icons.Outlined.Work
+                                        )
                                     }
                                     uiState.data.mail?.let {
-                                        InfoItem(label = "邮箱", value = it)
+                                        InfoItem(
+                                            label = "邮箱",
+                                            value = it,
+                                            leadingIcon = Icons.Outlined.Email
+                                        )
                                     }
                                     uiState.data.mobilePhone?.let {
-                                        InfoItem(label = "手机", value = it)
+                                        InfoItem(
+                                            label = "手机",
+                                            value = it,
+                                            leadingIcon = Icons.Outlined.Smartphone
+                                        )
                                     }
                                     uiState.data.officeLocation?.let {
-                                        InfoItem(label = "办公地点", value = it)
+                                        InfoItem(
+                                            label = "办公地点",
+                                            value = it,
+                                            leadingIcon = Icons.Outlined.LocationOn
+                                        )
                                     }
                                     uiState.data.preferredLanguage?.let {
-                                        InfoItem(label = "首选语言", value = it)
-                                    }
-                                    uiState.data.surname?.let {
-                                        InfoItem(label = "姓", value = it)
+                                        InfoItem(
+                                            label = "首选语言",
+                                            value = it,
+                                            leadingIcon = Icons.Outlined.Language
+                                        )
                                     }
                                     uiState.data.userPrincipalName?.let {
-                                        InfoItem(label = "用户主体名称", value = it)
+                                        InfoItem(
+                                            label = "用户主体名称",
+                                            value = it,
+                                            leadingIcon = Icons.Outlined.AccountCircle
+                                        )
                                     }
                                 }
                             }
                         }
                         driveState.data.quota?.let { quota ->
+                            stickyHeader {
+                                Text(
+                                    text = "存储配额",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.background)
+                                        .padding(vertical = 8.dp)
+                                )
+                            }
                             item {
                                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                                     Column(modifier = Modifier.padding(16.dp)) {
-                                        Text(
-                                            text = "存储配额",
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        quota.total?.let {
-                                            InfoItem(label = "总空间", value = "$it")
-                                        }
-                                        quota.used?.let {
-                                            InfoItem(label = "已使用", value = "$it")
+                                        quota.total?.let { total ->
+                                            quota.used?.let { used ->
+                                                InfoItem(
+                                                    label = "已使用",
+                                                    value = "${formatBytes(used)} / ${formatBytes(total)}",
+                                                    leadingIcon = Icons.Outlined.DataUsage
+                                                )
+                                                LinearProgressIndicator(
+                                                progress = { used.toFloat() / total.toFloat() },
+                                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                                )
+                                            }
                                         }
                                         quota.remaining?.let {
-                                            InfoItem(label = "剩余", value = "$it")
+                                            InfoItem(
+                                                label = "剩余",
+                                                value = formatBytes(it),
+                                                leadingIcon = Icons.Outlined.Storage
+                                            )
                                         }
                                         quota.deleted?.let {
-                                            InfoItem(label = "已删除", value = "$it")
+                                            InfoItem(
+                                                label = "已删除",
+                                                value = formatBytes(it),
+                                                leadingIcon = Icons.Outlined.Delete
+                                            )
                                         }
                                         quota.state?.let {
-                                            InfoItem(label = "状态", value = it)
+                                            InfoItem(
+                                                label = "状态",
+                                                value = it,
+                                                leadingIcon = Icons.Outlined.Info
+                                            )
                                         }
                                         quota.storagePlanInformation?.upgradeAvailable?.let {
-                                            InfoItem(label = "可升级", value = "$it")
+                                            InfoItem(
+                                                label = "可升级",
+                                                value = "$it",
+                                                leadingIcon = Icons.Outlined.SystemUpdate
+                                            )
                                         }
                                     }
                                 }
@@ -187,9 +308,29 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun InfoItem(label: String, value: String) {
+private fun InfoItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
+) {
     ListItem(
+        modifier = modifier,
+        leadingContent = leadingIcon?.let { { Icon(it, contentDescription = null) } },
         headlineContent = { Text(label) },
-        supportingContent = { Text(value) }
+        supportingContent = { Text(value) },
     )
+}
+
+private fun formatBytes(bytes: Long): String {
+    val kb = 1024L
+    val mb = kb * 1024
+    val gb = mb * 1024
+    return when {
+        bytes >= gb -> "%.2f GB".format(Locale.US, bytes.toDouble() / gb)
+        bytes >= mb -> "%.2f MB".format(Locale.US, bytes.toDouble() / mb)
+        bytes >= kb -> "%.2f KB".format(Locale.US, bytes.toDouble() / kb)
+        else        -> "$bytes B"
+
+    }
 }
