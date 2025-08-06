@@ -1,6 +1,7 @@
 package com.lurenjia534.skydrivex.di
 
 import com.lurenjia534.skydrivex.data.remote.GraphApiService
+import com.lurenjia534.skydrivex.data.repository.FilesRepository
 import com.lurenjia534.skydrivex.data.repository.UserRepository
 import dagger.Module
 import dagger.Provides
@@ -50,6 +51,11 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(GraphApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFilesRepository(graphApiService: GraphApiService): FilesRepository =
+        FilesRepository(graphApiService)
 
     @Provides
     @Singleton
