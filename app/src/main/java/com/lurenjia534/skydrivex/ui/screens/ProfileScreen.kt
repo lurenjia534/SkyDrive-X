@@ -20,24 +20,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lurenjia534.skydrivex.viewmodel.DriveUiState
 import com.lurenjia534.skydrivex.viewmodel.UserUiState
 
 @Composable
 fun ProfileScreen(
     uiState: UserUiState,
+    driveState: DriveUiState,
     onRefresh: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        if (uiState.data == null && uiState.error == null && !uiState.isLoading) {
+        if (
+            (uiState.data == null || driveState.data == null) &&
+            uiState.error == null &&
+            driveState.error == null &&
+            !uiState.isLoading &&
+            !driveState.isLoading
+        ) {
             onRefresh()
         }
     }
 
-    LaunchedEffect(uiState.error, uiState.data) {
+    LaunchedEffect(uiState.error, uiState.data, driveState.error, driveState.data) {
         uiState.error?.let { snackbarHostState.showSnackbar(it) }
-        if (uiState.error == null && uiState.data != null) {
+        driveState.error?.let { snackbarHostState.showSnackbar(it) }
+        if (
+            uiState.error == null &&
+            driveState.error == null &&
+            uiState.data != null &&
+            driveState.data != null
+        ) {
             snackbarHostState.showSnackbar("加载成功")
         }
     }
@@ -52,21 +66,20 @@ fun ProfileScreen(
             contentAlignment = Alignment.Center
         ) {
             when {
-                uiState.isLoading -> {
+                uiState.isLoading || driveState.isLoading -> {
                     CircularProgressIndicator()
                 }
 
-                uiState.error != null -> {
+                uiState.error != null || driveState.error != null -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = uiState.error)
+                        Text(text = uiState.error ?: driveState.error ?: "")
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = onRefresh) {
                             Text(text = "重试")
                         }
                     }
                 }
-
-                uiState.data != null -> {
+                uiState.data != null && driveState.data != null -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         uiState.data.id.let {
                             Text(text = "ID: $it", fontSize = 16.sp)
@@ -110,6 +123,39 @@ fun ProfileScreen(
                         uiState.data.userPrincipalName?.let {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(text = "用户主体名称: $it")
+                        }
+
+                        driveState.data.quota?.let { quota ->
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "存储配额",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            quota.total?.let {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(text = "总空间: $it")
+                            }
+                            quota.used?.let {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(text = "已使用: $it")
+                            }
+                            quota.remaining?.let {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(text = "剩余: $it")
+                            }
+                            quota.deleted?.let {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(text = "已删除: $it")
+                            }
+                            quota.state?.let {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(text = "状态: $it")
+                            }
+                            quota.storagePlanInformation?.upgradeAvailable?.let {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(text = "可升级: $it")
+                            }
                         }
                     }
                 }

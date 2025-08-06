@@ -33,7 +33,12 @@ fun NavGraph(
         }
         composable(NavDestination.Profile.route) {
             val uiState by viewModel.userState.collectAsState()
-            ProfileScreen(uiState = uiState, onRefresh = viewModel::retry)
+            val driveState by viewModel.driveState.collectAsState()
+            ProfileScreen(
+                uiState = uiState,
+                driveState = driveState,
+                onRefresh = viewModel::retry,
+            )
         }
         composable(NavDestination.Settings.route) {
             // 空白页面，点击导航时会启动SettingsActivity
