@@ -32,10 +32,8 @@ fun FilesScreen(
 ) {
     val uiState by viewModel.filesState.collectAsState()
 
-    LaunchedEffect(token) {
-        if (token != null) {
-            viewModel.loadRoot(token)
-        }
+    LaunchedEffect(key1 = token) {
+        token?.let { viewModel.loadRoot(it) }
     }
 
     when {

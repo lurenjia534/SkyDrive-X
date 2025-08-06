@@ -29,15 +29,17 @@ fun NavGraph(
             HomeScreen()
         }
         composable(NavDestination.Files.route) {
-            FilesScreen(token = viewModel.token)
+            val token by viewModel.token.collectAsState()
+            FilesScreen(token = token)
         }
         composable(NavDestination.Profile.route) {
             val uiState by viewModel.userState.collectAsState()
             val driveState by viewModel.driveState.collectAsState()
+            val token by viewModel.token.collectAsState()
             ProfileScreen(
                 uiState = uiState,
                 driveState = driveState,
-                token = viewModel.token,
+                token = token,
                 onRefresh = viewModel::retry,
             )
         }
