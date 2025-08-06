@@ -79,6 +79,10 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(text = it)
                         }
+                        uiState.data.preferredLanguage?.let {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = it)
+                        }
                     }
                 }
 
