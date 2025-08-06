@@ -1,0 +1,23 @@
+package com.lurenjia534.skydrivex.data.model
+
+import com.squareup.moshi.JsonClass
+
+@JsonClass(generateAdapter = true)
+data class DriveDto(
+    val quota: Quota?
+)
+
+@JsonClass(generateAdapter = true)
+data class Quota(
+    val total: Long?,
+    val used: Long?,
+    val remaining: Long?,
+    val deleted: Long?,
+    val state: String?,
+    val storagePlanInformation: StoragePlanInformation?
+)
+
+@JsonClass(generateAdapter = true)
+data class StoragePlanInformation(
+    val upgradeAvailable: Boolean?
+)
