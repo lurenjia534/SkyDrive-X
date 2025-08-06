@@ -43,6 +43,7 @@ class MainViewModel @Inject constructor(
     val driveState: StateFlow<DriveUiState> = _driveState.asStateFlow()
 
     private var lastToken: String? = null
+    val token: String? get() = lastToken
 
     val isDarkMode = themePreferenceRepository.isDarkMode.stateIn(
         viewModelScope,

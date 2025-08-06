@@ -37,6 +37,7 @@ fun NavGraph(
             ProfileScreen(
                 uiState = uiState,
                 driveState = driveState,
+                token = viewModel.token,
                 onRefresh = viewModel::retry,
             )
         }
