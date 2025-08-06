@@ -18,21 +18,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBox
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -42,25 +47,34 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import com.google.accompanist.placeholder.PlaceholderHighlight
+import com.google.accompanist.placeholder.material.placeholder
+import com.google.accompanist.placeholder.material.shimmer
 import com.lurenjia534.skydrivex.viewmodel.DriveUiState
 import com.lurenjia534.skydrivex.viewmodel.UserUiState
 import java.util.Locale
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     uiState: UserUiState,
     driveState: DriveUiState,
+    token: String?,
     onRefresh: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
 
     LaunchedEffect(Unit) {
         if (
@@ -88,6 +102,19 @@ fun ProfileScreen(
     }
 
     Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("个人中心") },
+                actions = {
+                    IconButton(onClick = { token?.let { clipboardManager.setText(AnnotatedString(it)) } }) {
+                        Icon(Icons.Outlined.Key, contentDescription = "复制令牌")
+                    }
+                    IconButton(onClick = onRefresh) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = "刷新")
+                    }
+                }
+            )
+        },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState) { data ->
                 val isSuccess = data.visuals.message.contains("成功")
@@ -105,16 +132,18 @@ fun ProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
+                .padding(paddingValues)
         ) {
             when {
                 uiState.isLoading || driveState.isLoading -> {
-                    CircularProgressIndicator()
+                    ProfileLoadingPlaceholder(modifier = Modifier.align(Alignment.TopCenter))
                 }
 
                 uiState.error != null || driveState.error != null -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(text = uiState.error ?: driveState.error ?: "")
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = onRefresh) {
@@ -122,9 +151,12 @@ fun ProfileScreen(
                         }
                     }
                 }
+
                 uiState.data != null && driveState.data != null -> {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .align(Alignment.TopCenter),
                         contentPadding = PaddingValues(
                             horizontal = 16.dp,
                             vertical = 4.dp
@@ -249,12 +281,18 @@ fun ProfileScreen(
                                             quota.used?.let { used ->
                                                 InfoItem(
                                                     label = "已使用",
-                                                    value = "${formatBytes(used)} / ${formatBytes(total)}",
+                                                    value = "${formatBytes(used)} / ${
+                                                        formatBytes(
+                                                            total
+                                                        )
+                                                    }",
                                                     leadingIcon = Icons.Outlined.DataUsage
                                                 )
                                                 LinearProgressIndicator(
-                                                progress = { used.toFloat() / total.toFloat() },
-                                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                                    progress = { used.toFloat() / total.toFloat() },
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 4.dp),
                                                 )
                                             }
                                         }
@@ -322,6 +360,34 @@ private fun InfoItem(
     )
 }
 
+@Composable
+private fun ProfileLoadingPlaceholder(modifier: Modifier = Modifier) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(5) {
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    repeat(3) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(24.dp)
+                                .padding(vertical = 4.dp)
+                                .placeholder(
+                                    visible = true,
+                                    highlight = PlaceholderHighlight.shimmer()
+                                )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 private fun formatBytes(bytes: Long): String {
     val kb = 1024L
     val mb = kb * 1024
@@ -330,7 +396,7 @@ private fun formatBytes(bytes: Long): String {
         bytes >= gb -> "%.2f GB".format(Locale.US, bytes.toDouble() / gb)
         bytes >= mb -> "%.2f MB".format(Locale.US, bytes.toDouble() / mb)
         bytes >= kb -> "%.2f KB".format(Locale.US, bytes.toDouble() / kb)
-        else        -> "$bytes B"
+        else -> "$bytes B"
 
     }
 }
