@@ -2,6 +2,7 @@ package com.lurenjia534.skydrivex
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -11,6 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
@@ -25,8 +28,17 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                /* lightScrim = */ Color.Transparent.toArgb(),   // 浅色图标时铺的颜色
+                /* darkScrim  = */ Color.Transparent.toArgb()    // 深色图标时铺的颜色
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                lightScrim = Color.Transparent.toArgb(),
+                darkScrim  = Color.Transparent.toArgb()
+            )
+        )
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         viewModel.acquireTokenSilent()
         setContent {
             SkyDriveXAppContent(viewModel)
