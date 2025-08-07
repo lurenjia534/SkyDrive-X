@@ -12,7 +12,7 @@ interface GraphApiService {
     @GET("me")
     suspend fun getMe(@Header("Authorization") token: String): UserDto
 
-    @GET("me/drive?\$select=quota")
+    @GET("me/drive?\$select=id,driveType,quota")
     suspend fun getDrive(@Header("Authorization") token: String): DriveDto
 
     @GET("me/drive/root/children")

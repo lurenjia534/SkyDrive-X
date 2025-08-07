@@ -4,7 +4,9 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class DriveDto(
-    val quota: Quota?
+    val id: String?,
+    val driveType: String?,
+    val quota: Quota?,
 )
 
 @JsonClass(generateAdapter = true)
@@ -14,10 +16,11 @@ data class Quota(
     val remaining: Long?,
     val deleted: Long?,
     val state: String?,
-    val storagePlanInformation: StoragePlanInformation?
+    val storagePlanInformation: StoragePlanInformation?,
 )
 
 @JsonClass(generateAdapter = true)
 data class StoragePlanInformation(
-    val upgradeAvailable: Boolean?
+    val upgradeAvailable: Boolean?,
 )
+

@@ -152,6 +152,7 @@ fun ProfileScreen(
                 }
 
                 uiState.data != null && driveState.data != null -> {
+                    val drive = driveState.data
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -262,7 +263,7 @@ fun ProfileScreen(
                                 }
                             }
                         }
-                        driveState.data.quota?.let { quota ->
+                        drive.quota?.let { quota ->
                             stickyHeader {
                                 Text(
                                     text = "存储配额",
@@ -276,6 +277,14 @@ fun ProfileScreen(
                             item {
                                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                                     Column(modifier = Modifier.padding(16.dp)) {
+                                        drive.driveType?.let { type ->
+                                            val typeText = if (type == "personal") "个人版" else "企业版"
+                                            InfoItem(
+                                                label = "OneDrive 类型",
+                                                value = typeText,
+                                                leadingIcon = if (type == "business") Icons.Outlined.Work else Icons.Outlined.Person,
+                                            )
+                                        }
                                         quota.total?.let { total ->
                                             quota.used?.let { used ->
                                                 InfoItem(
