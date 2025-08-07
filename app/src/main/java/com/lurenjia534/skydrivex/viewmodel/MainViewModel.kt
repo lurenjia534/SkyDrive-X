@@ -130,11 +130,23 @@ class MainViewModel @Inject constructor(
     }
 
     fun acquireTokenSilent() {
-        _userState.value = UserUiState(data = null, isLoading = true, error = null)
+        _account.value?.let { account ->
+            acquireTokenSilentInternal(account)
+        } ?: run {
+            // 当前无缓存账户：清空数据并等待用户交互登录
+            _userState.value  = UserUiState(data = null, isLoading = false, error = "No cached account")
+            _driveState.value = DriveUiState(data = null, isLoading = false, error = "No cached account")
+        }
+    }
+
+    // 真正执行静默刷新的内部方法（必须拿到 account）
+    private fun acquireTokenSilentInternal(account: IAccount) {
+        _userState.value  = UserUiState(data = null, isLoading = true, error = null)
         _driveState.value = DriveUiState(data = null, isLoading = true, error = null)
+
         viewModelScope.launch {
             if (authManager.awaitInitialization()) {
-                authManager.acquireTokenSilent(SCOPES, object : SilentAuthenticationCallback {
+                authManager.acquireTokenSilent(account, SCOPES, object : SilentAuthenticationCallback {
                     override fun onSuccess(authenticationResult: IAuthenticationResult) {
                         _account.value = authenticationResult.account
                         loadData(authenticationResult.accessToken)
@@ -142,29 +154,15 @@ class MainViewModel @Inject constructor(
 
                     override fun onError(exception: MsalException) {
                         Log.e("MainViewModel", "Silent token error", exception)
-                        _userState.value = UserUiState(
-                            data = null,
-                            isLoading = false,
-                            error = exception.message ?: "Failed to acquire token",
-                        )
-                        _driveState.value = DriveUiState(
-                            data = null,
-                            isLoading = false,
-                            error = exception.message ?: "Failed to acquire token",
-                        )
+
+                        // 如果是 MsalUiRequiredException 可以提示 UI 去调用交互登录
+                        _userState.value  = UserUiState(data = null, isLoading = false, error = exception.message)
+                        _driveState.value = DriveUiState(data = null, isLoading = false, error = exception.message)
                     }
                 })
             } else {
-                _userState.value = UserUiState(
-                    data = null,
-                    isLoading = false,
-                    error = "MSAL initialization failed",
-                )
-                _driveState.value = DriveUiState(
-                    data = null,
-                    isLoading = false,
-                    error = "MSAL initialization failed",
-                )
+                _userState.value  = UserUiState(data = null, isLoading = false, error = "MSAL initialization failed")
+                _driveState.value = DriveUiState(data = null, isLoading = false, error = "MSAL initialization failed")
             }
         }
     }

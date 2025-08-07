@@ -10,6 +10,10 @@ import com.microsoft.identity.client.ISingleAccountPublicClientApplication
 import com.microsoft.identity.client.PublicClientApplication
 import com.microsoft.identity.client.SilentAuthenticationCallback
 import com.microsoft.identity.client.exception.MsalException
+import com.microsoft.identity.client.AcquireTokenParameters
+import com.microsoft.identity.client.AcquireTokenSilentParameters
+import com.microsoft.identity.client.IAccount
+import com.microsoft.identity.client.Prompt
 import kotlinx.coroutines.CompletableDeferred
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -19,7 +23,6 @@ import javax.inject.Singleton
 class AuthManager @Inject constructor(@ApplicationContext context: Context) {
 
     private var singleAccountApp: ISingleAccountPublicClientApplication? = null
-    private val authority = "https://login.microsoftonline.com/common"
     private val initializationDeferred = CompletableDeferred<Boolean>()
 
     init {
@@ -43,15 +46,37 @@ class AuthManager @Inject constructor(@ApplicationContext context: Context) {
     suspend fun awaitInitialization(): Boolean = initializationDeferred.await()
 
     fun signIn(activity: Activity, scopes: Array<String>, callback: AuthenticationCallback) {
-        singleAccountApp?.signIn(activity, null, scopes, callback)
+        val parameters = AcquireTokenParameters.Builder()
+            .startAuthorizationFromActivity(activity)
+            .withScopes(scopes.toList())
+            .withPrompt(Prompt.SELECT_ACCOUNT) // 显式触发登录/选择账号
+            .withCallback(callback)
+            .build()
+        singleAccountApp?.acquireToken(parameters)
     }
 
     fun acquireToken(activity: Activity, scopes: Array<String>, callback: AuthenticationCallback) {
-        singleAccountApp?.acquireToken(activity, scopes, callback)
+        val parameters = AcquireTokenParameters.Builder()
+            .startAuthorizationFromActivity(activity)
+            .withScopes(scopes.toList())
+            .withCallback(callback)
+            .build()
+        singleAccountApp?.acquireToken(parameters)
     }
 
-    fun acquireTokenSilent(scopes: Array<String>, callback: SilentAuthenticationCallback) {
-        singleAccountApp?.acquireTokenSilentAsync(scopes, authority, callback)
+    fun acquireTokenSilent(account: IAccount, scopes: Array<String>, callback: SilentAuthenticationCallback) {
+
+        //val authority = "https://login.microsoftonline.com/common"
+        // 依据当前账户租户 ID 构造租户专属 authority
+        val tenantAuthority = account.authority
+
+        val parameters = AcquireTokenSilentParameters.Builder()
+            .forAccount(account)
+            .fromAuthority(tenantAuthority)
+            .withScopes(scopes.toList())
+            .withCallback(callback)
+            .build()
+        singleAccountApp?.acquireTokenSilentAsync(parameters)
     }
 
     fun signOut(callback: ISingleAccountPublicClientApplication.SignOutCallback) {
