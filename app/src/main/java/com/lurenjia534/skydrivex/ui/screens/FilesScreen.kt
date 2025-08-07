@@ -3,6 +3,7 @@ package com.lurenjia534.skydrivex.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -11,11 +12,15 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -31,48 +36,60 @@ fun FilesScreen(
     viewModel: FilesViewModel = hiltViewModel<FilesViewModel>(),
 ) {
     val uiState by viewModel.filesState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(key1 = token) {
         token?.let { viewModel.loadRoot(it) }
     }
 
-    when {
-        uiState.isLoading -> {
-            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+    LaunchedEffect(uiState.items, uiState.error) {
+        uiState.error?.let { message ->
+            snackbarHostState.showSnackbar(message)
+        } ?: uiState.items?.let {
+            snackbarHostState.showSnackbar("加载成功")
         }
+    }
 
-        uiState.error != null -> {
-            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = uiState.error ?: "加载失败")
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+        val contentModifier = modifier.fillMaxSize().padding(padding)
+        when {
+            uiState.isLoading -> {
+                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        }
 
-        uiState.items.isNullOrEmpty() -> {
-            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "暂无文件")
+            uiState.error != null -> {
+                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
+                    Text(text = uiState.error ?: "加载失败")
+                }
             }
-        }
 
-        else -> {
-            LazyColumn(modifier = modifier.fillMaxSize()) {
-                items(uiState.items.orEmpty()) { item ->
-                    val isFolder = item.folder != null
-                    ListItem(
-                        headlineContent = { Text(text = item.name ?: "") },
-                        leadingContent = {
-                            Icon(
-                                imageVector = if (isFolder) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier.clickable(enabled = isFolder && item.id != null) {
-                            if (isFolder && item.id != null && token != null) {
-                                viewModel.loadChildren(item.id, token)
-                            }
-                        },
-                    )
+            uiState.items.isNullOrEmpty() -> {
+                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
+                    Text(text = "暂无文件")
+                }
+            }
+
+            else -> {
+                LazyColumn(modifier = contentModifier) {
+                    items(uiState.items.orEmpty()) { item ->
+                        val isFolder = item.folder != null
+                        ListItem(
+                            headlineContent = { Text(text = item.name ?: "") },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = if (isFolder) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
+                                    contentDescription = null,
+                                )
+                            },
+                            modifier = Modifier.clickable(enabled = isFolder && item.id != null) {
+                                if (isFolder && item.id != null && token != null) {
+                                    viewModel.loadChildren(item.id, token)
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
