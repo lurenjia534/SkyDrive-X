@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBox
@@ -373,22 +375,227 @@ private fun ProfileLoadingPlaceholder(modifier: Modifier = Modifier) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(5) {
+        // 标题占位符
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .height(28.dp)
+                    .padding(vertical = 4.dp)
+                    .placeholder(
+                        visible = true,
+                        highlight = PlaceholderHighlight.shimmer(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+            )
+        }
+
+        // 个人信息卡片占位符
+        item {
             OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    repeat(3) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 模拟ListItem的骨架结构
+                    repeat(5) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // 图标占位符
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 16.dp)
+                                    .size(24.dp)
+                                    .placeholder(
+                                        visible = true,
+                                        highlight = PlaceholderHighlight.shimmer(),
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+
+                            Column {
+                                // 标题占位符
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.3f)
+                                        .height(18.dp)
+                                        .placeholder(
+                                            visible = true,
+                                            highlight = PlaceholderHighlight.shimmer(),
+                                            shape = MaterialTheme.shapes.small
+                                        )
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                // 内容占位符
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.7f)
+                                        .height(16.dp)
+                                        .placeholder(
+                                            visible = true,
+                                            highlight = PlaceholderHighlight.shimmer(),
+                                            shape = MaterialTheme.shapes.small
+                                        )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 存储配额标题占位符
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .height(28.dp)
+                    .padding(vertical = 4.dp)
+                    .placeholder(
+                        visible = true,
+                        highlight = PlaceholderHighlight.shimmer(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+            )
+        }
+
+        // 存储配额卡片占位符
+        item {
+            OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 类型信息占位符
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(24.dp)
-                                .padding(vertical = 4.dp)
+                                .padding(end = 16.dp)
+                                .size(24.dp)
                                 .placeholder(
                                     visible = true,
-                                    highlight = PlaceholderHighlight.shimmer()
+                                    highlight = PlaceholderHighlight.shimmer(),
+                                    shape = MaterialTheme.shapes.small
                                 )
                         )
+
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.3f)
+                                    .height(18.dp)
+                                    .placeholder(
+                                        visible = true,
+                                        highlight = PlaceholderHighlight.shimmer(),
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.5f)
+                                    .height(16.dp)
+                                    .placeholder(
+                                        visible = true,
+                                        highlight = PlaceholderHighlight.shimmer(),
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+                        }
+                    }
+
+                    // 使用量信息占位符
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .size(24.dp)
+                                .placeholder(
+                                    visible = true,
+                                    highlight = PlaceholderHighlight.shimmer(),
+                                    shape = MaterialTheme.shapes.small
+                                )
+                        )
+
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.3f)
+                                    .height(18.dp)
+                                    .placeholder(
+                                        visible = true,
+                                        highlight = PlaceholderHighlight.shimmer(),
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.6f)
+                                    .height(16.dp)
+                                    .placeholder(
+                                        visible = true,
+                                        highlight = PlaceholderHighlight.shimmer(),
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+                        }
+                    }
+
+                    // 进度条占位符
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .padding(vertical = 4.dp)
+                            .placeholder(
+                                visible = true,
+                                highlight = PlaceholderHighlight.shimmer(),
+                                shape = MaterialTheme.shapes.medium
+                            )
+                    )
+
+                    // 额外的两个信息项占位符
+                    repeat(2) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 16.dp)
+                                    .size(24.dp)
+                                    .placeholder(
+                                        visible = true,
+                                        highlight = PlaceholderHighlight.shimmer(),
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                            )
+
+                            Column {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.3f)
+                                        .height(18.dp)
+                                        .placeholder(
+                                            visible = true,
+                                            highlight = PlaceholderHighlight.shimmer(),
+                                            shape = MaterialTheme.shapes.small
+                                        )
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.4f)
+                                        .height(16.dp)
+                                        .placeholder(
+                                            visible = true,
+                                            highlight = PlaceholderHighlight.shimmer(),
+                                            shape = MaterialTheme.shapes.small
+                                        )
+                                )
+                            }
+                        }
                     }
                 }
             }
