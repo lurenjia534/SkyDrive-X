@@ -71,7 +71,7 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("设置") },
                 navigationIcon = {
                     IconButton(onClick = onBackPressed) {
@@ -217,60 +217,27 @@ fun SettingsScreen(
 
                                 driveState.data!!.driveType?.let { type ->
                                     val typeText = if (type == "personal") "个人版" else "企业版"
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = if (type == "business") Icons.Outlined.Work else Icons.Outlined.Person,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text(
-                                                text = "OneDrive 类型",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ListItem(
+                                        leadingContent = {
+                                            Icon(
+                                                imageVector = if (type == "business") Icons.Outlined.Work else Icons.Outlined.Person,
+                                                contentDescription = null,
                                             )
-                                            Text(
-                                                text = typeText,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = FontWeight.Medium,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
+                                        },
+                                        headlineContent = { Text("OneDrive 类型") },
+                                        supportingContent = { Text(typeText) },
+                                    )
                                 }
 
                                 driveState.data!!.quota?.let { quota ->
                                     if (quota.total != null && quota.used != null) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Storage,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
-                                                Text(
-                                                    text = "存储空间",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                                Text(
-                                                    text = "${formatBytes(quota.used)} / ${formatBytes(quota.total)}",
-                                                    style = MaterialTheme.typography.bodyLarge,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        }
+                                        ListItem(
+                                            leadingContent = { Icon(Icons.Outlined.Storage, contentDescription = null) },
+                                            headlineContent = { Text("存储空间") },
+                                            supportingContent = {
+                                                Text("${formatBytes(quota.used)} / ${formatBytes(quota.total)}")
+                                            },
+                                        )
 
                                         LinearProgressIndicator(
                                             progress = { quota.used.toFloat() / quota.total.toFloat() },
@@ -294,7 +261,7 @@ fun SettingsScreen(
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         text = "应用设置",
@@ -302,25 +269,26 @@ fun SettingsScreen(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("深色模式")
-                        Switch(checked = isDarkMode, onCheckedChange = viewModel::setDarkMode)
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("通知设置")
-                        Switch(
-                            checked = areNotificationsEnabled,
-                            onCheckedChange = { viewModel.openNotificationSettings() }
-                        )
-                    }
+                    ListItem(
+                        headlineContent = { Text("深色模式") },
+                        supportingContent = { Text("管理是否开启暗色模式") },
+                        trailingContent = {
+                            Switch(
+                                checked = isDarkMode,
+                                onCheckedChange = viewModel::setDarkMode
+                            )
+                        }
+                    )
+                    ListItem(
+                        headlineContent = { Text("通知设置") },
+                        supportingContent = { Text("系统设置中管理通知权限") },
+                        trailingContent = {
+                            Switch(
+                                checked = areNotificationsEnabled,
+                                onCheckedChange = { viewModel.openNotificationSettings() }
+                            )
+                        }
+                    )
                     Text(
                         text = "其他设置选项即将推出...",
                         style = MaterialTheme.typography.bodyMedium,
