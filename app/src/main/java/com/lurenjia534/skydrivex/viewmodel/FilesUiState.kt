@@ -2,6 +2,11 @@ package com.lurenjia534.skydrivex.viewmodel
 
 import com.lurenjia534.skydrivex.data.model.DriveItemDto
 
+data class Breadcrumb(
+    val id: String,
+    val name: String,
+)
+
 /**
  * UI state for file listings.
  *
@@ -14,4 +19,5 @@ data class FilesUiState(
     val isLoading: Boolean,
     val error: String?,
     val canGoBack: Boolean,
+    val path: List<Breadcrumb>,
 )

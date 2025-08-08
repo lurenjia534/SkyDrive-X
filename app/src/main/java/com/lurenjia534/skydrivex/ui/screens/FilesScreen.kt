@@ -27,6 +27,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Divider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,6 +36,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.eygraber.compose.placeholder.PlaceholderHighlight
@@ -102,6 +107,33 @@ fun FilesScreen(
 
             else -> {
                 LazyColumn(modifier = contentModifier) {
+                    item(key = "breadcrumb") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            uiState.path.forEachIndexed { index, crumb ->
+                                AssistChip(
+                                    onClick = {
+                                        if (token != null) {
+                                            viewModel.navigateTo(index, token)
+                                        }
+                                    },
+                                    label = { Text(crumb.name) },
+                                    enabled = index != uiState.path.lastIndex
+                                )
+                                if (index != uiState.path.lastIndex) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("/", style = MaterialTheme.typography.labelLarge)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                            }
+                        }
+                        Divider()
+                    }
                     items(uiState.items.orEmpty()) { item ->
                         val isFolder = item.folder != null
                         ListItem(
@@ -123,7 +155,7 @@ fun FilesScreen(
                             },
                             modifier = Modifier.clickable(enabled = isFolder && item.id != null) {
                                 if (isFolder && item.id != null && token != null) {
-                                    viewModel.loadChildren(item.id, token)
+                                    viewModel.loadChildren(item.id, token, item.name ?: "")
                                 }
                             },
                         )

@@ -17,21 +17,21 @@ class FilesViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _filesState = MutableStateFlow(
-        FilesUiState(items = null, isLoading = false, error = null, canGoBack = false)
+        FilesUiState(items = null, isLoading = false, error = null, canGoBack = false, path = emptyList())
     )
     val filesState: StateFlow<FilesUiState> = _filesState.asStateFlow()
 
     private val cache = mutableMapOf<String, List<DriveItemDto>>()
-    private val stack = mutableListOf<String>()
+    private val stack = mutableListOf<Breadcrumb>()
 
     fun loadRoot(token: String) {
         stack.clear()
-        stack.add("root")
+        stack.add(Breadcrumb(id = "root", name = "根目录"))
         load("root") { filesRepository.getRootChildren("Bearer $token") }
     }
 
-    fun loadChildren(itemId: String, token: String) {
-        stack.add(itemId)
+    fun loadChildren(itemId: String, token: String, name: String) {
+        stack.add(Breadcrumb(id = itemId, name = name.ifEmpty { itemId }))
         load(itemId) { filesRepository.getChildren(itemId, "Bearer $token") }
     }
 
@@ -41,7 +41,8 @@ class FilesViewModel @Inject constructor(
                 items = it,
                 isLoading = false,
                 error = null,
-                canGoBack = stack.size > 1
+                canGoBack = stack.size > 1,
+                path = stack.toList()
             )
             return
         }
@@ -50,7 +51,8 @@ class FilesViewModel @Inject constructor(
                 items = null,
                 isLoading = true,
                 error = null,
-                canGoBack = stack.size > 1
+                canGoBack = stack.size > 1,
+                path = stack.toList()
             )
             try {
                 val items = request()
@@ -59,18 +61,20 @@ class FilesViewModel @Inject constructor(
                     items = items,
                     isLoading = false,
                     error = null,
-                    canGoBack = stack.size > 1
+                    canGoBack = stack.size > 1,
+                    path = stack.toList()
                 )
             } catch (e: Exception) {
                 // 回退栈（如果此次加载是深入子层级失败）
-                if (stack.isNotEmpty() && stack.last() == key && stack.size > 1) {
+                if (stack.isNotEmpty() && stack.last().id == key && stack.size > 1) {
                     stack.removeAt(stack.lastIndex)
                 }
                 _filesState.value = FilesUiState(
                     items = null,
                     isLoading = false,
                     error = e.message,
-                    canGoBack = stack.size > 1
+                    canGoBack = stack.size > 1,
+                    path = stack.toList()
                 )
             }
         }
@@ -80,13 +84,14 @@ class FilesViewModel @Inject constructor(
         if (stack.size <= 1) return
         // 弹出当前层级（避免使用 API 35 的 List#removeLast）
         stack.removeAt(stack.lastIndex)
-        val key = stack.last()
+        val key = stack.last().id
         cache[key]?.let { cached ->
             _filesState.value = FilesUiState(
                 items = cached,
                 isLoading = false,
                 error = null,
-                canGoBack = stack.size > 1
+                canGoBack = stack.size > 1,
+                path = stack.toList()
             )
             return
         }
@@ -95,7 +100,8 @@ class FilesViewModel @Inject constructor(
                 items = null,
                 isLoading = true,
                 error = null,
-                canGoBack = stack.size > 1
+                canGoBack = stack.size > 1,
+                path = stack.toList()
             )
             try {
                 val items = if (key == "root") {
@@ -108,14 +114,69 @@ class FilesViewModel @Inject constructor(
                     items = items,
                     isLoading = false,
                     error = null,
-                    canGoBack = stack.size > 1
+                    canGoBack = stack.size > 1,
+                    path = stack.toList()
                 )
             } catch (e: Exception) {
                 _filesState.value = FilesUiState(
                     items = null,
                     isLoading = false,
                     error = e.message,
-                    canGoBack = stack.size > 1
+                    canGoBack = stack.size > 1,
+                    path = stack.toList()
+                )
+            }
+        }
+    }
+
+    fun navigateTo(index: Int, token: String) {
+        if (index < 0 || index >= stack.size) return
+        if (index == stack.lastIndex) return
+        val target = stack[index]
+        // 截断到 index
+        while (stack.lastIndex > index) {
+            stack.removeAt(stack.lastIndex)
+        }
+        val key = target.id
+        cache[key]?.let { cached ->
+            _filesState.value = FilesUiState(
+                items = cached,
+                isLoading = false,
+                error = null,
+                canGoBack = stack.size > 1,
+                path = stack.toList()
+            )
+            return
+        }
+        viewModelScope.launch {
+            _filesState.value = FilesUiState(
+                items = null,
+                isLoading = true,
+                error = null,
+                canGoBack = stack.size > 1,
+                path = stack.toList()
+            )
+            try {
+                val items = if (key == "root") {
+                    filesRepository.getRootChildren("Bearer $token")
+                } else {
+                    filesRepository.getChildren(key, "Bearer $token")
+                }
+                cache[key] = items
+                _filesState.value = FilesUiState(
+                    items = items,
+                    isLoading = false,
+                    error = null,
+                    canGoBack = stack.size > 1,
+                    path = stack.toList()
+                )
+            } catch (e: Exception) {
+                _filesState.value = FilesUiState(
+                    items = null,
+                    isLoading = false,
+                    error = e.message,
+                    canGoBack = stack.size > 1,
+                    path = stack.toList()
                 )
             }
         }
