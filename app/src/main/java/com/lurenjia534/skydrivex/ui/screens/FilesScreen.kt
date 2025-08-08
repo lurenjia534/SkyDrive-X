@@ -1,15 +1,22 @@
 package com.lurenjia534.skydrivex.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
@@ -23,7 +30,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.eygraber.compose.placeholder.PlaceholderHighlight
+import com.eygraber.compose.placeholder.material3.placeholder
+import com.eygraber.compose.placeholder.material3.shimmer
 import com.lurenjia534.skydrivex.viewmodel.FilesViewModel
 
 /**
@@ -54,9 +65,7 @@ fun FilesScreen(
         val contentModifier = modifier.fillMaxSize().padding(padding)
         when {
             uiState.isLoading -> {
-                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                FilesLoadingPlaceholder(modifier = contentModifier)
             }
 
             uiState.error != null -> {
@@ -96,3 +105,59 @@ fun FilesScreen(
     }
 }
 
+@Composable
+private fun FilesLoadingPlaceholder(modifier: Modifier = Modifier) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(10) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 图标占位
+                Box(
+                    modifier = Modifier
+                        .padding(end = 16.dp)
+                        .size(24.dp)
+                        .placeholder(
+                            visible = true,
+                            highlight = PlaceholderHighlight.shimmer(),
+                            shape = MaterialTheme.shapes.small
+                        )
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    // 文件名占位
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.5f)
+                            .height(18.dp)
+                            .placeholder(
+                                visible = true,
+                                highlight = PlaceholderHighlight.shimmer(),
+                                shape = MaterialTheme.shapes.small
+                            )
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 次要信息占位（如大小/时间）
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.3f)
+                            .height(14.dp)
+                            .placeholder(
+                                visible = true,
+                                highlight = PlaceholderHighlight.shimmer(),
+                                shape = MaterialTheme.shapes.small
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
