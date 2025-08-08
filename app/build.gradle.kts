@@ -53,7 +53,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     implementation("com.microsoft.identity.client:msal:6.2.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
-    implementation("com.google.accompanist:accompanist-placeholder-material:0.36.0")
+    implementation("com.eygraber:compose-placeholder-material3:1.0.11")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
