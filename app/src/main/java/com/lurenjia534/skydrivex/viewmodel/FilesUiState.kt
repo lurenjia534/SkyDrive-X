@@ -13,4 +13,5 @@ data class FilesUiState(
     val items: List<DriveItemDto>?,
     val isLoading: Boolean,
     val error: String?,
+    val canGoBack: Boolean,
 )

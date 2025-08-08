@@ -14,15 +14,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,10 +40,12 @@ import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
 import com.lurenjia534.skydrivex.viewmodel.FilesViewModel
+import java.util.Locale
 
 /**
  * Screen that displays files and folders from the user's drive.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilesScreen(
     token: String?,
@@ -61,7 +67,21 @@ fun FilesScreen(
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("文件") },
+                navigationIcon = {
+                    if (uiState.canGoBack) {
+                        IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
+                        }
+                    }
+                }
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
         val contentModifier = modifier.fillMaxSize().padding(padding)
         when {
             uiState.isLoading -> {
@@ -85,12 +105,21 @@ fun FilesScreen(
                     items(uiState.items.orEmpty()) { item ->
                         val isFolder = item.folder != null
                         ListItem(
-                            headlineContent = { Text(text = item.name ?: "") },
                             leadingContent = {
                                 Icon(
                                     imageVector = if (isFolder) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
                                     contentDescription = null,
                                 )
+                            },
+                            headlineContent = { Text(text = item.name ?: "") },
+                            supportingContent = {
+                                if (isFolder) {
+                                    val count = item.folder.childCount ?: 0
+                                    Text("$count 项")
+                                } else {
+                                    val sizeText = item.size?.let { formatBytes(it) } ?: ""
+                                    if (sizeText.isNotEmpty()) Text(sizeText)
+                                }
                             },
                             modifier = Modifier.clickable(enabled = isFolder && item.id != null) {
                                 if (isFolder && item.id != null && token != null) {
@@ -102,6 +131,18 @@ fun FilesScreen(
                 }
             }
         }
+    }
+}
+
+private fun formatBytes(bytes: Long): String {
+    val kb = 1024L
+    val mb = kb * 1024
+    val gb = mb * 1024
+    return when {
+        bytes >= gb -> "%.2f GB".format(Locale.US, bytes.toDouble() / gb)
+        bytes >= mb -> "%.2f MB".format(Locale.US, bytes.toDouble() / mb)
+        bytes >= kb -> "%.2f KB".format(Locale.US, bytes.toDouble() / kb)
+        else -> "$bytes B"
     }
 }
 
