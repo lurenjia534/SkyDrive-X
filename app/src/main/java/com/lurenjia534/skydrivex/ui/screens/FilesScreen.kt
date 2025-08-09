@@ -44,8 +44,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
@@ -163,13 +165,27 @@ fun FilesScreen(
                                     }
                                 },
                                 trailingContent = {
-                                    IconButton(
-                                        onClick = { expanded = true },
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.MoreVert,
-                                            contentDescription = "更多操作"
-                                        )
+                                    Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
+                                        IconButton(onClick = { expanded = true }) {
+                                            Icon(
+                                                imageVector = Icons.Default.MoreVert,
+                                                contentDescription = "更多操作"
+                                            )
+                                        }
+                                        DropdownMenu(
+                                            expanded = expanded,
+                                            onDismissRequest = { expanded = false },
+                                            offset = DpOffset(x = 0.dp, y = 0.dp) // 如需可微调
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = { Text("删除") },
+                                                onClick = {
+                                                    item.id?.let { if (token != null) viewModel.deleteFile(it, token) }
+                                                    expanded = false
+                                                },
+                                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) }
+                                            )
+                                        }
                                     }
                                 },
                                 modifier = Modifier.clickable(enabled = isFolder && item.id != null) {
@@ -178,28 +194,6 @@ fun FilesScreen(
                                     }
                                 },
                             )
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("删除") },
-                                    onClick = {
-                                        item.id?.let {
-                                            if (token != null) {
-                                                viewModel.deleteFile(it, token)
-                                            }
-                                        }
-                                        expanded = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Outlined.Delete,
-                                            contentDescription = null
-                                        )
-                                    }
-                                )
-                            }
                         }
                     }
                 }
