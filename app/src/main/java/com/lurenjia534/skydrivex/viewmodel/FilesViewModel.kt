@@ -201,4 +201,8 @@ class FilesViewModel @Inject constructor(
             }
         }
     }
+
+    suspend fun getDownloadUrl(itemId: String, token: String): String? {
+        return filesRepository.getDownloadUrl(itemId, "Bearer $token")
+    }
 }

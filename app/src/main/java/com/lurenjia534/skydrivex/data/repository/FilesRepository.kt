@@ -18,4 +18,7 @@ class FilesRepository @Inject constructor(
     suspend fun deleteFile(itemId: String, token: String) {
         graphApiService.deleteFile(id = itemId, token = token)
     }
+
+    suspend fun getDownloadUrl(itemId: String, token: String): String? =
+        graphApiService.getDownloadUrl(id = itemId, token = token).downloadUrl
 }

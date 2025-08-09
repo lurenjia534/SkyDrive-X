@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -49,11 +50,18 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
 import com.lurenjia534.skydrivex.viewmodel.FilesViewModel
 import java.util.Locale
+import android.app.DownloadManager
+import android.net.Uri
+import android.os.Environment
+import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -67,6 +75,8 @@ fun FilesScreen(
 ) {
     val uiState by viewModel.filesState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(key1 = token) {
         token?.let { viewModel.loadRoot(it) }
@@ -177,6 +187,39 @@ fun FilesScreen(
                                             onDismissRequest = { expanded = false },
                                             offset = DpOffset(x = 0.dp, y = 0.dp) // 如需可微调
                                         ) {
+                                            if (!isFolder) {
+                                                DropdownMenuItem(
+                                                    text = { Text("下载") },
+                                                    onClick = {
+                                                        val itemId = item.id
+                                                        val fileName = item.name ?: "download"
+                                                        if (itemId != null && token != null) {
+                                                            scope.launch {
+                                                                try {
+                                                                    val url = viewModel.getDownloadUrl(itemId, token)
+                                                                    if (url.isNullOrEmpty()) {
+                                                                        snackbarHostState.showSnackbar("无法获取下载链接")
+                                                                    } else {
+                                                                        val request = DownloadManager.Request(
+                                                                            url.toUri())
+                                                                            .setTitle(fileName)
+                                                                            .setDescription("SkyDriveX 下载")
+                                                                            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                                                            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+                                                                        val dm = context.getSystemService(DownloadManager::class.java)
+                                                                        dm?.enqueue(request)
+                                                                        snackbarHostState.showSnackbar("已开始下载：$fileName")
+                                                                    }
+                                                                } catch (e: Exception) {
+                                                                    snackbarHostState.showSnackbar(e.message ?: "下载出错")
+                                                                }
+                                                            }
+                                                        }
+                                                        expanded = false
+                                                    },
+                                                    leadingIcon = { Icon(Icons.Outlined.Download, contentDescription = null) }
+                                                )
+                                            }
                                             DropdownMenuItem(
                                                 text = { Text("删除") },
                                                 onClick = {
