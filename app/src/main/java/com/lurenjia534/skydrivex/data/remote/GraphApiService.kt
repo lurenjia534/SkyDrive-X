@@ -3,12 +3,19 @@ package com.lurenjia534.skydrivex.data.remote
 import com.lurenjia534.skydrivex.data.model.DriveDto
 import com.lurenjia534.skydrivex.data.model.DriveItemsResponse
 import com.lurenjia534.skydrivex.data.model.UserDto
+import retrofit2.Response
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface GraphApiService {
+    @DELETE("me/drive/items/{itemId}")
+    suspend fun deleteFile(
+        @Path("itemId") id: String,
+        @Header("Authorization") token: String
+    ): Response<Unit>
     @GET("me")
     suspend fun getMe(@Header("Authorization") token: String): UserDto
 

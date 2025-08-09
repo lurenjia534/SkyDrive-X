@@ -14,4 +14,8 @@ class FilesRepository @Inject constructor(
 
     suspend fun getChildren(itemId: String, token: String): List<DriveItemDto> =
         graphApiService.getChildren(itemId, token).value
+
+    suspend fun deleteFile(itemId: String, token: String) {
+        graphApiService.deleteFile(id = itemId, token = token)
+    }
 }

@@ -1,5 +1,6 @@
 package com.lurenjia534.skydrivex.data.model
 
+import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
@@ -9,7 +10,7 @@ data class DriveItemDto(
     val size: Long?,
     val folder: FolderFacet?,
     val file: FileFacet?,
-    val parentReference: ItemReference?
+    @Json(name = "parentReference") val parentReference: ItemReference?
 )
 
 @JsonClass(generateAdapter = true)

@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
@@ -29,11 +31,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.horizontalScroll
@@ -136,29 +142,65 @@ fun FilesScreen(
                     }
                     items(uiState.items.orEmpty()) { item ->
                         val isFolder = item.folder != null
-                        ListItem(
-                            leadingContent = {
-                                Icon(
-                                    imageVector = if (isFolder) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
-                                    contentDescription = null,
+                        var expanded by remember { mutableStateOf(false) }
+
+                        Box() {
+                            ListItem(
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = if (isFolder) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
+                                        contentDescription = null,
+                                    )
+                                },
+                                headlineContent = { Text(text = item.name ?: "") },
+                                supportingContent = {
+                                    if (isFolder) {
+                                        val count = item.folder.childCount ?: 0
+                                        Text("$count 项")
+                                    } else {
+                                        val sizeText = item.size?.let { formatBytes(it) } ?: ""
+                                        if (sizeText.isNotEmpty()) Text(sizeText)
+                                    }
+                                },
+                                trailingContent = {
+                                    IconButton(
+                                        onClick = { expanded = true },
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "更多操作"
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.clickable(enabled = isFolder && item.id != null) {
+                                    if (isFolder && item.id != null && token != null) {
+                                        viewModel.loadChildren(item.id, token, item.name ?: "")
+                                    }
+                                },
+                            )
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("删除") },
+                                    onClick = {
+                                        item.id?.let {
+                                            if (token != null) {
+                                                viewModel.deleteFile(it, token)
+                                            }
+                                        }
+                                        expanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Outlined.Delete,
+                                            contentDescription = null
+                                        )
+                                    }
                                 )
-                            },
-                            headlineContent = { Text(text = item.name ?: "") },
-                            supportingContent = {
-                                if (isFolder) {
-                                    val count = item.folder.childCount ?: 0
-                                    Text("$count 项")
-                                } else {
-                                    val sizeText = item.size?.let { formatBytes(it) } ?: ""
-                                    if (sizeText.isNotEmpty()) Text(sizeText)
-                                }
-                            },
-                            modifier = Modifier.clickable(enabled = isFolder && item.id != null) {
-                                if (isFolder && item.id != null && token != null) {
-                                    viewModel.loadChildren(item.id, token, item.name ?: "")
-                                }
-                            },
-                        )
+                            }
+                        }
                     }
                 }
             }

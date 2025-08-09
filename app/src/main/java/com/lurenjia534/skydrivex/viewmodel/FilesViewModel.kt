@@ -181,4 +181,24 @@ class FilesViewModel @Inject constructor(
             }
         }
     }
+    fun deleteFile(itemId: String, token: String) {
+        viewModelScope.launch {
+            try {
+                filesRepository.deleteFile(itemId, "Bearer $token")
+                // 从缓存中移除当前目录的缓存，以便下次重新加载
+                val currentKey = stack.last().id
+                cache.remove(currentKey)
+                // 重新加载当前目录
+                val items = if (currentKey == "root") {
+                    filesRepository.getRootChildren("Bearer $token")
+                } else {
+                    filesRepository.getChildren(currentKey, "Bearer $token")
+                }
+                cache[currentKey] = items
+                _filesState.value = _filesState.value.copy(items = items)
+            } catch (e: Exception) {
+                _filesState.value = _filesState.value.copy(error = e.message)
+            }
+        }
+    }
 }
