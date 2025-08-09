@@ -36,7 +36,7 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private val SCOPES = arrayOf("User.Read", "Files.Read")
+        private val SCOPES = arrayOf("User.Read", "Files.ReadWrite")
     }
 
     private val _account = MutableStateFlow<IAccount?>(null)
