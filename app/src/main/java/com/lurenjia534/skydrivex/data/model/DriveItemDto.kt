@@ -10,7 +10,7 @@ data class DriveItemDto(
     val size: Long?,
     val folder: FolderFacet?,
     val file: FileFacet?,
-    @Json(name = "parentReference") val parentReference: ItemReference?
+    @param:Json(name = "parentReference") val parentReference: ItemReference?
 )
 
 @JsonClass(generateAdapter = true)
