@@ -22,7 +22,7 @@ fun NavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = NavDestination.Home.route,
+        startDestination = NavDestination.Files.route,
         modifier = modifier
     ) {
         composable(NavDestination.Home.route) {
