@@ -10,6 +10,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lurenjia534.skydrivex.auth.AuthManager
 import com.lurenjia534.skydrivex.data.local.ThemePreferenceRepository
+import com.lurenjia534.skydrivex.data.local.DownloadPreferenceRepository
+import com.lurenjia534.skydrivex.data.local.DownloadLocationPreference
 import com.lurenjia534.skydrivex.data.repository.UserRepository
 import com.microsoft.identity.client.AuthenticationCallback
 import com.microsoft.identity.client.IAccount
@@ -32,6 +34,7 @@ class MainViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val authManager: AuthManager,
     private val themePreferenceRepository: ThemePreferenceRepository,
+    private val downloadPreferenceRepository: DownloadPreferenceRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
 
@@ -56,6 +59,12 @@ class MainViewModel @Inject constructor(
         viewModelScope,
         SharingStarted.Eagerly,
         false
+    )
+
+    val downloadPreference = downloadPreferenceRepository.downloadPreference.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        DownloadLocationPreference()
     )
 
     private val _areNotificationsEnabled = MutableStateFlow(false)
@@ -187,6 +196,18 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun setDownloadToSystem() {
+        viewModelScope.launch {
+            downloadPreferenceRepository.setSystemDownloads()
+        }
+    }
+
+    fun setDownloadToCustom(treeUriString: String) {
+        viewModelScope.launch {
+            downloadPreferenceRepository.setCustomTree(treeUriString)
+        }
+    }
+
     fun checkNotificationStatus() {
         _areNotificationsEnabled.value = NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
@@ -235,4 +256,3 @@ class MainViewModel @Inject constructor(
         lastToken?.let { loadData(it) }
     }
 }
-

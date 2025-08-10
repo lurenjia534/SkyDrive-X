@@ -1,11 +1,25 @@
 package com.lurenjia534.skydrivex.ui.activity
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,8 +30,24 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.Work
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +98,23 @@ fun SettingsScreen(
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
     val scrollState = rememberScrollState()
+    val downloadPref by viewModel.downloadPreference.collectAsState()
+
+    val pickFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                // persist permission
+                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                try {
+                    activity.contentResolver.takePersistableUriPermission(uri, flags)
+                } catch (_: SecurityException) {
+                    // If persist fails, still save uri; operations may fail later and be surfaced to user
+                }
+                viewModel.setDownloadToCustom(uri.toString())
+            }
+        }
+    )
 
     Scaffold(
         topBar = {
@@ -268,6 +315,28 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
+                    )
+                    // 下载位置设置
+                    ListItem(
+                        headlineContent = { Text("下载位置") },
+                        supportingContent = {
+                            val summary = when (downloadPref.mode.name) {
+                                "SYSTEM_DOWNLOADS" -> "系统下载目录"
+                                "CUSTOM_TREE" -> "自定义目录"
+                                else -> "系统下载目录"
+                            }
+                            Text(summary)
+                        },
+                        trailingContent = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { viewModel.setDownloadToSystem() }) {
+                                    Text("系统默认")
+                                }
+                                Button(onClick = { pickFolderLauncher.launch(null) }) {
+                                    Text("选择文件夹")
+                                }
+                            }
+                        }
                     )
                     ListItem(
                         headlineContent = { Text("深色模式") },
