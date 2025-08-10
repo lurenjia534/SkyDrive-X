@@ -1,7 +1,6 @@
 package com.lurenjia534.skydrivex.di
 
 import com.lurenjia534.skydrivex.data.remote.GraphApiService
-import com.lurenjia534.skydrivex.data.remote.SharePointApiService
 import com.lurenjia534.skydrivex.data.repository.FilesRepository
 import com.lurenjia534.skydrivex.data.repository.UserRepository
 import dagger.Module
@@ -18,16 +17,6 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    @Provides
-    @Singleton
-    fun provideSharePointApiService(okHttpClient: OkHttpClient, moshi: Moshi): SharePointApiService =
-        Retrofit.Builder()
-            .client(okHttpClient)
-            .addConverterFactory(MoshiConverterFactory.create(moshi))
-            .baseUrl("https://dummy.com/") // Base url is required, but will be ignored by @Url
-            .build()
-            .create(SharePointApiService::class.java)
 
     @Provides
     @Singleton
