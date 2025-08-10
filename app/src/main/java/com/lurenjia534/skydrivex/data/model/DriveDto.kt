@@ -7,6 +7,7 @@ data class DriveDto(
     val id: String?,
     val driveType: String?,
     val quota: Quota?,
+    val webUrl: String?
 )
 
 @JsonClass(generateAdapter = true)
