@@ -1,6 +1,9 @@
 package com.lurenjia534.skydrivex.ui.activity
 
 import android.content.Intent
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.outlined.RestoreFromTrash
+import com.lurenjia534.skydrivex.ui.activity.RecycleBinActivity
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -389,6 +392,19 @@ fun SettingsScreen(
                                 checked = areNotificationsEnabled,
                                 onCheckedChange = { viewModel.openNotificationSettings() }
                             )
+                        }
+                    )
+                    ListItem(
+                        headlineContent = { Text("回收站") },
+                        supportingContent = { Text("查看和管理已删除的文件") },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.RestoreFromTrash,
+                                contentDescription = "回收站"
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            activity.startActivity(Intent(activity, RecycleBinActivity::class.java))
                         }
                     )
                     Text(
