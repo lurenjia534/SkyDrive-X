@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.Work
@@ -48,11 +49,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.content.ClipData
+import android.widget.Toast
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
+import kotlinx.coroutines.launch
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
@@ -95,6 +102,8 @@ fun SettingsScreen(
 ) {
     val driveState by viewModel.driveState.collectAsState()
     val account by viewModel.account.collectAsState()
+    val token by viewModel.token.collectAsState()
+    val scope = rememberCoroutineScope()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
     val scrollState = rememberScrollState()
@@ -261,6 +270,24 @@ fun SettingsScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+
+                                // 复制令牌
+                                val clipboard = LocalClipboard.current
+                                Button(
+                                    onClick = {
+                                        token?.let { t ->
+                                            scope.launch {
+                                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", t)))
+                                                Toast.makeText(activity, "已复制", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    enabled = token != null
+                                ) {
+                                    Icon(imageVector = Icons.Outlined.Key, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("复制令牌")
+                                }
 
                                 driveState.data!!.driveType?.let { type ->
                                     val typeText = if (type == "personal") "个人版" else "企业版"
