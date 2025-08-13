@@ -15,17 +15,15 @@ import androidx.core.app.NotificationManagerCompat
 private const val CHANNEL_ID = "downloads"
 
 fun createDownloadChannel(context: Context) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "下载",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "文件下载进度通知"
-        }
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager?.createNotificationChannel(channel)
+    val channel = NotificationChannel(
+        CHANNEL_ID,
+        "下载",
+        NotificationManager.IMPORTANCE_LOW
+    ).apply {
+        description = "文件下载进度通知"
     }
+    val manager = context.getSystemService(NotificationManager::class.java)
+    manager?.createNotificationChannel(channel)
 }
 
 fun showOrUpdateProgress(
