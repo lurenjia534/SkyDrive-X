@@ -24,7 +24,6 @@ import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Person
@@ -55,7 +54,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
@@ -63,22 +61,17 @@ import com.eygraber.compose.placeholder.material3.shimmer
 import com.lurenjia534.skydrivex.viewmodel.DriveUiState
 import com.lurenjia534.skydrivex.viewmodel.UserUiState
 import java.util.Locale
-import androidx.compose.ui.platform.ClipEntry
-import android.content.ClipData
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
+ 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     uiState: UserUiState,
     driveState: DriveUiState,
-    token: String?,
     onRefresh: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
+    
 
     LaunchedEffect(Unit) {
         if (
@@ -111,22 +104,6 @@ fun ProfileScreen(
                 title = { Text("个人中心") },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
                 actions = {
-                    IconButton(
-                        onClick = {
-                            token?.let { t ->
-                                scope.launch {
-                                    // 写入纯文本到剪贴板（label 可随便起）
-                                    clipboard.setClipEntry(
-                                        ClipEntry(ClipData.newPlainText("token", t))
-                                    )
-                                    // 可选：给个提示
-                                    snackbarHostState.showSnackbar("已复制")
-                                }
-                            }
-                        }
-                    ) {
-                        Icon(Icons.Outlined.Key, contentDescription = "复制令牌")
-                    }
                     IconButton(onClick = onRefresh) {
                         Icon(Icons.Outlined.Refresh, contentDescription = "刷新")
                     }

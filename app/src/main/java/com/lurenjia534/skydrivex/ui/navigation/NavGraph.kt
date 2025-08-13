@@ -35,11 +35,9 @@ fun NavGraph(
         composable(NavDestination.Profile.route) {
             val uiState by viewModel.userState.collectAsState()
             val driveState by viewModel.driveState.collectAsState()
-            val token by viewModel.token.collectAsState()
             ProfileScreen(
                 uiState = uiState,
                 driveState = driveState,
-                token = token,
                 onRefresh = viewModel::retry,
             )
         }
