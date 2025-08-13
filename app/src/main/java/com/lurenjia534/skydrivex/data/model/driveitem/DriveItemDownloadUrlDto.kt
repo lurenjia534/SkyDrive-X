@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.data.model
+package com.lurenjia534.skydrivex.data.model.driveitem
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -7,4 +7,3 @@ import com.squareup.moshi.JsonClass
 data class DriveItemDownloadUrlDto(
     @param:Json(name = "@microsoft.graph.downloadUrl") val downloadUrl: String?
 )
-

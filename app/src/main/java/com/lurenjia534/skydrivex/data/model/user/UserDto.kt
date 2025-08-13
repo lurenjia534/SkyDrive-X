@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.data.model
+package com.lurenjia534.skydrivex.data.model.user
 
 import com.squareup.moshi.JsonClass
 

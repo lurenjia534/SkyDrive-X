@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.data.model
+package com.lurenjia534.skydrivex.data.model.drive
 
 import com.squareup.moshi.JsonClass
 
@@ -23,4 +23,3 @@ data class Quota(
 data class StoragePlanInformation(
     val upgradeAvailable: Boolean?,
 )
-
