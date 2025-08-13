@@ -1,6 +1,6 @@
 package com.lurenjia534.skydrivex.viewmodel
 
-import com.lurenjia534.skydrivex.data.model.UserDto
+import com.lurenjia534.skydrivex.data.model.user.UserDto
 
 /**
  * UI state for user information screen.
@@ -14,4 +14,3 @@ data class UserUiState(
     val isLoading: Boolean,
     val error: String?
 )
-

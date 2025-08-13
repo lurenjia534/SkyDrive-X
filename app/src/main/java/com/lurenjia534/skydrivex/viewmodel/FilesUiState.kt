@@ -1,6 +1,6 @@
 package com.lurenjia534.skydrivex.viewmodel
 
-import com.lurenjia534.skydrivex.data.model.DriveItemDto
+import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 
 data class Breadcrumb(
     val id: String,

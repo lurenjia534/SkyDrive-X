@@ -1,7 +1,7 @@
 package com.lurenjia534.skydrivex.data.repository
 
-import com.lurenjia534.skydrivex.data.model.DriveDto
-import com.lurenjia534.skydrivex.data.model.UserDto
+import com.lurenjia534.skydrivex.data.model.drive.DriveDto
+import com.lurenjia534.skydrivex.data.model.user.UserDto
 import com.lurenjia534.skydrivex.data.remote.GraphApiService
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,4 +14,3 @@ class UserRepository @Inject constructor(
 
     suspend fun getDrive(token: String): DriveDto = api.getDrive(token)
 }
-

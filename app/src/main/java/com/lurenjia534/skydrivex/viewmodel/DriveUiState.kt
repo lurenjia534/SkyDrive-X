@@ -1,6 +1,6 @@
 package com.lurenjia534.skydrivex.viewmodel
 
-import com.lurenjia534.skydrivex.data.model.DriveDto
+import com.lurenjia534.skydrivex.data.model.drive.DriveDto
 
 /**
  * UI state for drive quota.

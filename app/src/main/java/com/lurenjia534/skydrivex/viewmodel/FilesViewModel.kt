@@ -2,7 +2,7 @@ package com.lurenjia534.skydrivex.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lurenjia534.skydrivex.data.model.DriveItemDto
+import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 import com.lurenjia534.skydrivex.data.repository.FilesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

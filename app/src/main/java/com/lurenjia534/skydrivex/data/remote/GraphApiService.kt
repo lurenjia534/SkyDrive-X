@@ -1,9 +1,9 @@
 package com.lurenjia534.skydrivex.data.remote
 
-import com.lurenjia534.skydrivex.data.model.DriveDto
-import com.lurenjia534.skydrivex.data.model.DriveItemsResponse
-import com.lurenjia534.skydrivex.data.model.UserDto
-import com.lurenjia534.skydrivex.data.model.DriveItemDownloadUrlDto
+import com.lurenjia534.skydrivex.data.model.drive.DriveDto
+import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemsResponse
+import com.lurenjia534.skydrivex.data.model.user.UserDto
+import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDownloadUrlDto
 import retrofit2.Response
 import retrofit2.http.DELETE
 import retrofit2.http.GET

@@ -1,6 +1,6 @@
 package com.lurenjia534.skydrivex.data.repository
 
-import com.lurenjia534.skydrivex.data.model.DriveItemDto
+import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 import com.lurenjia534.skydrivex.data.remote.GraphApiService
 import javax.inject.Inject
 import javax.inject.Singleton
