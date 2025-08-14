@@ -205,4 +205,22 @@ class FilesViewModel @Inject constructor(
     suspend fun getDownloadUrl(itemId: String, token: String): String? {
         return filesRepository.getDownloadUrl(itemId, "Bearer $token")
     }
+
+    suspend fun createShareLink(
+        itemId: String,
+        token: String,
+        type: String,
+        scope: String?,
+        password: String?,
+        expirationDateTime: String?
+    ): String? {
+        return filesRepository.createShareLink(
+            itemId = itemId,
+            token = "Bearer $token",
+            type = type,
+            scope = scope,
+            password = password,
+            expirationDateTime = expirationDateTime
+        )
+    }
 }

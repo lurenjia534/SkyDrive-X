@@ -4,10 +4,14 @@ import com.lurenjia534.skydrivex.data.model.drive.DriveDto
 import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemsResponse
 import com.lurenjia534.skydrivex.data.model.user.UserDto
 import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDownloadUrlDto
+import com.lurenjia534.skydrivex.data.model.permission.CreateLinkRequest
+import com.lurenjia534.skydrivex.data.model.permission.CreateLinkResponse
 import retrofit2.Response
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Body
+import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -44,4 +48,12 @@ interface GraphApiService {
         @Path("itemId") id: String,
         @Header("Authorization") token: String
     ): DriveItemDownloadUrlDto
+
+    // Create a sharing link for an item
+    @POST("me/drive/items/{itemId}/createLink")
+    suspend fun createLink(
+        @Path("itemId") id: String,
+        @Header("Authorization") token: String,
+        @Body body: CreateLinkRequest
+    ): CreateLinkResponse
 }
