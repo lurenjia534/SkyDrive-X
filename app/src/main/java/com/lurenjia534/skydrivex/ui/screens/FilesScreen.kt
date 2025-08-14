@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Download
@@ -31,6 +32,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -75,13 +77,15 @@ import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import android.content.BroadcastReceiver
 import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.IntentFilter
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.toClipEntry
 import androidx.core.content.ContextCompat
 import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -104,6 +108,15 @@ fun FilesScreen(
     val clipboard = LocalClipboard.current
     var shareTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // itemId to name
     var showShareDialog by remember { mutableStateOf(false) }
+
+    // System photo picker to select images/videos for upload or processing
+    val pickMediaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
+    ) { uris ->
+        val count = uris.size
+        scope.launch { snackbarHostState.showSnackbar(if (count > 0) "已选择 $count 项" else "未选择内容") }
+        // TODO: 在此处处理所选媒体（如上传到 OneDrive）
+    }
 
     LaunchedEffect(key1 = token) {
         token?.let { viewModel.loadRoot(it) }
@@ -138,7 +151,18 @@ fun FilesScreen(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    pickMediaLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                    )
+                }
+            ) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = "选择照片或视频")
+            }
+        }
     ) { padding ->
         val contentModifier = modifier.fillMaxSize().padding(padding)
         when {
