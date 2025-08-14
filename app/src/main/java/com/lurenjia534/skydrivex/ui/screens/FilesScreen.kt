@@ -47,7 +47,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,6 +58,7 @@ import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
 import com.lurenjia534.skydrivex.viewmodel.FilesViewModel
 import com.lurenjia534.skydrivex.viewmodel.MainViewModel
+import com.lurenjia534.skydrivex.viewmodel.Breadcrumb
 import java.util.Locale
 import android.app.DownloadManager
 import android.os.Environment
@@ -75,11 +75,12 @@ import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import android.content.BroadcastReceiver
 import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.IntentFilter
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.toClipEntry
+import androidx.core.content.ContextCompat
 import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 
 /**
@@ -119,17 +120,23 @@ fun FilesScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
-                title = { Text("文件") },
-                navigationIcon = {
-                    if (uiState.canGoBack) {
-                        IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
+            Column {
+                LargeTopAppBar(
+                    title = { Text("文件") },
+                    navigationIcon = {
+                        if (uiState.canGoBack) {
+                            IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
+                            }
                         }
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
+                    },
+                    scrollBehavior = scrollBehavior
+                )
+                BreadcrumbBar(
+                    path = uiState.path,
+                    onNavigate = { index -> if (token != null) viewModel.navigateTo(index, token) }
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -153,33 +160,6 @@ fun FilesScreen(
 
             else -> {
                 LazyColumn(modifier = contentModifier) {
-                    item(key = "breadcrumb") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                                .horizontalScroll(rememberScrollState()),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            uiState.path.forEachIndexed { index, crumb ->
-                                AssistChip(
-                                    onClick = {
-                                        if (token != null) {
-                                            viewModel.navigateTo(index, token)
-                                        }
-                                    },
-                                    label = { Text(crumb.name) },
-                                    enabled = index != uiState.path.lastIndex
-                                )
-                                if (index != uiState.path.lastIndex) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("/", style = MaterialTheme.typography.labelLarge)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                }
-                            }
-                        }
-                        HorizontalDivider()
-                    }
                     items(uiState.items.orEmpty()) { item ->
                         val isFolder = item.folder != null
                         var expanded by remember { mutableStateOf(false) }
@@ -442,6 +422,33 @@ private fun formatBytes(bytes: Long): String {
         bytes >= mb -> "%.2f MB".format(Locale.US, bytes.toDouble() / mb)
         bytes >= kb -> "%.2f KB".format(Locale.US, bytes.toDouble() / kb)
         else -> "$bytes B"
+    }
+}
+
+@Composable
+private fun BreadcrumbBar(
+    path: List<Breadcrumb>,
+    onNavigate: (index: Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .horizontalScroll(rememberScrollState()),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        path.forEachIndexed { index, crumb ->
+            AssistChip(
+                onClick = { onNavigate(index) },
+                label = { Text(crumb.name) },
+                enabled = index != path.lastIndex
+            )
+            if (index != path.lastIndex) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(">", style = MaterialTheme.typography.labelLarge)
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+        }
     }
 }
 
