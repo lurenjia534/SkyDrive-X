@@ -74,11 +74,12 @@ import com.lurenjia534.skydrivex.ui.util.showOrUpdateProgress
 import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import android.content.BroadcastReceiver
+import android.content.ClipData
 import android.content.IntentFilter
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.core.content.ContextCompat
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.toClipEntry
 import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 
 /**
@@ -99,7 +100,7 @@ fun FilesScreen(
     val downloadPref by mainViewModel.downloadPreference.collectAsState()
     val driveState by mainViewModel.driveState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     var shareTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // itemId to name
     var showShareDialog by remember { mutableStateOf(false) }
 
@@ -416,7 +417,8 @@ fun FilesScreen(
                             if (webUrl.isNullOrEmpty()) {
                                 snackbarHostState.showSnackbar("创建分享链接失败")
                             } else {
-                                clipboard.setText(AnnotatedString(webUrl))
+                                    val clip = ClipData.newPlainText("SkyDriveX link", webUrl).toClipEntry()
+                                    clipboard.setClipEntry(clip)  // suspend
                                 snackbarHostState.showSnackbar("已复制分享链接")
                             }
                         } catch (e: Exception) {
