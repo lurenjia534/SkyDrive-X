@@ -1,5 +1,6 @@
 package com.lurenjia534.skydrivex.ui.activity
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -34,7 +35,6 @@ import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -62,6 +62,9 @@ import android.widget.Toast
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
@@ -128,6 +131,18 @@ fun SettingsScreen(
             }
         }
     )
+
+    // Launcher to request media permissions (photos/videos, with partial access on Android 14+)
+    val mediaPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        val anyGranted = results.values.any { it }
+        Toast.makeText(
+            activity,
+            if (anyGranted) "媒体访问权限已更新" else "媒体访问权限被拒绝",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -391,6 +406,64 @@ fun SettingsScreen(
                             )
                         }
                     )
+                    // 媒体访问权限（照片/视频），支持 Android 14+ 的“部分访问（精选）”
+                    run {
+                        val hasImages = if (Build.VERSION.SDK_INT >= 33) {
+                            ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
+                        } else {
+                            ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                        }
+                        val hasVideos = if (Build.VERSION.SDK_INT >= 33) {
+                            ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED
+                        } else {
+                            ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                        }
+                        val hasSelected = if (Build.VERSION.SDK_INT >= 34) {
+                            ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
+                        } else false
+
+                        val statusText = when {
+                            Build.VERSION.SDK_INT >= 34 && hasSelected && !hasImages && !hasVideos -> "已授予部分访问（精选的照片/视频）"
+                            hasImages && hasVideos -> "已授予全部照片与视频访问"
+                            hasImages && !hasVideos -> "仅授予照片访问"
+                            !hasImages && hasVideos -> "仅授予视频访问"
+                            else -> "未授予媒体访问权限"
+                        }
+
+                        val requestPerms = when {
+                            Build.VERSION.SDK_INT >= 34 -> arrayOf(
+                                Manifest.permission.READ_MEDIA_IMAGES,
+                                Manifest.permission.READ_MEDIA_VIDEO,
+                                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+                            )
+                            Build.VERSION.SDK_INT >= 33 -> arrayOf(
+                                Manifest.permission.READ_MEDIA_IMAGES,
+                                Manifest.permission.READ_MEDIA_VIDEO
+                            )
+                            else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                        }
+
+                        ListItem(
+                            headlineContent = { Text("媒体访问权限") },
+                            supportingContent = { Text(statusText) },
+                            trailingContent = {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = { mediaPermissionLauncher.launch(requestPerms) }) {
+                                        Text("授予/更新")
+                                    }
+                                    TextButton(onClick = {
+                                        val intent = Intent(
+                                            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                            Uri.fromParts("package", activity.packageName, null)
+                                        )
+                                        activity.startActivity(intent)
+                                    }) {
+                                        Text("在系统中管理")
+                                    }
+                                }
+                            }
+                        )
+                    }
                     Text(
                         text = "其他设置选项即将推出...",
                         style = MaterialTheme.typography.bodyMedium,
