@@ -76,6 +76,9 @@ import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -93,7 +96,11 @@ fun FilesScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val downloadPref by mainViewModel.downloadPreference.collectAsState()
+    val driveState by mainViewModel.driveState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val clipboard = LocalClipboardManager.current
+    var shareTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // itemId to name
+    var showShareDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = token) {
         token?.let { viewModel.loadRoot(it) }
@@ -337,6 +344,19 @@ fun FilesScreen(
                                                     },
                                                     leadingIcon = { Icon(Icons.Outlined.Download, contentDescription = null) }
                                                 )
+                                                DropdownMenuItem(
+                                                    text = { Text("分享") },
+                                                    onClick = {
+                                                        val itemId = item.id
+                                                        if (itemId != null) {
+                                                            shareTarget = itemId to (item.name)
+                                                            showShareDialog = true
+                                                        } else {
+                                                            scope.launch { snackbarHostState.showSnackbar("无法分享：缺少文件ID") }
+                                                        }
+                                                        expanded = false
+                                                    }
+                                                )
                                             }
                                             DropdownMenuItem(
                                                 text = { Text("删除") },
@@ -359,6 +379,52 @@ fun FilesScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (showShareDialog) {
+        val target = shareTarget
+        if (target != null) {
+            val isBusiness = driveState.data?.driveType?.lowercase(Locale.getDefault()) == "business"
+            ShareLinkDialog(
+                isBusiness = isBusiness,
+                fileName = target.second,
+                onDismiss = { showShareDialog = false },
+                onCreate = { type, scopeSel, expirationDays, password ->
+                    val itemId = target.first
+                    if (token == null) {
+                        scope.launch { snackbarHostState.showSnackbar("未登录，无法分享") }
+                        showShareDialog = false
+                        return@ShareLinkDialog
+                    }
+                    scope.launch {
+                        try {
+                            val expiration = expirationDays?.let { days ->
+                                val millis = System.currentTimeMillis() + days * 24L * 60L * 60L * 1000L
+                                java.time.Instant.ofEpochMilli(millis).toString() // RFC3339 UTC
+                            }
+                            val webUrl = viewModel.createShareLink(
+                                itemId = itemId,
+                                token = token,
+                                type = type,
+                                scope = scopeSel,
+                                password = password,
+                                expirationDateTime = expiration
+                            )
+                            if (webUrl.isNullOrEmpty()) {
+                                snackbarHostState.showSnackbar("创建分享链接失败")
+                            } else {
+                                clipboard.setText(AnnotatedString(webUrl))
+                                snackbarHostState.showSnackbar("已复制分享链接")
+                            }
+                        } catch (e: Exception) {
+                            snackbarHostState.showSnackbar(e.message ?: "分享失败")
+                        } finally {
+                            showShareDialog = false
+                        }
+                    }
+                }
+            )
         }
     }
 }
