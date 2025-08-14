@@ -75,6 +75,7 @@ import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
+import androidx.compose.material.icons.outlined.Share
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -357,6 +358,7 @@ fun FilesScreen(
                                                     }
                                                     expanded = false
                                                 },
+                                                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) }
                                             )
                                             DropdownMenuItem(
                                                 text = { Text("删除") },
