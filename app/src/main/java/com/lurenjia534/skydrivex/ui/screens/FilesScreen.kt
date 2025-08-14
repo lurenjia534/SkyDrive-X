@@ -344,20 +344,20 @@ fun FilesScreen(
                                                     },
                                                     leadingIcon = { Icon(Icons.Outlined.Download, contentDescription = null) }
                                                 )
-                                                DropdownMenuItem(
-                                                    text = { Text("分享") },
-                                                    onClick = {
-                                                        val itemId = item.id
-                                                        if (itemId != null) {
-                                                            shareTarget = itemId to (item.name)
-                                                            showShareDialog = true
-                                                        } else {
-                                                            scope.launch { snackbarHostState.showSnackbar("无法分享：缺少文件ID") }
-                                                        }
-                                                        expanded = false
-                                                    }
-                                                )
                                             }
+                                            DropdownMenuItem(
+                                                text = { Text("分享") },
+                                                onClick = {
+                                                    val itemId = item.id
+                                                    if (itemId != null) {
+                                                        shareTarget = itemId to (item.name)
+                                                        showShareDialog = true
+                                                    } else {
+                                                        scope.launch { snackbarHostState.showSnackbar("无法分享：缺少条目ID") }
+                                                    }
+                                                    expanded = false
+                                                },
+                                            )
                                             DropdownMenuItem(
                                                 text = { Text("删除") },
                                                 onClick = {
