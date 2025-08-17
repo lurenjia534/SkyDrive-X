@@ -18,9 +18,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -36,6 +36,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -78,7 +79,8 @@ import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.IntentFilter
-import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.toClipEntry
 import androidx.core.content.ContextCompat
@@ -86,6 +88,9 @@ import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Share
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -221,7 +226,7 @@ fun FilesScreen(
                                         ) {
                                             if (!isFolder) {
                                                 DropdownMenuItem(
-                                                    text = { Text("下载") },
+                                                    text = { Text("下载", fontWeight = FontWeight.Bold) },
                                                     onClick = {
                                                         val itemId = item.id
                                                         val fileName = item.name ?: "download"
@@ -348,11 +353,11 @@ fun FilesScreen(
                                                         }
                                                         expanded = false
                                                     },
-                                                    leadingIcon = { Icon(Icons.Outlined.Download, contentDescription = null) }
+                                                    leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) }
                                                 )
                                             }
                                             DropdownMenuItem(
-                                                text = { Text("分享") },
+                                                text = { Text("分享", fontWeight = FontWeight.Bold) },
                                                 onClick = {
                                                     val itemId = item.id
                                                     if (itemId != null) {
@@ -363,15 +368,19 @@ fun FilesScreen(
                                                     }
                                                     expanded = false
                                                 },
-                                                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) }
+                                                leadingIcon = { Icon(Icons.Rounded.Share, contentDescription = null) }
                                             )
                                             DropdownMenuItem(
-                                                text = { Text("删除") },
+                                                text = { Text("删除", fontWeight = FontWeight.Bold) },
                                                 onClick = {
                                                     item.id?.let { if (token != null) viewModel.deleteFile(it, token) }
                                                     expanded = false
                                                 },
-                                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) }
+                                                leadingIcon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+                                                colors = MenuDefaults.itemColors(
+                                                    textColor = MaterialTheme.colorScheme.error,
+                                                    leadingIconColor = MaterialTheme.colorScheme.error
+                                                )
                                             )
                                         }
                                     }
