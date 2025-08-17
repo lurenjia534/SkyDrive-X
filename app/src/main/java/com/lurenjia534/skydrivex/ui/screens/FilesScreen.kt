@@ -18,9 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -37,6 +35,9 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -79,7 +80,6 @@ import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.IntentFilter
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.toClipEntry
@@ -113,6 +113,7 @@ fun FilesScreen(
     val clipboard = LocalClipboard.current
     var shareTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // itemId to name
     var showShareDialog by remember { mutableStateOf(false) }
+    var deleteTarget by remember { mutableStateOf<Triple<String, String?, Boolean>?>(null) } // id, name, isFolder
 
     // System photo picker to select images/videos for upload or processing
     val pickMediaLauncher = rememberLauncherForActivityResult(
@@ -373,7 +374,12 @@ fun FilesScreen(
                                             DropdownMenuItem(
                                                 text = { Text("删除", fontWeight = FontWeight.Bold) },
                                                 onClick = {
-                                                    item.id?.let { if (token != null) viewModel.deleteFile(it, token) }
+                                                    val id = item.id
+                                                    if (id != null) {
+                                                        deleteTarget = Triple(id, item.name, isFolder)
+                                                    } else {
+                                                        scope.launch { snackbarHostState.showSnackbar("无法删除：缺少条目ID") }
+                                                    }
                                                     expanded = false
                                                 },
                                                 leadingIcon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
@@ -443,6 +449,50 @@ fun FilesScreen(
                 }
             )
         }
+    }
+
+    // Delete confirmation dialog
+    deleteTarget?.let { (targetId, targetName, isFolder) ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text("删除确认") },
+            text = {
+                val typeLabel = if (isFolder) "文件夹" else "文件"
+                Text("确定删除 ${targetName ?: ""} $typeLabel 吗？")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val t = token
+                        if (t == null) {
+                            scope.launch { snackbarHostState.showSnackbar("未登录，无法删除") }
+                            deleteTarget = null
+                        } else {
+                            // 先关闭对话框，再异步执行删除并提示
+                            deleteTarget = null
+                            scope.launch {
+                                try {
+                                    viewModel.deleteFile(targetId, t)
+                                    snackbarHostState.showSnackbar("已删除")
+                                } catch (_: Exception) {
+                                    snackbarHostState.showSnackbar("删除失败")
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 
