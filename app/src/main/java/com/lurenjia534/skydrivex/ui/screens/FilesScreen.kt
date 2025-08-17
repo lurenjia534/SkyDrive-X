@@ -35,9 +35,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -91,6 +88,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Share
+import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -453,43 +451,26 @@ fun FilesScreen(
 
     // Delete confirmation dialog
     deleteTarget?.let { (targetId, targetName, isFolder) ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text("删除确认") },
-            text = {
-                val typeLabel = if (isFolder) "文件夹" else "文件"
-                Text("确定删除 ${targetName ?: ""} $typeLabel 吗？")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val t = token
-                        if (t == null) {
-                            scope.launch { snackbarHostState.showSnackbar("未登录，无法删除") }
-                            deleteTarget = null
-                        } else {
-                            // 先关闭对话框，再异步执行删除并提示
-                            deleteTarget = null
-                            scope.launch {
-                                try {
-                                    viewModel.deleteFile(targetId, t)
-                                    snackbarHostState.showSnackbar("已删除")
-                                } catch (_: Exception) {
-                                    snackbarHostState.showSnackbar("删除失败")
-                                }
-                            }
+        DeleteConfirmDialog(
+            name = targetName,
+            isFolder = isFolder,
+            onDismiss = { deleteTarget = null },
+            onConfirm = {
+                val t = token
+                if (t == null) {
+                    scope.launch { snackbarHostState.showSnackbar("未登录，无法删除") }
+                    deleteTarget = null
+                } else {
+                    // 先关闭对话框，再异步执行删除并提示
+                    deleteTarget = null
+                    scope.launch {
+                        try {
+                            viewModel.deleteFile(targetId, t)
+                            snackbarHostState.showSnackbar("已删除")
+                        } catch (_: Exception) {
+                            snackbarHostState.showSnackbar("删除失败")
                         }
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("删除")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text("取消")
+                    }
                 }
             }
         )
