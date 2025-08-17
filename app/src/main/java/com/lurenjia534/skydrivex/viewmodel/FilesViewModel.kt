@@ -223,4 +223,39 @@ class FilesViewModel @Inject constructor(
             expirationDateTime = expirationDateTime
         )
     }
+
+    fun currentFolderId(): String = stack.lastOrNull()?.id ?: "root"
+
+    suspend fun uploadSmallFileToCurrent(
+        token: String,
+        fileName: String,
+        mimeType: String?,
+        bytes: ByteArray
+    ): DriveItemDto {
+        val parentId = currentFolderId()
+        val item = filesRepository.uploadSmallFile(
+            parentId = parentId,
+            token = "Bearer $token",
+            fileName = fileName,
+            mimeType = mimeType,
+            bytes = bytes
+        )
+        // Invalidate current folder cache and refresh
+        cache.remove(parentId)
+        // reload current level without altering stack
+        val items = if (parentId == "root") {
+            filesRepository.getRootChildren("Bearer $token")
+        } else {
+            filesRepository.getChildren(parentId, "Bearer $token")
+        }
+        cache[parentId] = items
+        _filesState.value = FilesUiState(
+            items = items,
+            isLoading = false,
+            error = null,
+            canGoBack = stack.size > 1,
+            path = stack.toList()
+        )
+        return item
+    }
 }

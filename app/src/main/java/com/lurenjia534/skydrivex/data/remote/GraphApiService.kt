@@ -6,11 +6,13 @@ import com.lurenjia534.skydrivex.data.model.user.UserDto
 import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDownloadUrlDto
 import com.lurenjia534.skydrivex.data.model.permission.CreateLinkRequest
 import com.lurenjia534.skydrivex.data.model.permission.CreateLinkResponse
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Body
+import retrofit2.http.PUT
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -56,4 +58,35 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Body body: CreateLinkRequest
     ): CreateLinkResponse
+
+    // Upload a new small file (< 250MB) under a parent folder by ID
+    // PUT /me/drive/items/{parent-id}:/{filename}:/content
+    @PUT("me/drive/items/{parentId}:/{filename}:/content")
+    suspend fun uploadSmallFileToParent(
+        @Path("parentId") parentId: String,
+        @Path("filename") fileName: String,
+        @Header("Authorization") token: String,
+        @Header("Content-Type") contentType: String,
+        @Body body: RequestBody
+    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+
+    // Upload a new small file into root by filename
+    // PUT /me/drive/root:/{filename}:/content
+    @PUT("me/drive/root:/{filename}:/content")
+    suspend fun uploadSmallFileToRoot(
+        @Path("filename") fileName: String,
+        @Header("Authorization") token: String,
+        @Header("Content-Type") contentType: String,
+        @Body body: RequestBody
+    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+
+    // Replace the contents of an existing file by item id
+    // PUT /me/drive/items/{item-id}/content
+    @PUT("me/drive/items/{itemId}/content")
+    suspend fun replaceSmallFileContent(
+        @Path("itemId") itemId: String,
+        @Header("Authorization") token: String,
+        @Header("Content-Type") contentType: String,
+        @Body body: RequestBody
+    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 }

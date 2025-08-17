@@ -113,13 +113,49 @@ fun FilesScreen(
     var showShareDialog by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<Triple<String, String?, Boolean>?>(null) } // id, name, isFolder
 
-    // System photo picker to select images/videos for upload or processing
+    // System photo picker to select images for upload
     val pickMediaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
     ) { uris ->
         val count = uris.size
-        scope.launch { snackbarHostState.showSnackbar(if (count > 0) "已选择 $count 项" else "未选择内容") }
-        // TODO: 在此处处理所选媒体（如上传到 OneDrive）
+        scope.launch { snackbarHostState.showSnackbar(if (count > 0) "已选择 $count 项，开始上传" else "未选择内容") }
+        if (token != null && uris.isNotEmpty()) {
+            scope.launch {
+                val cr = context.contentResolver
+                var success = 0
+                var failed = 0
+                for (uri in uris) {
+                    try {
+                        val name = runCatching {
+                            var displayName: String? = null
+                            cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                                if (c.moveToFirst()) {
+                                    val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
+                                    if (idx >= 0) displayName = c.getString(idx)
+                                }
+                            }
+                            displayName ?: ("IMG_" + System.currentTimeMillis() + ".jpg")
+                        }.getOrDefault("IMG_" + System.currentTimeMillis() + ".jpg")
+                        val mime = cr.getType(uri) ?: "image/jpeg"
+                        val bytes = withContext(Dispatchers.IO) {
+                            cr.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
+                        }
+                        if (bytes.isEmpty()) error("读取文件失败")
+                        viewModel.uploadSmallFileToCurrent(
+                            token = token,
+                            fileName = name,
+                            mimeType = mime,
+                            bytes = bytes
+                        )
+                        success++
+                    } catch (_: Exception) {
+                        failed++
+                    }
+                }
+                if (success > 0) snackbarHostState.showSnackbar("上传成功 $success 项")
+                if (failed > 0) snackbarHostState.showSnackbar("上传失败 $failed 项")
+            }
+        }
     }
 
     LaunchedEffect(key1 = token) {
@@ -160,11 +196,11 @@ fun FilesScreen(
             FloatingActionButton(
                 onClick = {
                     pickMediaLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }
             ) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = "选择照片或视频")
+                Icon(imageVector = Icons.Filled.Add, contentDescription = "上传照片")
             }
         }
     ) { padding ->

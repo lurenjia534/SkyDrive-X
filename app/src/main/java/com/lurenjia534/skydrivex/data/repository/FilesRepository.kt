@@ -3,6 +3,9 @@ package com.lurenjia534.skydrivex.data.repository
 import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 import com.lurenjia534.skydrivex.data.remote.GraphApiService
 import com.lurenjia534.skydrivex.data.model.permission.CreateLinkRequest
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,5 +42,48 @@ class FilesRepository @Inject constructor(
         )
         val resp = graphApiService.createLink(id = itemId, token = token, body = body)
         return resp.link?.webUrl
+    }
+
+    suspend fun uploadSmallFile(
+        parentId: String?,
+        token: String,
+        fileName: String,
+        mimeType: String?,
+        bytes: ByteArray
+    ): DriveItemDto {
+        val ct = (mimeType ?: "application/octet-stream")
+        val body: RequestBody = bytes.toRequestBody(ct.toMediaTypeOrNull())
+        return if (parentId == null || parentId == "root") {
+            graphApiService.uploadSmallFileToRoot(
+                fileName = fileName,
+                token = token,
+                contentType = ct,
+                body = body
+            )
+        } else {
+            graphApiService.uploadSmallFileToParent(
+                parentId = parentId,
+                fileName = fileName,
+                token = token,
+                contentType = ct,
+                body = body
+            )
+        }
+    }
+
+    suspend fun replaceSmallFileContent(
+        itemId: String,
+        token: String,
+        mimeType: String?,
+        bytes: ByteArray
+    ): DriveItemDto {
+        val ct = (mimeType ?: "application/octet-stream")
+        val body: RequestBody = bytes.toRequestBody(ct.toMediaTypeOrNull())
+        return graphApiService.replaceSmallFileContent(
+            itemId = itemId,
+            token = token,
+            contentType = ct,
+            body = body
+        )
     }
 }
