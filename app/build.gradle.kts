@@ -54,6 +54,8 @@ dependencies {
     implementation("com.microsoft.identity.client:msal:6.2.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("com.eygraber:compose-placeholder-material3:1.0.11")
+    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
