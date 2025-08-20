@@ -4,19 +4,19 @@
 
 使用<b><span style="color:rgba(244,63,94,1)">全局管理员账号</span></b>登录后找到
 
-![](pic\rZkcHc4nsIUig.png)
+![](pic/rZkcHc4nsIUig.png)
 
 的
 
-![](pic\0yElD4AaqeZdt.png)
+![](pic/0yElD4AaqeZdt.png)
 
 点击
 
-![](pic\g3vf9VsdGluUH.png)
+![](pic/g3vf9VsdGluUH.png)
 
 你会看到这样的页面
 
-![](pic\oGkqm6TQfml7x.png)
+![](pic/oGkqm6TQfml7x.png)
 
 填写一个<b><span style="color:rgba(16,185,129,1)">你能记住的名字</span></b>
 
@@ -26,9 +26,9 @@
 
 点击
 
-![](pic\VKYJWbKVaVTXh.png)
+![](pic/VKYJWbKVaVTXh.png)
 
-![](pic\BfYYxG70XrjIY.png)
+![](pic/BfYYxG70XrjIY.png)
 
 复制这里的<b><span style="color:rgba(16,185,129,1)">客户端ID并保存</span></b>，下一步需要使用
 
@@ -40,15 +40,15 @@
 
 找到<b><span style="color:rgba(16,185,129,1)">Build</span></b>下的<b><span style="color:rgba(16,185,129,1)">Generate Signed App Bundle or APK...</span></b>
 
-![](pic\eAo18ce7Sk9OD.png)
+![](pic/eAo18ce7Sk9OD.png)
 
 下一步
 
-![](pic\H598UTWP3Zb3P.png)
+![](pic/H598UTWP3Zb3P.png)
 
 Create New...
 
-![](pic\K7R8pBZK890f1.png)
+![](pic/K7R8pBZK890f1.png)
 
 自己选择一个位置存储，填写完密码之后OK创建
 
@@ -67,27 +67,27 @@ keytool -exportcert -alias SIGNATURE_ALIAS -keystore PATH_TO_KEYSTORE | openssl 
 
 找到
 
-![](pic\eCXTdY36JJX03.png)
+![](pic/eCXTdY36JJX03.png)
 
 选择
 
-![](pic\VttFXQSYByUDk.png)
+![](pic/VttFXQSYByUDk.png)
 
 选择 <b><span style="color:rgba(16,185,129,1)">移动和桌面应用程序</span></b> 下的
 
-![](pic\HNjF8rywNQCj2.png)
+![](pic/HNjF8rywNQCj2.png)
 
 填写包名为 <b><span style="color:rgba(16,185,129,1)">com.lurenjia534.skydrivex</span></b>
 
 填写刚才生成的<b><span style="color:rgba(16,185,129,1)">base64 编码 SHA1签名</span></b>
 
-![](pic\qop4KwqOSkosh.png)
+![](pic/qop4KwqOSkosh.png)
 
 确定你的配置
 
 你会看到这样的页面
 
-![](pic\UG70swpbJkgAI.png)
+![](pic/UG70swpbJkgAI.png)
 
 复制这个<b><span style="color:rgba(16,185,129,1)">重定向 URI,保存备用</span></b>
 
