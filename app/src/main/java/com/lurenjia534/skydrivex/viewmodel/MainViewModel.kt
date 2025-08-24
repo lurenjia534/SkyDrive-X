@@ -202,6 +202,12 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun setDownloadModeCustom() {
+        viewModelScope.launch {
+            downloadPreferenceRepository.setCustomMode()
+        }
+    }
+
     fun setDownloadToCustom(treeUriString: String) {
         viewModelScope.launch {
             downloadPreferenceRepository.setCustomTree(treeUriString)

@@ -398,19 +398,19 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .clickable { viewModel.setDownloadToSystem() }
                     )
-                    // 自定义目录（点击即选择文件夹并保存）
+                    // 自定义目录：切换到自定义模式，不直接打开选择器
                     ListItem(
                         headlineContent = { Text("自定义目录") },
                         supportingContent = { Text(downloadPref.treeUri?.let { "当前：$it" } ?: "未选择") },
                         trailingContent = {
                             RadioButton(
                                 selected = downloadPref.mode.name == "CUSTOM_TREE",
-                                onClick = { pickFolderLauncher.launch(null) }
+                                onClick = { viewModel.setDownloadModeCustom() }
                             )
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { pickFolderLauncher.launch(null) }
+                            .clickable { viewModel.setDownloadModeCustom() }
                     )
                     // 二级行：仅在自定义模式下出现“选择文件夹”操作，使用尾部 TextButton
                     if (downloadPref.mode.name == "CUSTOM_TREE") {

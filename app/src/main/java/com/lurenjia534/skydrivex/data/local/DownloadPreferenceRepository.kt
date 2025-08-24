@@ -43,6 +43,13 @@ class DownloadPreferenceRepository @Inject constructor(
         }
     }
 
+    // Select custom mode without forcing a folder pick; preserves existing treeUri (if any).
+    suspend fun setCustomMode() {
+        context.downloadDataStore.edit { prefs ->
+            prefs[KEY_MODE] = DownloadLocationMode.CUSTOM_TREE.name
+        }
+    }
+
     suspend fun setCustomTree(uriString: String) {
         context.downloadDataStore.edit { prefs ->
             prefs[KEY_MODE] = DownloadLocationMode.CUSTOM_TREE.name
@@ -50,4 +57,3 @@ class DownloadPreferenceRepository @Inject constructor(
         }
     }
 }
-
