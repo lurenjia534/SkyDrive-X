@@ -245,7 +245,7 @@ fun FilesScreen(
                     } catch (e: Exception) {
                         failed++
                         Log.e("FilesScreen", "File upload failed: name=${name}", e)
-                        snackbarHostState.showSnackbar("上传失败: ${name} | ${e.message ?: e::class.java.simpleName}")
+                        snackbarHostState.showSnackbar("上传失败: $name | ${e.message ?: e::class.java.simpleName}")
                     }
                 }
                 if (success > 0) snackbarHostState.showSnackbar("上传成功 $success 项")
@@ -660,20 +660,18 @@ fun FilesScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val name = newFolderName.trim()
-                    if (name.isNotEmpty() && token != null) {
+                    val folderName = newFolderName.trim()
+                    // 立即关闭对话框，避免等待网络完成才消失
+                    showNewFolderDialog = false
+                    if (folderName.isNotEmpty() && token != null) {
                         scope.launch {
                             try {
-                                viewModel.createFolderInCurrent(token = token, name = name)
-                                snackbarHostState.showSnackbar("已创建：$name")
+                                viewModel.createFolderInCurrent(token = token, name = folderName)
+                                snackbarHostState.showSnackbar("已创建：$folderName")
                             } catch (e: Exception) {
                                 snackbarHostState.showSnackbar(e.message ?: "创建失败")
-                            } finally {
-                                showNewFolderDialog = false
                             }
                         }
-                    } else {
-                        showNewFolderDialog = false
                     }
                 }) { Text("创建") }
             },
