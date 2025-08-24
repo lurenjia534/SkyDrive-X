@@ -10,6 +10,6 @@ data class CreateFolderBody(
     @Json(name = "@microsoft.graph.conflictBehavior") val conflictBehavior: String = "rename"
 )
 
+// Represent an empty JSON object: {}
 @JsonClass(generateAdapter = true)
-data class EmptyFolder(val any: String? = null)
-
+class EmptyFolder
