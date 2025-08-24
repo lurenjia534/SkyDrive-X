@@ -99,7 +99,6 @@ import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.util.showOrUpdateProgress
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -170,7 +169,7 @@ fun FilesScreen(
                     } catch (e: Exception) {
                         failed++
                         Log.e("FilesScreen", "Photo upload failed: name=${name}", e)
-                        snackbarHostState.showSnackbar("上传失败: ${name} | ${e.message ?: e::class.java.simpleName}")
+                        snackbarHostState.showSnackbar("上传失败: $name | ${e.message ?: e::class.java.simpleName}")
                     }
                 }
                 if (success > 0) snackbarHostState.showSnackbar("上传成功 $success 项")
