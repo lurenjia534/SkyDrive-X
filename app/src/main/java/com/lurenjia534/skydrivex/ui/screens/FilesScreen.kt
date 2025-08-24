@@ -77,6 +77,7 @@ import com.lurenjia534.skydrivex.ui.util.beginIndeterminateUpload
 import com.lurenjia534.skydrivex.ui.util.beginProgressUpload
 import com.lurenjia534.skydrivex.ui.util.updateUploadProgress
 import com.lurenjia534.skydrivex.ui.util.finishUpload
+import com.lurenjia534.skydrivex.ui.util.startSystemDownloadWithNotification
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.IntentFilter
@@ -403,62 +404,8 @@ fun FilesScreen(
                                                                         snackbarHostState.showSnackbar("无法获取下载链接")
                                                                     } else {
                                                                         if (downloadPref.mode.name == "SYSTEM_DOWNLOADS") {
-                                                                            val request = DownloadManager.Request(url.toUri())
-                                                                                .setTitle(fileName)
-                                                                                .setDescription("SkyDriveX 下载")
-                                                                                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                                                            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-                                                                            val dm = context.getSystemService(DownloadManager::class.java)
-                                                                            val downloadId = dm?.enqueue(request)
-                                                                            if (downloadId != null) {
-                                                                                // show our own cancellable notification for DM downloads
-                                                                                val nid = (downloadId % Int.MAX_VALUE).toInt()
-                                                                                createDownloadChannel(context)
-                                                                                showOrUpdateProgress(context, nid, fileName, null, null, true, withCancelAction = true)
-                                                                                DownloadRegistry.registerDownloadManager(nid, downloadId)
-                                                                                // immediate user feedback without blocking
-                                                                                scope.launch { snackbarHostState.showSnackbar("已开始下载：$fileName") }
-                                                                                val receiver = object : BroadcastReceiver() {
-                                                                                    override fun onReceive(ctx: android.content.Context?, intent: android.content.Intent?) {
-                                                                                        val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
-                                                                                        if (id == downloadId) {
-                                                                                            try {
-                                                                                                val query = DownloadManager.Query().setFilterById(downloadId)
-                                                                                                val cursor = dm.query(query)
-                                                                                                cursor?.use {
-                                                                                                    if (it.moveToFirst()) {
-                                                                                                        val statusIdx = it.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                                                                                                        val status = if (statusIdx >= 0) it.getInt(statusIdx) else -1
-                                                                                                        when (status) {
-                                                                                                            DownloadManager.STATUS_SUCCESSFUL -> {
-                                                                                                                scope.launch { snackbarHostState.showSnackbar("下载完成：$fileName") }
-                                                                                                                replaceWithCompletion(context, nid, fileName, true)
-                                                                                                            }
-                                                                                                            DownloadManager.STATUS_FAILED -> {
-                                                                                                                scope.launch { snackbarHostState.showSnackbar("下载失败") }
-                                                                                                                replaceWithCompletion(context, nid, fileName, false)
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                            } catch (_: Exception) {
-                                                                                                scope.launch { snackbarHostState.showSnackbar("下载完成状态未知") }
-                                                                                            } finally {
-                                                                                                try { context.unregisterReceiver(this) } catch (_: Exception) {}
-                                                                                                DownloadRegistry.cleanup(nid)
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                                ContextCompat.registerReceiver(
-                                                                                    context,
-                                                                                    receiver,
-                                                                                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                                                                                    ContextCompat.RECEIVER_NOT_EXPORTED
-                                                                                )
-                                                                            } else {
-                                                                                scope.launch { snackbarHostState.showSnackbar("下载启动失败") }
-                                                                            }
+                                                                            startSystemDownloadWithNotification(context, url, fileName)
+                                                                            scope.launch { snackbarHostState.showSnackbar("已开始下载：$fileName") }
                                                                         } else {
                                                                             val tree = downloadPref.treeUri
                                                                             if (tree.isNullOrEmpty()) {

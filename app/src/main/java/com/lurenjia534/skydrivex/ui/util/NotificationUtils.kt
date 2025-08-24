@@ -12,6 +12,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import java.util.concurrent.atomic.AtomicBoolean
 import androidx.core.app.NotificationManagerCompat
+import android.app.DownloadManager
+import android.content.IntentFilter
+import android.os.Environment
+import androidx.core.net.toUri
 
 private const val CHANNEL_ID = "downloads"
 
@@ -163,4 +167,70 @@ fun updateUploadProgress(context: Context, id: Int, title: String, uploaded: Lon
 fun finishUpload(context: Context, id: Int, title: String, success: Boolean, message: String? = null) {
     replaceWithCompletion(context, id, title, success, message)
     DownloadRegistry.cleanup(id)
+}
+
+/**
+ * Start a system DownloadManager download with an app-managed, cancellable notification.
+ * Shows an indeterminate progress notification and replaces it with completion on finish.
+ * Automatically unregisters the receiver after completion.
+ */
+fun startSystemDownloadWithNotification(
+    context: Context,
+    url: String,
+    fileName: String,
+    description: String = "SkyDriveX 下载"
+) {
+    val dm = context.getSystemService(DownloadManager::class.java) ?: return
+    val request = DownloadManager.Request(url.toUri())
+        .setTitle(fileName)
+        .setDescription(description)
+        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+    try {
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+    } catch (_: Throwable) {
+        // Best effort: some devices may restrict this; DM fallback still works with default destination
+    }
+    val downloadId = dm.enqueue(request)
+    val nid = (downloadId % Int.MAX_VALUE).toInt()
+    createDownloadChannel(context)
+    showOrUpdateProgress(context, nid, fileName, null, null, true, withCancelAction = true)
+    DownloadRegistry.registerDownloadManager(nid, downloadId)
+
+    // Register a one-off receiver to translate DM completion into our app notification
+    val appCtx = context.applicationContext
+    val receiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(ctx: Context?, intent: Intent?) {
+            val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
+            if (id == downloadId) {
+                try {
+                    val query = DownloadManager.Query().setFilterById(downloadId)
+                    dm.query(query)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                            val status = if (statusIdx >= 0) cursor.getInt(statusIdx) else -1
+                            val success = status == DownloadManager.STATUS_SUCCESSFUL
+                            replaceWithCompletion(appCtx, nid, fileName, success)
+                        } else {
+                            replaceWithCompletion(appCtx, nid, fileName, false)
+                        }
+                    }
+                } catch (_: Exception) {
+                    replaceWithCompletion(appCtx, nid, fileName, false)
+                } finally {
+                    try { appCtx.unregisterReceiver(this) } catch (_: Exception) {}
+                    DownloadRegistry.cleanup(nid)
+                }
+            }
+        }
+    }
+    try {
+        ContextCompat.registerReceiver(
+            appCtx,
+            receiver,
+            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    } catch (_: Exception) {
+        // If registration fails, still rely on DM system notification; replace ours after some time
+    }
 }
