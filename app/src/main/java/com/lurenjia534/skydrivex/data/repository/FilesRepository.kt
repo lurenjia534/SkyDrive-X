@@ -17,6 +17,7 @@ import android.util.Log
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -120,7 +121,9 @@ class FilesRepository @Inject constructor(
         token: String,
         fileName: String,
         totalBytes: Long,
-        bytesProvider: suspend (offset: Long, size: Int) -> ByteArray
+        bytesProvider: suspend (offset: Long, size: Int) -> ByteArray,
+        cancelFlag: AtomicBoolean? = null,
+        onProgress: ((uploaded: Long, total: Long) -> Unit)? = null
     ): DriveItemDto {
         // Keep body minimal to avoid invalidRequest on some tenants; include only conflict behavior.
         val req = CreateUploadSessionRequest(
@@ -164,6 +167,7 @@ class FilesRepository @Inject constructor(
         val chunkSize = 5 * 1024 * 1024 // 5 MiB (multiple of 320 KiB)
         var uploaded = 0L
         while (uploaded < totalBytes) {
+            if (cancelFlag?.get() == true) throw java.util.concurrent.CancellationException("Cancelled")
             val remaining = (totalBytes - uploaded).toInt()
             val want = if (remaining < chunkSize) remaining else chunkSize
             val chunk = bytesProvider(uploaded, want)
@@ -186,6 +190,7 @@ class FilesRepository @Inject constructor(
                     if (resp.code == 202) {
                         // safe to update primitive from IO context; read back on caller
                         uploaded += actual
+                        onProgress?.invoke(uploaded, totalBytes)
                     } else if (resp.code == 201 || resp.code == 200) {
                         val adapter = moshi.adapter(DriveItemDto::class.java)
                         val bodyStr = resp.body?.string()

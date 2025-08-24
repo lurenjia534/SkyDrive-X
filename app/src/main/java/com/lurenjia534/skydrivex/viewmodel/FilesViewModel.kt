@@ -293,7 +293,9 @@ class FilesViewModel @Inject constructor(
         token: String,
         fileName: String,
         totalBytes: Long,
-        chunkProvider: suspend (offset: Long, size: Int) -> ByteArray
+        chunkProvider: suspend (offset: Long, size: Int) -> ByteArray,
+        cancelFlag: java.util.concurrent.atomic.AtomicBoolean? = null,
+        onProgress: ((uploaded: Long, total: Long) -> Unit)? = null
     ): DriveItemDto {
         val parentId = currentFolderId()
         val item = filesRepository.uploadLargeFile(
@@ -301,7 +303,9 @@ class FilesViewModel @Inject constructor(
             token = "Bearer $token",
             fileName = fileName,
             totalBytes = totalBytes,
-            bytesProvider = chunkProvider
+            bytesProvider = chunkProvider,
+            cancelFlag = cancelFlag,
+            onProgress = onProgress
         )
         // refresh
         cache.remove(parentId)

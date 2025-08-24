@@ -10,6 +10,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
+import java.util.concurrent.atomic.AtomicBoolean
 import androidx.core.app.NotificationManagerCompat
 
 private const val CHANNEL_ID = "downloads"
@@ -120,4 +121,46 @@ private fun canPostNotifications(context: Context): Boolean {
     } else {
         NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
+}
+
+// ----------------------- Convenience helpers for uploads -----------------------
+
+private fun nextNotificationId(): Int = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+
+/**
+ * Start an indeterminate, cancellable upload notification for small/unknown-size uploads.
+ * Returns Pair(notificationId, cancelFlag).
+ */
+fun beginIndeterminateUpload(context: Context, title: String): Pair<Int, AtomicBoolean> {
+    createDownloadChannel(context)
+    val id = nextNotificationId()
+    val cancel = AtomicBoolean(false)
+    showOrUpdateProgress(context, id, title, null, null, true, withCancelAction = true)
+    DownloadRegistry.registerCustom(id, cancel)
+    return id to cancel
+}
+
+/**
+ * Start a progress-based, cancellable upload notification (0-100).
+ * Returns Pair(notificationId, cancelFlag).
+ */
+fun beginProgressUpload(context: Context, title: String, initialPercent: Int = 0): Pair<Int, AtomicBoolean> {
+    createDownloadChannel(context)
+    val id = nextNotificationId()
+    val cancel = AtomicBoolean(false)
+    showOrUpdateProgress(context, id, title, initialPercent, 100, false, withCancelAction = true)
+    DownloadRegistry.registerCustom(id, cancel)
+    return id to cancel
+}
+
+/** Update upload progress using uploaded/total in bytes, mapped to 0-100. */
+fun updateUploadProgress(context: Context, id: Int, title: String, uploaded: Long, total: Long) {
+    val pct = if (total > 0) ((uploaded * 100.0) / total).toInt().coerceIn(0, 100) else 0
+    showOrUpdateProgress(context, id, title, pct, 100, false, withCancelAction = true)
+}
+
+/** Finish an upload notification and cleanup registry. */
+fun finishUpload(context: Context, id: Int, title: String, success: Boolean, message: String? = null) {
+    replaceWithCompletion(context, id, title, success, message)
+    DownloadRegistry.cleanup(id)
 }

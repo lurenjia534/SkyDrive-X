@@ -73,10 +73,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
-import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
-import com.lurenjia534.skydrivex.ui.util.showOrUpdateProgress
-import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
-import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
+import com.lurenjia534.skydrivex.ui.util.beginIndeterminateUpload
+import com.lurenjia534.skydrivex.ui.util.beginProgressUpload
+import com.lurenjia534.skydrivex.ui.util.updateUploadProgress
+import com.lurenjia534.skydrivex.ui.util.finishUpload
 import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.IntentFilter
@@ -95,6 +95,11 @@ import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import android.util.Log
+import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
+import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
+import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
+import com.lurenjia534.skydrivex.ui.util.showOrUpdateProgress
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -147,13 +152,21 @@ fun FilesScreen(
                             cr.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
                         }
                         if (bytes.isEmpty()) error("读取文件失败")
-                        viewModel.uploadSmallFileToCurrent(
-                            token = token,
-                            fileName = name,
-                            mimeType = mime,
-                            bytes = bytes
-                        )
-                        success++
+                        // Notification via util (indeterminate cancellable)
+                        val (nid, _) = beginIndeterminateUpload(context, name)
+                        try {
+                            viewModel.uploadSmallFileToCurrent(
+                                token = token,
+                                fileName = name,
+                                mimeType = mime,
+                                bytes = bytes
+                            )
+                            finishUpload(context, nid, name, success = true)
+                            success++
+                        } catch (e: Exception) {
+                            finishUpload(context, nid, name, success = false, message = e.message)
+                            throw e
+                        }
                     } catch (e: Exception) {
                         failed++
                         Log.e("FilesScreen", "Photo upload failed: name=${name}", e)
@@ -201,45 +214,64 @@ fun FilesScreen(
 
                         val threshold = 10L * 1024L * 1024L // 10 MiB
                         if (size >= 0 && size > threshold) {
-                            // Large upload via session with streaming chunks
-                            viewModel.uploadLargeFileToCurrent(
-                                token = token,
-                                fileName = name,
-                                totalBytes = size,
-                                chunkProvider = { offset, wantSize ->
-                                    withContext(Dispatchers.IO) {
-                                        cr.openInputStream(uri)?.use { ins ->
-                                            // Skip to offset efficiently
-                                            var skipped = 0L
-                                            while (skipped < offset) {
-                                                val s = ins.skip(offset - skipped)
-                                                if (s <= 0) break
-                                                skipped += s
-                                            }
-                                            val buf = ByteArray(wantSize)
-                                            var readTotal = 0
-                                            while (readTotal < wantSize) {
-                                                val r = ins.read(buf, readTotal, wantSize - readTotal)
-                                                if (r <= 0) break
-                                                readTotal += r
-                                            }
-                                            if (readTotal == wantSize) buf else buf.copyOf(readTotal)
-                                        } ?: ByteArray(0)
+                            // Large upload via session with streaming chunks + progress notification
+                            val (nid, cancelFlag) = beginProgressUpload(context, name, initialPercent = 0)
+                            try {
+                                viewModel.uploadLargeFileToCurrent(
+                                    token = token,
+                                    fileName = name,
+                                    totalBytes = size,
+                                    chunkProvider = { offset, wantSize ->
+                                        withContext(Dispatchers.IO) {
+                                            cr.openInputStream(uri)?.use { ins ->
+                                                // Skip to offset efficiently
+                                                var skipped = 0L
+                                                while (skipped < offset) {
+                                                    val s = ins.skip(offset - skipped)
+                                                    if (s <= 0) break
+                                                    skipped += s
+                                                }
+                                                val buf = ByteArray(wantSize)
+                                                var readTotal = 0
+                                                while (readTotal < wantSize) {
+                                                    val r = ins.read(buf, readTotal, wantSize - readTotal)
+                                                    if (r <= 0) break
+                                                    readTotal += r
+                                                }
+                                                if (readTotal == wantSize) buf else buf.copyOf(readTotal)
+                                            } ?: ByteArray(0)
+                                        }
+                                    },
+                                    cancelFlag = cancelFlag,
+                                    onProgress = { uploadedBytes, total ->
+                                        updateUploadProgress(context, nid, name, uploadedBytes, total)
                                     }
-                                }
-                            )
+                                )
+                                finishUpload(context, nid, name, success = true)
+                            } catch (e: Exception) {
+                                val cancelled = cancelFlag.get()
+                                finishUpload(context, nid, name, success = false, message = if (cancelled) "已取消" else e.message)
+                                throw e
+                            }
                         } else {
-                            // Small upload (fallback when size unknown)
+                            // Small upload (fallback when size unknown) with indeterminate notification
                             val bytes = withContext(Dispatchers.IO) {
                                 cr.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
                             }
                             if (bytes.isEmpty()) error("读取文件失败")
-                            viewModel.uploadSmallFileToCurrent(
-                                token = token,
-                                fileName = name,
-                                mimeType = mime,
-                                bytes = bytes
-                            )
+                            val (nid, _) = beginIndeterminateUpload(context, name)
+                            try {
+                                viewModel.uploadSmallFileToCurrent(
+                                    token = token,
+                                    fileName = name,
+                                    mimeType = mime,
+                                    bytes = bytes
+                                )
+                                finishUpload(context, nid, name, success = true)
+                            } catch (e: Exception) {
+                                finishUpload(context, nid, name, success = false, message = e.message)
+                                throw e
+                            }
                         }
                         success++
                     } catch (e: Exception) {
