@@ -112,7 +112,7 @@ interface GraphApiService {
     @POST("me/drive/items/{parentId}:/{fileName}:/createUploadSession")
     suspend fun createUploadSessionForNew(
         @Path("parentId") parentId: String,
-        @Path("fileName") fileName: String,
+        @Path(value = "fileName", encoded = true) fileName: String,
         @Header("Authorization") token: String,
         @Body body: CreateUploadSessionRequest
     ): UploadSessionDto
@@ -120,7 +120,7 @@ interface GraphApiService {
     // Create upload session for new file under root
     @POST("me/drive/root:/{fileName}:/createUploadSession")
     suspend fun createUploadSessionForRoot(
-        @Path("fileName") fileName: String,
+        @Path(value = "fileName", encoded = true) fileName: String,
         @Header("Authorization") token: String,
         @Body body: CreateUploadSessionRequest
     ): UploadSessionDto

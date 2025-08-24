@@ -94,6 +94,7 @@ import androidx.compose.material.icons.rounded.Share
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
+import android.util.Log
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -155,6 +156,7 @@ fun FilesScreen(
                         success++
                     } catch (e: Exception) {
                         failed++
+                        Log.e("FilesScreen", "Photo upload failed: name=${name}", e)
                         snackbarHostState.showSnackbar("上传失败: ${name} | ${e.message ?: e::class.java.simpleName}")
                     }
                 }
@@ -242,6 +244,7 @@ fun FilesScreen(
                         success++
                     } catch (e: Exception) {
                         failed++
+                        Log.e("FilesScreen", "File upload failed: name=${name}", e)
                         snackbarHostState.showSnackbar("上传失败: ${name} | ${e.message ?: e::class.java.simpleName}")
                     }
                 }
