@@ -35,6 +35,8 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -89,6 +91,8 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Share
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -158,6 +162,58 @@ fun FilesScreen(
         }
     }
 
+    // System document picker to select files for upload (multiple)
+    val pickFilesLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        val count = uris.size
+        if (token != null && uris.isNotEmpty()) {
+            scope.launch {
+                val cr = context.contentResolver
+                var success = 0
+                var failed = 0
+                for (uri in uris) {
+                    try {
+                        val name = runCatching {
+                            var displayName: String? = null
+                            cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                                if (c.moveToFirst()) {
+                                    val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
+                                    if (idx >= 0) displayName = c.getString(idx)
+                                }
+                            }
+                            displayName ?: ("FILE_" + System.currentTimeMillis())
+                        }.getOrDefault("FILE_" + System.currentTimeMillis())
+                        val mime = cr.getType(uri) ?: "application/octet-stream"
+                        val bytes = withContext(Dispatchers.IO) {
+                            cr.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
+                        }
+                        if (bytes.isEmpty()) error("读取文件失败")
+                        viewModel.uploadSmallFileToCurrent(
+                            token = token,
+                            fileName = name,
+                            mimeType = mime,
+                            bytes = bytes
+                        )
+                        success++
+                    } catch (_: Exception) {
+                        failed++
+                    }
+                }
+                if (success > 0) snackbarHostState.showSnackbar("上传成功 $success 项")
+                if (failed > 0) snackbarHostState.showSnackbar("上传失败 $failed 项")
+            }
+        } else {
+            scope.launch { snackbarHostState.showSnackbar(if (count > 0) "未登录" else "未选择内容") }
+        }
+    }
+
+    // Bottom sheet for actions
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showSheet by remember { mutableStateOf(false) }
+    var showNewFolderDialog by remember { mutableStateOf(false) }
+    var newFolderName by remember { mutableStateOf("") }
+
     LaunchedEffect(key1 = token) {
         token?.let { viewModel.loadRoot(it) }
     }
@@ -193,14 +249,8 @@ fun FilesScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    pickMediaLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                }
-            ) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = "上传照片")
+            FloatingActionButton(onClick = { showSheet = true }) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = "添加")
             }
         }
     ) { padding ->
@@ -509,6 +559,77 @@ fun FilesScreen(
                     }
                 }
             }
+        )
+    }
+
+    // Modal bottom sheet content
+    if (showSheet) {
+        ModalBottomSheet(onDismissRequest = { showSheet = false }, sheetState = sheetState) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = "选择操作", style = MaterialTheme.typography.titleMedium)
+                // Upload photo
+                ListItem(
+                    headlineContent = { Text("上传照片") },
+                    supportingContent = { Text("使用系统照片选择器") },
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        showSheet = false
+                        pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }
+                )
+                // Upload files
+                ListItem(
+                    headlineContent = { Text("上传文件") },
+                    supportingContent = { Text("选择任意类型文件") },
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        showSheet = false
+                        pickFilesLauncher.launch(arrayOf("*/*"))
+                    }
+                )
+                // New folder
+                ListItem(
+                    headlineContent = { Text("新建文件夹") },
+                    supportingContent = { Text("在当前目录创建") },
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        showSheet = false
+                        newFolderName = ""
+                        showNewFolderDialog = true
+                    }
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+
+    // New folder name dialog
+    if (showNewFolderDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showNewFolderDialog = false },
+            title = { Text("新建文件夹") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = newFolderName, onValueChange = { newFolderName = it }, singleLine = true, label = { Text("名称") })
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val name = newFolderName.trim()
+                    if (name.isNotEmpty() && token != null) {
+                        scope.launch {
+                            try {
+                                viewModel.createFolderInCurrent(token = token, name = name)
+                                snackbarHostState.showSnackbar("已创建：$name")
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar(e.message ?: "创建失败")
+                            } finally {
+                                showNewFolderDialog = false
+                            }
+                        }
+                    } else {
+                        showNewFolderDialog = false
+                    }
+                }) { Text("创建") }
+            },
+            dismissButton = { TextButton(onClick = { showNewFolderDialog = false }) { Text("取消") } }
         )
     }
 }

@@ -6,6 +6,7 @@ import com.lurenjia534.skydrivex.data.model.user.UserDto
 import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDownloadUrlDto
 import com.lurenjia534.skydrivex.data.model.permission.CreateLinkRequest
 import com.lurenjia534.skydrivex.data.model.permission.CreateLinkResponse
+import com.lurenjia534.skydrivex.data.model.driveitem.CreateFolderBody
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.DELETE
@@ -88,5 +89,20 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Header("Content-Type") contentType: String,
         @Body body: RequestBody
+    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+
+    // Create folder under a specific parent by ID
+    @POST("me/drive/items/{parentId}/children")
+    suspend fun createFolderUnderParent(
+        @Path("parentId") parentId: String,
+        @Header("Authorization") token: String,
+        @Body body: CreateFolderBody
+    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+
+    // Create folder under root
+    @POST("me/drive/root/children")
+    suspend fun createFolderUnderRoot(
+        @Header("Authorization") token: String,
+        @Body body: CreateFolderBody
     ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 }

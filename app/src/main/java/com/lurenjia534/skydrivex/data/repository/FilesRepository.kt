@@ -3,6 +3,7 @@ package com.lurenjia534.skydrivex.data.repository
 import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 import com.lurenjia534.skydrivex.data.remote.GraphApiService
 import com.lurenjia534.skydrivex.data.model.permission.CreateLinkRequest
+import com.lurenjia534.skydrivex.data.model.driveitem.CreateFolderBody
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -85,5 +86,19 @@ class FilesRepository @Inject constructor(
             contentType = ct,
             body = body
         )
+    }
+
+    suspend fun createFolder(
+        parentId: String?,
+        token: String,
+        name: String,
+        conflictBehavior: String = "rename"
+    ): DriveItemDto {
+        val body = CreateFolderBody(name = name, conflictBehavior = conflictBehavior)
+        return if (parentId == null || parentId == "root") {
+            graphApiService.createFolderUnderRoot(token = token, body = body)
+        } else {
+            graphApiService.createFolderUnderParent(parentId = parentId, token = token, body = body)
+        }
     }
 }
