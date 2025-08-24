@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -292,23 +294,35 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
 
-                                // 复制令牌
+                                // 复制令牌：使用 ListItem，整行可点 + 尾部轻量 TextButton
                                 val clipboard = LocalClipboard.current
-                                Button(
-                                    onClick = {
-                                        token?.let { t ->
-                                            scope.launch {
-                                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", t)))
-                                                Toast.makeText(activity, "已复制", Toast.LENGTH_SHORT).show()
+                                ListItem(
+                                    leadingContent = { Icon(imageVector = Icons.Outlined.Key, contentDescription = null) },
+                                    headlineContent = { Text("访问令牌") },
+                                    supportingContent = { Text(if (token != null) "点击复制到剪贴板" else "当前无令牌") },
+                                    trailingContent = {
+                                        TextButton(onClick = {
+                                            token?.let { t ->
+                                                scope.launch {
+                                                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", t)))
+                                                    Toast.makeText(activity, "已复制", Toast.LENGTH_SHORT).show()
+                                                }
                                             }
+                                        }, enabled = token != null) {
+                                            Text("复制")
                                         }
                                     },
-                                    enabled = token != null
-                                ) {
-                                    Icon(imageVector = Icons.Outlined.Key, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("复制令牌")
-                                }
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            if (token != null) Modifier.clickable {
+                                                scope.launch {
+                                                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", token!!)))
+                                                    Toast.makeText(activity, "已复制", Toast.LENGTH_SHORT).show()
+                                                }
+                                            } else Modifier
+                                        )
+                                )
 
                                 driveState.data!!.driveType?.let { type ->
                                     val typeText = if (type == "personal") "个人版" else "企业版"
@@ -364,28 +378,55 @@ fun SettingsScreen(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    // 下载位置设置
+                    // 下载位置：单选（系统/自定义）。自定义时显示“选择文件夹”二级行。
+                    Text(
+                        text = "下载位置",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    // 系统下载目录
                     ListItem(
-                        headlineContent = { Text("下载位置") },
-                        supportingContent = {
-                            val summary = when (downloadPref.mode.name) {
-                                "SYSTEM_DOWNLOADS" -> "系统下载目录"
-                                "CUSTOM_TREE" -> "自定义目录"
-                                else -> "系统下载目录"
-                            }
-                            Text(summary)
-                        },
+                        headlineContent = { Text("系统下载目录") },
+                        supportingContent = { Text("使用系统公共下载目录") },
                         trailingContent = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(onClick = { viewModel.setDownloadToSystem() }) {
-                                    Text("系统默认")
-                                }
-                                Button(onClick = { pickFolderLauncher.launch(null) }) {
+                            RadioButton(
+                                selected = downloadPref.mode.name == "SYSTEM_DOWNLOADS",
+                                onClick = { viewModel.setDownloadToSystem() }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.setDownloadToSystem() }
+                    )
+                    // 自定义目录（点击即选择文件夹并保存）
+                    ListItem(
+                        headlineContent = { Text("自定义目录") },
+                        supportingContent = { Text(downloadPref.treeUri?.let { "当前：$it" } ?: "未选择") },
+                        trailingContent = {
+                            RadioButton(
+                                selected = downloadPref.mode.name == "CUSTOM_TREE",
+                                onClick = { pickFolderLauncher.launch(null) }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { pickFolderLauncher.launch(null) }
+                    )
+                    // 二级行：仅在自定义模式下出现“选择文件夹”操作，使用尾部 TextButton
+                    if (downloadPref.mode.name == "CUSTOM_TREE") {
+                        ListItem(
+                            headlineContent = { Text("选择文件夹") },
+                            supportingContent = { Text(downloadPref.treeUri ?: "未选择目录") },
+                            trailingContent = {
+                                TextButton(onClick = { pickFolderLauncher.launch(null) }) {
                                     Text("选择文件夹")
                                 }
-                            }
-                        }
-                    )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { pickFolderLauncher.launch(null) }
+                        )
+                    }
                     ListItem(
                         headlineContent = { Text("深色模式") },
                         supportingContent = { Text("管理是否开启暗色模式") },
@@ -396,15 +437,20 @@ fun SettingsScreen(
                             )
                         }
                     )
+                    // 通知设置：整行可点跳系统设置，Switch 仅作状态指示
                     ListItem(
                         headlineContent = { Text("通知设置") },
-                        supportingContent = { Text("系统设置中管理通知权限") },
+                        supportingContent = { Text("在系统设置中管理应用通知权限") },
                         trailingContent = {
                             Switch(
                                 checked = areNotificationsEnabled,
-                                onCheckedChange = { viewModel.openNotificationSettings() }
+                                onCheckedChange = null,
+                                enabled = false
                             )
-                        }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.openNotificationSettings() }
                     )
                     // 媒体访问权限（照片/视频），支持 Android 14+ 的“部分访问（精选）”
                     run {
@@ -443,12 +489,13 @@ fun SettingsScreen(
                             else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
                         }
 
+                        // 媒体权限：整行可点请求权限 + 尾部轻量操作
                         ListItem(
                             headlineContent = { Text("媒体访问权限") },
                             supportingContent = { Text(statusText) },
                             trailingContent = {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = { mediaPermissionLauncher.launch(requestPerms) }) {
+                                    TextButton(onClick = { mediaPermissionLauncher.launch(requestPerms) }) {
                                         Text("授予/更新")
                                     }
                                     TextButton(onClick = {
@@ -461,7 +508,10 @@ fun SettingsScreen(
                                         Text("在系统中管理")
                                     }
                                 }
-                            }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { mediaPermissionLauncher.launch(requestPerms) }
                         )
                     }
                     Text(
