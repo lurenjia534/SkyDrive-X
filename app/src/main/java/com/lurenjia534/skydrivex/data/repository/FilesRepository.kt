@@ -12,6 +12,7 @@ import okhttp3.Request
 import com.squareup.moshi.Moshi
 import com.lurenjia534.skydrivex.data.model.upload.CreateUploadSessionRequest
 import com.lurenjia534.skydrivex.data.model.upload.DriveItemUploadableProperties
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -124,19 +125,34 @@ class FilesRepository @Inject constructor(
                 fileSize = totalBytes
             )
         )
-        val session = if (parentId == null || parentId == "root") {
-            graphApiService.createUploadSessionForRoot(
-                fileName = fileName,
-                token = token,
-                body = req
-            )
-        } else {
-            graphApiService.createUploadSessionForNew(
-                parentId = parentId,
-                fileName = fileName,
-                token = token,
-                body = req
-            )
+        val session = try {
+            if (parentId == null || parentId == "root") {
+                graphApiService.createUploadSessionForRoot(
+                    fileName = fileName,
+                    token = token,
+                    body = req
+                )
+            } else {
+                graphApiService.createUploadSessionForNew(
+                    parentId = parentId,
+                    fileName = fileName,
+                    token = token,
+                    body = req
+                )
+            }
+        } catch (e: HttpException) {
+            val err = e.response()?.errorBody()?.string()
+            val msg = buildString {
+                append("CreateUploadSession failed: HTTP ")
+                append(e.code())
+                append(" file=")
+                append(fileName)
+                if (!err.isNullOrBlank()) {
+                    append(": ")
+                    append(err.take(300))
+                }
+            }
+            error(msg)
         }
 
         val uploadUrl = session.uploadUrl
@@ -144,25 +160,56 @@ class FilesRepository @Inject constructor(
         var uploaded = 0L
         while (uploaded < totalBytes) {
             val remaining = (totalBytes - uploaded).toInt()
-            val size = if (remaining < chunkSize) remaining else chunkSize
-            val chunk = bytesProvider(uploaded, size)
-            val end = uploaded + size - 1
+            val want = if (remaining < chunkSize) remaining else chunkSize
+            val chunk = bytesProvider(uploaded, want)
+            val actual = chunk.size
+            if (actual <= 0) error("No data read at offset=$uploaded")
+            val end = uploaded + actual - 1
             val request = Request.Builder()
                 .url(uploadUrl)
                 .put(chunk.toRequestBody("application/octet-stream".toMediaTypeOrNull()))
-                .header("Content-Length", size.toString())
+                .header("Content-Length", actual.toString())
                 .header("Content-Range", "bytes ${uploaded}-${end}/${totalBytes}")
                 .build()
             okHttpClient.newCall(request).execute().use { resp ->
                 if (resp.code == 202) {
-                    uploaded += size
+                    uploaded += actual
                 } else if (resp.code == 201 || resp.code == 200) {
                     val adapter = moshi.adapter(DriveItemDto::class.java)
                     val bodyStr = resp.body?.string()
                     val item = adapter.fromJson(bodyStr ?: "")
                     if (item != null) return item else error("Empty item response")
                 } else {
-                    error("Upload failed: HTTP ${resp.code}")
+                    val errBody = try { resp.body?.string() } catch (_: Exception) { null }
+                    // Try to query session status for nextExpectedRanges to aid debugging
+                    val statusMsg = runCatching {
+                        val statusReq = Request.Builder().url(uploadUrl).get().build()
+                        okHttpClient.newCall(statusReq).execute().use { sResp ->
+                            if (sResp.isSuccessful) {
+                                val sBody = sResp.body?.string()
+                                if (!sBody.isNullOrBlank()) {
+                                    " status=" + sBody.take(300)
+                                } else ""
+                            } else ""
+                        }
+                    }.getOrDefault("")
+                    val msg = buildString {
+                        append("Upload failed: HTTP ")
+                        append(resp.code)
+                        append(" range=")
+                        append("bytes ")
+                        append(uploaded)
+                        append('-')
+                        append(end)
+                        append('/')
+                        append(totalBytes)
+                        if (!errBody.isNullOrBlank()) {
+                            append(": ")
+                            append(errBody.take(300))
+                        }
+                        if (statusMsg.isNotEmpty()) append(statusMsg)
+                    }
+                    error(msg)
                 }
             }
         }

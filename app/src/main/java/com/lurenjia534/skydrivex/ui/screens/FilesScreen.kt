@@ -1,5 +1,6 @@
 package com.lurenjia534.skydrivex.ui.screens
 
+import android.R.attr.name
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -152,8 +153,9 @@ fun FilesScreen(
                             bytes = bytes
                         )
                         success++
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
                         failed++
+                        snackbarHostState.showSnackbar("上传失败: ${name} | ${e.message ?: e::class.java.simpleName}")
                     }
                 }
                 if (success > 0) snackbarHostState.showSnackbar("上传成功 $success 项")
@@ -238,8 +240,9 @@ fun FilesScreen(
                             )
                         }
                         success++
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
                         failed++
+                        snackbarHostState.showSnackbar("上传失败: ${name} | ${e.message ?: e::class.java.simpleName}")
                     }
                 }
                 if (success > 0) snackbarHostState.showSnackbar("上传成功 $success 项")
