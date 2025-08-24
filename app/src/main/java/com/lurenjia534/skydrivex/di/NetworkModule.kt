@@ -54,8 +54,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideFilesRepository(graphApiService: GraphApiService): FilesRepository =
-        FilesRepository(graphApiService)
+    fun provideFilesRepository(
+        graphApiService: GraphApiService,
+        okHttpClient: OkHttpClient,
+        moshi: Moshi
+    ): FilesRepository = FilesRepository(graphApiService, okHttpClient, moshi)
 
     @Provides
     @Singleton

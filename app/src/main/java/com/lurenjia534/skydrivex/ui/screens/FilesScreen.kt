@@ -185,16 +185,58 @@ fun FilesScreen(
                             displayName ?: ("FILE_" + System.currentTimeMillis())
                         }.getOrDefault("FILE_" + System.currentTimeMillis())
                         val mime = cr.getType(uri) ?: "application/octet-stream"
-                        val bytes = withContext(Dispatchers.IO) {
-                            cr.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
+                        // Try to get size without loading whole file
+                        val size = runCatching {
+                            cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.SIZE), null, null, null)?.use { c ->
+                                if (c.moveToFirst()) {
+                                    val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.SIZE)
+                                    if (idx >= 0) c.getLong(idx) else null
+                                } else null
+                            }
+                        }.getOrNull() ?: -1L
+
+                        val threshold = 10L * 1024L * 1024L // 10 MiB
+                        if (size >= 0 && size > threshold) {
+                            // Large upload via session with streaming chunks
+                            viewModel.uploadLargeFileToCurrent(
+                                token = token,
+                                fileName = name,
+                                totalBytes = size,
+                                chunkProvider = { offset, wantSize ->
+                                    withContext(Dispatchers.IO) {
+                                        cr.openInputStream(uri)?.use { ins ->
+                                            // Skip to offset efficiently
+                                            var skipped = 0L
+                                            while (skipped < offset) {
+                                                val s = ins.skip(offset - skipped)
+                                                if (s <= 0) break
+                                                skipped += s
+                                            }
+                                            val buf = ByteArray(wantSize)
+                                            var readTotal = 0
+                                            while (readTotal < wantSize) {
+                                                val r = ins.read(buf, readTotal, wantSize - readTotal)
+                                                if (r <= 0) break
+                                                readTotal += r
+                                            }
+                                            if (readTotal == wantSize) buf else buf.copyOf(readTotal)
+                                        } ?: ByteArray(0)
+                                    }
+                                }
+                            )
+                        } else {
+                            // Small upload (fallback when size unknown)
+                            val bytes = withContext(Dispatchers.IO) {
+                                cr.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
+                            }
+                            if (bytes.isEmpty()) error("读取文件失败")
+                            viewModel.uploadSmallFileToCurrent(
+                                token = token,
+                                fileName = name,
+                                mimeType = mime,
+                                bytes = bytes
+                            )
                         }
-                        if (bytes.isEmpty()) error("读取文件失败")
-                        viewModel.uploadSmallFileToCurrent(
-                            token = token,
-                            fileName = name,
-                            mimeType = mime,
-                            bytes = bytes
-                        )
                         success++
                     } catch (_: Exception) {
                         failed++

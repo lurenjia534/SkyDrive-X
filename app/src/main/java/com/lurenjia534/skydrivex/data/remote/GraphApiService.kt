@@ -9,6 +9,8 @@ import com.lurenjia534.skydrivex.data.model.permission.CreateLinkResponse
 import com.lurenjia534.skydrivex.data.model.driveitem.CreateFolderBody
 import okhttp3.RequestBody
 import retrofit2.Response
+import com.lurenjia534.skydrivex.data.model.upload.CreateUploadSessionRequest
+import com.lurenjia534.skydrivex.data.model.upload.UploadSessionDto
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -105,4 +107,29 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Body body: CreateFolderBody
     ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+
+    // Create upload session for new file under parent
+    @POST("me/drive/items/{parentId}:/{fileName}:/createUploadSession")
+    suspend fun createUploadSessionForNew(
+        @Path("parentId") parentId: String,
+        @Path("fileName") fileName: String,
+        @Header("Authorization") token: String,
+        @Body body: CreateUploadSessionRequest
+    ): UploadSessionDto
+
+    // Create upload session for new file under root
+    @POST("me/drive/root:/{fileName}:/createUploadSession")
+    suspend fun createUploadSessionForRoot(
+        @Path("fileName") fileName: String,
+        @Header("Authorization") token: String,
+        @Body body: CreateUploadSessionRequest
+    ): UploadSessionDto
+
+    // Create upload session for existing item by id
+    @POST("me/drive/items/{itemId}/createUploadSession")
+    suspend fun createUploadSessionForExisting(
+        @Path("itemId") itemId: String,
+        @Header("Authorization") token: String,
+        @Body body: CreateUploadSessionRequest
+    ): UploadSessionDto
 }
