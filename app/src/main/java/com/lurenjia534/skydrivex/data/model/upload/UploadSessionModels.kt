@@ -18,9 +18,8 @@ data class CreateUploadSessionRequest(
 
 @JsonClass(generateAdapter = true)
 data class DriveItemUploadableProperties(
-    @Json(name = "@microsoft.graph.conflictBehavior") val conflictBehavior: String? = "rename",
+    @param:Json(name = "@microsoft.graph.conflictBehavior") val conflictBehavior: String? = "rename",
     val description: String? = null,
     val fileSize: Long? = null,
     val name: String? = null
 )
-
