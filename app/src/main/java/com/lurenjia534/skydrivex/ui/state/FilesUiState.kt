@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.viewmodel
+package com.lurenjia534.skydrivex.ui.state
 
 import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 

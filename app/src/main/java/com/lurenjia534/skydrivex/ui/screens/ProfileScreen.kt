@@ -58,8 +58,8 @@ import androidx.compose.ui.unit.dp
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
-import com.lurenjia534.skydrivex.viewmodel.DriveUiState
-import com.lurenjia534.skydrivex.viewmodel.UserUiState
+import com.lurenjia534.skydrivex.ui.state.DriveUiState
+import com.lurenjia534.skydrivex.ui.state.UserUiState
 import java.util.Locale
  
 
