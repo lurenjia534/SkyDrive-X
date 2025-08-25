@@ -1,6 +1,5 @@
 package com.lurenjia534.skydrivex.ui.screens
 
-import android.R.attr.name
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,8 +63,6 @@ import com.lurenjia534.skydrivex.viewmodel.FilesViewModel
 import com.lurenjia534.skydrivex.viewmodel.MainViewModel
 import com.lurenjia534.skydrivex.viewmodel.Breadcrumb
 import java.util.Locale
-import android.app.DownloadManager
-import android.os.Environment
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import android.provider.DocumentsContract
@@ -73,19 +70,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
-import com.lurenjia534.skydrivex.ui.util.beginIndeterminateUpload
-import com.lurenjia534.skydrivex.ui.util.beginProgressUpload
-import com.lurenjia534.skydrivex.ui.util.updateUploadProgress
-import com.lurenjia534.skydrivex.ui.util.finishUpload
 import com.lurenjia534.skydrivex.ui.util.startSystemDownloadWithNotification
-import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.Intent
-import android.content.IntentFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.toClipEntry
-import androidx.core.content.ContextCompat
 import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -96,8 +86,12 @@ import androidx.compose.material.icons.rounded.Share
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
-import android.util.Log
 import com.lurenjia534.skydrivex.service.TransferService
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
+import androidx.compose.runtime.DisposableEffect
+import androidx.core.content.ContextCompat
 import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
@@ -125,6 +119,24 @@ fun FilesScreen(
     var shareTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // itemId to name
     var showShareDialog by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<Triple<String, String?, Boolean>?>(null) } // id, name, isFolder
+
+    // Listen for upload completion broadcast to refresh current folder
+    DisposableEffect(token) {
+        if (token == null) return@DisposableEffect onDispose { }
+        val filter = IntentFilter(TransferService.ACTION_UPLOAD_COMPLETED)
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, i: Intent?) {
+                val t = token ?: return
+                viewModel.refreshCurrent(t)
+            }
+        }
+        try {
+            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        } catch (_: Exception) {}
+        onDispose {
+            runCatching { context.unregisterReceiver(receiver) }
+        }
+    }
 
     // System photo picker to select images for upload
     val pickMediaLauncher = rememberLauncherForActivityResult(
@@ -572,6 +584,7 @@ private fun startUploadSmallService(
 ) {
     val intent = Intent(context, TransferService::class.java).apply {
         action = TransferService.ACTION_UPLOAD_SMALL
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         putExtra(TransferService.EXTRA_TOKEN, token)
         putExtra(TransferService.EXTRA_PARENT_ID, parentId)
         putExtra(TransferService.EXTRA_URI, uri)
@@ -591,6 +604,7 @@ private fun startUploadLargeService(
 ) {
     val intent = Intent(context, TransferService::class.java).apply {
         action = TransferService.ACTION_UPLOAD_LARGE
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         putExtra(TransferService.EXTRA_TOKEN, token)
         putExtra(TransferService.EXTRA_PARENT_ID, parentId)
         putExtra(TransferService.EXTRA_URI, uri)

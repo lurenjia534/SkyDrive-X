@@ -48,6 +48,14 @@ class TransferService : LifecycleService() {
         return START_NOT_STICKY
     }
 
+    private fun sendUploadCompletedBroadcast(parentId: String?) {
+        val intent = Intent(ACTION_UPLOAD_COMPLETED).apply {
+            setPackage(packageName)
+            putExtra(EXTRA_PARENT_ID, parentId ?: "root")
+        }
+        runCatching { sendBroadcast(intent) }
+    }
+
     private fun handleSmallUpload(intent: Intent, startId: Int) {
         val token = intent.getStringExtra(EXTRA_TOKEN) ?: return stopSelf(startId)
         val parentId = intent.getStringExtra(EXTRA_PARENT_ID)
@@ -69,6 +77,7 @@ class TransferService : LifecycleService() {
                     bytes = bytes
                 )
                 finishUpload(this@TransferService, nid, fileName, success = true)
+                sendUploadCompletedBroadcast(parentId)
             } catch (e: Exception) {
                 val cancelled = cancelFlag.get() || e is CancellationException
                 finishUpload(this@TransferService, nid, fileName, success = false, message = if (cancelled) "已取消" else e.message)
@@ -102,6 +111,7 @@ class TransferService : LifecycleService() {
                         bytes = bytes
                     )
                     finishUpload(this@TransferService, nid, fileName, success = true)
+                    sendUploadCompletedBroadcast(parentId)
                 } else {
                     val item = filesRepository.uploadLargeFile(
                         parentId = parentId,
@@ -129,6 +139,7 @@ class TransferService : LifecycleService() {
                         }
                     )
                     finishUpload(this@TransferService, nid, item.name ?: fileName, success = true)
+                    sendUploadCompletedBroadcast(parentId)
                 }
             } catch (e: Exception) {
                 val cancelled = cancelFlag.get() || e is CancellationException
@@ -198,6 +209,7 @@ class TransferService : LifecycleService() {
         private const val TAG = "TransferService"
         const val ACTION_UPLOAD_SMALL = "com.lurenjia534.skydrivex.action.UPLOAD_SMALL"
         const val ACTION_UPLOAD_LARGE = "com.lurenjia534.skydrivex.action.UPLOAD_LARGE"
+        const val ACTION_UPLOAD_COMPLETED = "com.lurenjia534.skydrivex.action.UPLOAD_COMPLETED"
 
         const val EXTRA_TOKEN = "extra_token"
         const val EXTRA_PARENT_ID = "extra_parent_id"

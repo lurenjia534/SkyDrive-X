@@ -165,7 +165,8 @@ fun updateUploadProgress(context: Context, id: Int, title: String, uploaded: Lon
 
 /** Finish an upload notification and cleanup registry. */
 fun finishUpload(context: Context, id: Int, title: String, success: Boolean, message: String? = null) {
-    replaceWithCompletion(context, id, title, success, message)
+    val msg = message ?: if (success) "上传完成" else "上传失败"
+    replaceWithCompletion(context, id, title, success, msg)
     DownloadRegistry.cleanup(id)
 }
 

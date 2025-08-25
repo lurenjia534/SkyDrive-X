@@ -226,6 +226,31 @@ class FilesViewModel @Inject constructor(
 
     fun currentFolderId(): String = stack.lastOrNull()?.id ?: "root"
 
+    fun refreshCurrent(token: String) {
+        val parentId = currentFolderId()
+        cache.remove(parentId)
+        viewModelScope.launch {
+            _filesState.value = _filesState.value.copy(isLoading = true, error = null)
+            try {
+                val items = if (parentId == "root") {
+                    filesRepository.getRootChildren("Bearer $token")
+                } else {
+                    filesRepository.getChildren(parentId, "Bearer $token")
+                }
+                cache[parentId] = items
+                _filesState.value = _filesState.value.copy(
+                    items = items,
+                    isLoading = false,
+                    error = null,
+                    canGoBack = stack.size > 1,
+                    path = stack.toList()
+                )
+            } catch (e: Exception) {
+                _filesState.value = _filesState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
+
     suspend fun uploadSmallFileToCurrent(
         token: String,
         fileName: String,
