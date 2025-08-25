@@ -193,24 +193,19 @@ class FilesRepository @Inject constructor(
                         onProgress?.invoke(uploaded, totalBytes)
                     } else if (resp.code == 201 || resp.code == 200) {
                         val adapter = moshi.adapter(DriveItemDto::class.java)
-                        val bodyStr = resp.body?.string()
-                        val item = adapter.fromJson(bodyStr ?: "")
-                        if (item != null) {
-                            completedItem = item
-                        } else {
-                            throw IllegalStateException("Empty item response")
-                        }
+                        val bodyStr = resp.body.string()
+                        val item = adapter.fromJson(bodyStr)
+                            ?: throw IllegalStateException("Empty item response")
+                        completedItem = item
                     } else {
-                        val errBody = try { resp.body?.string() } catch (_: Exception) { null }
+                        val errBody = try { resp.body.string() } catch (_: Exception) { null }
                         // Query session status (IO thread) for nextExpectedRanges
                         val statusMsg = runCatching {
                             val statusReq = Request.Builder().url(uploadUrl).get().build()
                             okHttpClient.newCall(statusReq).execute().use { sResp ->
                                 if (sResp.isSuccessful) {
-                                    val sBody = sResp.body?.string()
-                                    if (!sBody.isNullOrBlank()) {
-                                        " status=" + sBody.take(300)
-                                    } else ""
+                                    val sBody = sResp.body.string()
+                                    if (sBody.isNotBlank()) " status=" + sBody.take(300) else ""
                                 } else ""
                             }
                         }.getOrDefault("")
