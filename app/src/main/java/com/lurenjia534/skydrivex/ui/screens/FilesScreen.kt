@@ -80,6 +80,7 @@ import com.lurenjia534.skydrivex.ui.util.finishUpload
 import com.lurenjia534.skydrivex.ui.util.startSystemDownloadWithNotification
 import android.content.BroadcastReceiver
 import android.content.ClipData
+import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalClipboard
@@ -96,6 +97,7 @@ import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import android.util.Log
+import com.lurenjia534.skydrivex.service.TransferService
 import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
@@ -131,50 +133,21 @@ fun FilesScreen(
         val count = uris.size
         scope.launch { snackbarHostState.showSnackbar(if (count > 0) "已选择 $count 项，开始上传" else "未选择内容") }
         if (token != null && uris.isNotEmpty()) {
-            scope.launch {
-                val cr = context.contentResolver
-                var success = 0
-                var failed = 0
-                for (uri in uris) {
-                    try {
-                        val name = runCatching {
-                            var displayName: String? = null
-                            cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-                                if (c.moveToFirst()) {
-                                    val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
-                                    if (idx >= 0) displayName = c.getString(idx)
-                                }
-                            }
-                            displayName ?: ("IMG_" + System.currentTimeMillis() + ".jpg")
-                        }.getOrDefault("IMG_" + System.currentTimeMillis() + ".jpg")
-                        val mime = cr.getType(uri) ?: "image/jpeg"
-                        val bytes = withContext(Dispatchers.IO) {
-                            cr.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
+            val parentId = viewModel.currentFolderId()
+            val cr = context.contentResolver
+            for (uri in uris) {
+                val name = runCatching {
+                    var displayName: String? = null
+                    cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                        if (c.moveToFirst()) {
+                            val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
+                            if (idx >= 0) displayName = c.getString(idx)
                         }
-                        if (bytes.isEmpty()) error("读取文件失败")
-                        // Notification via util (indeterminate cancellable)
-                        val (nid, _) = beginIndeterminateUpload(context, name)
-                        try {
-                            viewModel.uploadSmallFileToCurrent(
-                                token = token,
-                                fileName = name,
-                                mimeType = mime,
-                                bytes = bytes
-                            )
-                            finishUpload(context, nid, name, success = true)
-                            success++
-                        } catch (e: Exception) {
-                            finishUpload(context, nid, name, success = false, message = e.message)
-                            throw e
-                        }
-                    } catch (e: Exception) {
-                        failed++
-                        Log.e("FilesScreen", "Photo upload failed: name=${name}", e)
-                        snackbarHostState.showSnackbar("上传失败: $name | ${e.message ?: e::class.java.simpleName}")
                     }
-                }
-                if (success > 0) snackbarHostState.showSnackbar("上传成功 $success 项")
-                if (failed > 0) snackbarHostState.showSnackbar("上传失败 $failed 项")
+                    displayName ?: ("IMG_" + System.currentTimeMillis() + ".jpg")
+                }.getOrDefault("IMG_" + System.currentTimeMillis() + ".jpg")
+                val mime = cr.getType(uri) ?: "image/jpeg"
+                startUploadSmallService(context, token, parentId, uri, name, mime)
             }
         }
     }
@@ -185,103 +158,34 @@ fun FilesScreen(
     ) { uris ->
         val count = uris.size
         if (token != null && uris.isNotEmpty()) {
-            scope.launch {
-                val cr = context.contentResolver
-                var success = 0
-                var failed = 0
-                for (uri in uris) {
-                    try {
-                        val name = runCatching {
-                            var displayName: String? = null
-                            cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-                                if (c.moveToFirst()) {
-                                    val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
-                                    if (idx >= 0) displayName = c.getString(idx)
-                                }
-                            }
-                            displayName ?: ("FILE_" + System.currentTimeMillis())
-                        }.getOrDefault("FILE_" + System.currentTimeMillis())
-                        val mime = cr.getType(uri) ?: "application/octet-stream"
-                        // Try to get size without loading whole file
-                        val size = runCatching {
-                            cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.SIZE), null, null, null)?.use { c ->
-                                if (c.moveToFirst()) {
-                                    val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.SIZE)
-                                    if (idx >= 0) c.getLong(idx) else null
-                                } else null
-                            }
-                        }.getOrNull() ?: -1L
-
-                        val threshold = 10L * 1024L * 1024L // 10 MiB
-                        if (size >= 0 && size > threshold) {
-                            // Large upload via session with streaming chunks + progress notification
-                            val (nid, cancelFlag) = beginProgressUpload(context, name, initialPercent = 0)
-                            try {
-                                viewModel.uploadLargeFileToCurrent(
-                                    token = token,
-                                    fileName = name,
-                                    totalBytes = size,
-                                    chunkProvider = { offset, wantSize ->
-                                        withContext(Dispatchers.IO) {
-                                            cr.openInputStream(uri)?.use { ins ->
-                                                // Skip to offset efficiently
-                                                var skipped = 0L
-                                                while (skipped < offset) {
-                                                    val s = ins.skip(offset - skipped)
-                                                    if (s <= 0) break
-                                                    skipped += s
-                                                }
-                                                val buf = ByteArray(wantSize)
-                                                var readTotal = 0
-                                                while (readTotal < wantSize) {
-                                                    val r = ins.read(buf, readTotal, wantSize - readTotal)
-                                                    if (r <= 0) break
-                                                    readTotal += r
-                                                }
-                                                if (readTotal == wantSize) buf else buf.copyOf(readTotal)
-                                            } ?: ByteArray(0)
-                                        }
-                                    },
-                                    cancelFlag = cancelFlag,
-                                    onProgress = { uploadedBytes, total ->
-                                        updateUploadProgress(context, nid, name, uploadedBytes, total)
-                                    }
-                                )
-                                finishUpload(context, nid, name, success = true)
-                            } catch (e: Exception) {
-                                val cancelled = cancelFlag.get()
-                                finishUpload(context, nid, name, success = false, message = if (cancelled) "已取消" else e.message)
-                                throw e
-                            }
-                        } else {
-                            // Small upload (fallback when size unknown) with indeterminate notification
-                            val bytes = withContext(Dispatchers.IO) {
-                                cr.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
-                            }
-                            if (bytes.isEmpty()) error("读取文件失败")
-                            val (nid, _) = beginIndeterminateUpload(context, name)
-                            try {
-                                viewModel.uploadSmallFileToCurrent(
-                                    token = token,
-                                    fileName = name,
-                                    mimeType = mime,
-                                    bytes = bytes
-                                )
-                                finishUpload(context, nid, name, success = true)
-                            } catch (e: Exception) {
-                                finishUpload(context, nid, name, success = false, message = e.message)
-                                throw e
-                            }
+            val cr = context.contentResolver
+            val parentId = viewModel.currentFolderId()
+            for (uri in uris) {
+                val name = runCatching {
+                    var displayName: String? = null
+                    cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                        if (c.moveToFirst()) {
+                            val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.DISPLAY_NAME)
+                            if (idx >= 0) displayName = c.getString(idx)
                         }
-                        success++
-                    } catch (e: Exception) {
-                        failed++
-                        Log.e("FilesScreen", "File upload failed: name=${name}", e)
-                        snackbarHostState.showSnackbar("上传失败: $name | ${e.message ?: e::class.java.simpleName}")
                     }
+                    displayName ?: ("FILE_" + System.currentTimeMillis())
+                }.getOrDefault("FILE_" + System.currentTimeMillis())
+                val mime = cr.getType(uri) ?: "application/octet-stream"
+                val size = runCatching {
+                    cr.query(uri, arrayOf(android.provider.MediaStore.MediaColumns.SIZE), null, null, null)?.use { c ->
+                        if (c.moveToFirst()) {
+                            val idx = c.getColumnIndex(android.provider.MediaStore.MediaColumns.SIZE)
+                            if (idx >= 0) c.getLong(idx) else null
+                        } else null
+                    }
+                }.getOrNull() ?: -1L
+                val threshold = 10L * 1024L * 1024L // 10 MiB
+                if (size >= 0 && size > threshold) {
+                    startUploadLargeService(context, token, parentId, uri, name, size)
+                } else {
+                    startUploadSmallService(context, token, parentId, uri, name, mime)
                 }
-                if (success > 0) snackbarHostState.showSnackbar("上传成功 $success 项")
-                if (failed > 0) snackbarHostState.showSnackbar("上传失败 $failed 项")
             }
         } else {
             scope.launch { snackbarHostState.showSnackbar(if (count > 0) "未登录" else "未选择内容") }
@@ -656,6 +560,44 @@ fun FilesScreen(
             dismissButton = { TextButton(onClick = { showNewFolderDialog = false }) { Text("取消") } }
         )
     }
+}
+
+private fun startUploadSmallService(
+    context: android.content.Context,
+    token: String,
+    parentId: String,
+    uri: android.net.Uri,
+    name: String,
+    mime: String
+) {
+    val intent = Intent(context, TransferService::class.java).apply {
+        action = TransferService.ACTION_UPLOAD_SMALL
+        putExtra(TransferService.EXTRA_TOKEN, token)
+        putExtra(TransferService.EXTRA_PARENT_ID, parentId)
+        putExtra(TransferService.EXTRA_URI, uri)
+        putExtra(TransferService.EXTRA_FILE_NAME, name)
+        putExtra(TransferService.EXTRA_MIME, mime)
+    }
+    androidx.core.content.ContextCompat.startForegroundService(context, intent)
+}
+
+private fun startUploadLargeService(
+    context: android.content.Context,
+    token: String,
+    parentId: String,
+    uri: android.net.Uri,
+    name: String,
+    totalBytes: Long
+) {
+    val intent = Intent(context, TransferService::class.java).apply {
+        action = TransferService.ACTION_UPLOAD_LARGE
+        putExtra(TransferService.EXTRA_TOKEN, token)
+        putExtra(TransferService.EXTRA_PARENT_ID, parentId)
+        putExtra(TransferService.EXTRA_URI, uri)
+        putExtra(TransferService.EXTRA_FILE_NAME, name)
+        putExtra(TransferService.EXTRA_TOTAL_BYTES, totalBytes)
+    }
+    androidx.core.content.ContextCompat.startForegroundService(context, intent)
 }
 
 private fun formatBytes(bytes: Long): String {
