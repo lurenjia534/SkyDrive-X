@@ -7,7 +7,7 @@ import com.squareup.moshi.JsonClass
 data class CreateFolderBody(
     val name: String,
     val folder: EmptyFolder = EmptyFolder(),
-    @Json(name = "@microsoft.graph.conflictBehavior") val conflictBehavior: String = "rename"
+    @param:Json(name = "@microsoft.graph.conflictBehavior") val conflictBehavior: String = "rename"
 )
 
 // Represent an empty JSON object: {}
