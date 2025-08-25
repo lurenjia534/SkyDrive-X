@@ -44,6 +44,7 @@ android {
 dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.lifecycle.service)
     ksp(libs.hilt.compiler)
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-moshi:3.0.0")

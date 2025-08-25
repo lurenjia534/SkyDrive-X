@@ -10,7 +10,8 @@ activityCompose = "1.10.1"
 composeBom = "2024.09.00"
 hilt      = "2.57"
 ksp = "2.2.0-2.0.2"      # 与当前 Kotlin 2.2.x 对应的 KSP
-hiltx     = "1.2.0"             # AndroidX Hilt 扩展最新稳定
+hiltx     = "1.2.0"
+lifecycleService = "2.9.2"             # AndroidX Hilt 扩展最新稳定
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -30,6 +31,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 hilt-android            = { module = "com.google.dagger:hilt-android",            version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }   # ← 唯一合法写法
 hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose",     version.ref = "hiltx" }
+androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
