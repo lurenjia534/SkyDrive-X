@@ -235,7 +235,7 @@ class FilesRepository @Inject constructor(
                     }
                 }
             }
-            if (completedItem != null) return completedItem!!
+            completedItem?.let { return it }
         }
         error("Upload did not complete")
     }
