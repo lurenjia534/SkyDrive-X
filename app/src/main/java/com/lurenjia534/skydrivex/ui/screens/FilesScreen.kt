@@ -123,11 +123,11 @@ fun FilesScreen(
     // Listen for upload completion broadcast to refresh current folder
     DisposableEffect(token) {
         if (token == null) return@DisposableEffect onDispose { }
+        val tokenSnapshot = token!!
         val filter = IntentFilter(TransferService.ACTION_UPLOAD_COMPLETED)
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context?, i: Intent?) {
-                val t = token ?: return
-                viewModel.refreshCurrent(t)
+                viewModel.refreshCurrent(tokenSnapshot)
             }
         }
         try {
