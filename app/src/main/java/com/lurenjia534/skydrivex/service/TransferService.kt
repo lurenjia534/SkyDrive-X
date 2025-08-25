@@ -2,13 +2,14 @@ package com.lurenjia534.skydrivex.service
 
 import android.app.Notification
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.IntentCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
@@ -16,7 +17,6 @@ import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.util.finishUpload
 import com.lurenjia534.skydrivex.ui.util.updateUploadProgress
 import com.lurenjia534.skydrivex.ui.util.CancelDownloadReceiver
-import com.lurenjia534.skydrivex.R
 import com.lurenjia534.skydrivex.data.repository.FilesRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -38,14 +38,14 @@ class TransferService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        if (intent == null) return Service.START_NOT_STICKY
+        if (intent == null) return START_NOT_STICKY
         val action = intent.action
         when (action) {
             ACTION_UPLOAD_SMALL -> handleSmallUpload(intent, startId)
             ACTION_UPLOAD_LARGE -> handleLargeUpload(intent, startId)
             else -> stopSelf(startId)
         }
-        return Service.START_NOT_STICKY
+        return START_NOT_STICKY
     }
 
     private fun handleSmallUpload(intent: Intent, startId: Int) {
@@ -53,9 +53,9 @@ class TransferService : LifecycleService() {
         val parentId = intent.getStringExtra(EXTRA_PARENT_ID)
         val fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: return stopSelf(startId)
         val mime = intent.getStringExtra(EXTRA_MIME) ?: "application/octet-stream"
-        val uri = intent.getParcelableExtra<android.net.Uri>(EXTRA_URI) ?: return stopSelf(startId)
+        val uri: Uri = IntentCompat.getParcelableExtra(intent, EXTRA_URI, Uri::class.java) ?: return stopSelf(startId)
 
-        val (nid, cancelFlag) = startAsForeground("正在上传: $fileName", withCancel = true)
+        val (nid, cancelFlag) = startAsForeground("正在上传: $fileName")
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 if (cancelFlag.get()) throw CancellationException("Cancelled")
@@ -84,9 +84,10 @@ class TransferService : LifecycleService() {
         val parentId = intent.getStringExtra(EXTRA_PARENT_ID)
         val fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: return stopSelf(startId)
         val totalBytes = intent.getLongExtra(EXTRA_TOTAL_BYTES, -1L)
-        val uri = intent.getParcelableExtra<android.net.Uri>(EXTRA_URI) ?: return stopSelf(startId)
+        val uri: Uri = IntentCompat.getParcelableExtra(intent, EXTRA_URI, Uri::class.java)
+            ?: return stopSelf(startId)
 
-        val (nid, cancelFlag) = startAsForeground("正在上传: $fileName", withCancel = true)
+        val (nid, cancelFlag) = startAsForeground("正在上传: $fileName")
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 if (totalBytes <= 0) {
@@ -155,7 +156,7 @@ class TransferService : LifecycleService() {
         else -> "application/octet-stream"
     }
 
-    private fun startAsForeground(title: String, withCancel: Boolean): Pair<Int, AtomicBoolean> {
+    private fun startAsForeground(title: String): Pair<Int, AtomicBoolean> {
         createDownloadChannel(this)
         val notificationId = ((System.currentTimeMillis() % Int.MAX_VALUE)).toInt()
         val cancelFlag = AtomicBoolean(false)
@@ -166,7 +167,6 @@ class TransferService : LifecycleService() {
             .setOnlyAlertOnce(true)
             .setProgress(0, 0, true)
 
-        if (withCancel) {
             val cancelIntent = Intent(this, CancelDownloadReceiver::class.java).apply {
                 action = CancelDownloadReceiver.ACTION_CANCEL
                 putExtra(CancelDownloadReceiver.EXTRA_NOTIFICATION_ID, notificationId)
@@ -179,7 +179,6 @@ class TransferService : LifecycleService() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             builder.addAction(0, "取消", pi)
-        }
 
         val notification: Notification = builder.build()
         // Register cancel flag so CancelDownloadReceiver can cancel upload
