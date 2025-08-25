@@ -3,7 +3,6 @@ package com.lurenjia534.skydrivex.ui.util
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import androidx.core.app.NotificationManagerCompat
 
 class CancelDownloadReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

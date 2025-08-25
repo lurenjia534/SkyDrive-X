@@ -4,7 +4,6 @@ import android.app.DownloadManager
 import android.content.Context
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlinx.coroutines.Job
 
 object DownloadRegistry {
     private val customCancelFlags = ConcurrentHashMap<Int, AtomicBoolean>()
