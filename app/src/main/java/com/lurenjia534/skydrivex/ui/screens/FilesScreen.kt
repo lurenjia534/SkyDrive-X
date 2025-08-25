@@ -575,7 +575,7 @@ fun FilesScreen(
 }
 
 private fun startUploadSmallService(
-    context: android.content.Context,
+    context: Context,
     token: String,
     parentId: String,
     uri: android.net.Uri,
@@ -591,11 +591,11 @@ private fun startUploadSmallService(
         putExtra(TransferService.EXTRA_FILE_NAME, name)
         putExtra(TransferService.EXTRA_MIME, mime)
     }
-    androidx.core.content.ContextCompat.startForegroundService(context, intent)
+    ContextCompat.startForegroundService(context, intent)
 }
 
 private fun startUploadLargeService(
-    context: android.content.Context,
+    context: Context,
     token: String,
     parentId: String,
     uri: android.net.Uri,
@@ -611,7 +611,7 @@ private fun startUploadLargeService(
         putExtra(TransferService.EXTRA_FILE_NAME, name)
         putExtra(TransferService.EXTRA_TOTAL_BYTES, totalBytes)
     }
-    androidx.core.content.ContextCompat.startForegroundService(context, intent)
+    ContextCompat.startForegroundService(context, intent)
 }
 
 private fun formatBytes(bytes: Long): String {
@@ -711,7 +711,7 @@ private fun FilesLoadingPlaceholder(modifier: Modifier = Modifier) {
 }
 
 private fun saveToTree(
-    context: android.content.Context,
+    context: Context,
     treeUriString: String,
     fileName: String,
     downloadUrl: String,
