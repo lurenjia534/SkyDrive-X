@@ -53,6 +53,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -79,6 +80,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.outlined.Image
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
@@ -101,6 +103,7 @@ import com.lurenjia534.skydrivex.ui.util.saveToTree
 @Composable
 fun FilesScreen(
     token: String?,
+    navController: NavHostController,
     modifier: Modifier = Modifier,
     viewModel: FilesViewModel = hiltViewModel<FilesViewModel>(),
     mainViewModel: MainViewModel = hiltViewModel<MainViewModel>(),
@@ -379,6 +382,24 @@ fun FilesScreen(
                                                     },
                                                     leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) }
                                                 )
+                                                // 预览（仅图片类型）
+                                                val mime = item.file?.mimeType
+                                                if (mime != null && mime.startsWith("image/")) {
+                                                    DropdownMenuItem(
+                                                        text = { Text("预览", fontWeight = FontWeight.Bold) },
+                                                        onClick = {
+                                                            val id = item.id
+                                                            if (id != null) {
+                                                                val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
+                                                                navController.navigate("preview/${id}/${encodedName}")
+                                                            } else {
+                                                                scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
+                                                            }
+                                                            expanded = false
+                                                        },
+                                                        leadingIcon = { Icon(Icons.Outlined.Image, contentDescription = null) }
+                                                    )
+                                                }
                                             }
                                             DropdownMenuItem(
                                                 text = { Text("分享", fontWeight = FontWeight.Bold) },

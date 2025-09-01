@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import com.lurenjia534.skydrivex.ui.screens.FilesScreen
 import com.lurenjia534.skydrivex.ui.screens.HomeScreen
 import com.lurenjia534.skydrivex.ui.screens.ProfileScreen
+import com.lurenjia534.skydrivex.ui.screens.ImagePreviewScreen
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 
 @Composable
@@ -30,7 +31,7 @@ fun NavGraph(
         }
         composable(NavDestination.Files.route) {
             val token by viewModel.token.collectAsState()
-            FilesScreen(token = token)
+            FilesScreen(token = token, navController = navController)
         }
         composable(NavDestination.Profile.route) {
             val uiState by viewModel.userState.collectAsState()
@@ -44,6 +45,12 @@ fun NavGraph(
         composable(NavDestination.Settings.route) {
             // 空白页面，点击导航时会启动SettingsActivity
             Box(modifier = Modifier.fillMaxSize())
+        }
+        // 图片预览页：参数 itemId 与 name（URL 编码）
+        composable(NavDestination.ImagePreview.route) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId")
+            val nameEnc = backStackEntry.arguments?.getString("name")
+            ImagePreviewScreen(itemId = itemId, nameEncoded = nameEnc, onBack = { navController.popBackStack() })
         }
     }
 }
