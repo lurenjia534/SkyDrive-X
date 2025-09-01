@@ -13,6 +13,7 @@ import com.lurenjia534.skydrivex.ui.screens.FilesScreen
 import com.lurenjia534.skydrivex.ui.screens.HomeScreen
 import com.lurenjia534.skydrivex.ui.screens.ProfileScreen
 import com.lurenjia534.skydrivex.ui.screens.ImagePreviewScreen
+import com.lurenjia534.skydrivex.ui.screens.VideoPreviewScreen
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 
 @Composable
@@ -51,6 +52,12 @@ fun NavGraph(
             val itemId = backStackEntry.arguments?.getString("itemId")
             val nameEnc = backStackEntry.arguments?.getString("name")
             ImagePreviewScreen(itemId = itemId, nameEncoded = nameEnc, onBack = { navController.popBackStack() })
+        }
+        // 视频预览页：参数 itemId 与 name（URL 编码）
+        composable(NavDestination.VideoPreview.route) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId")
+            val nameEnc = backStackEntry.arguments?.getString("name")
+            VideoPreviewScreen(itemId = itemId, nameEncoded = nameEnc, onBack = { navController.popBackStack() })
         }
     }
 }
