@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.ui.screens
+package com.lurenjia534.skydrivex.ui.screens.preview
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement

@@ -12,8 +12,8 @@ import androidx.navigation.compose.composable
 import com.lurenjia534.skydrivex.ui.screens.FilesScreen
 import com.lurenjia534.skydrivex.ui.screens.HomeScreen
 import com.lurenjia534.skydrivex.ui.screens.ProfileScreen
-import com.lurenjia534.skydrivex.ui.screens.ImagePreviewScreen
-import com.lurenjia534.skydrivex.ui.screens.VideoPreviewScreen
+import com.lurenjia534.skydrivex.ui.screens.preview.ImagePreviewScreen
+import com.lurenjia534.skydrivex.ui.screens.preview.VideoPreviewScreen
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 
 @Composable

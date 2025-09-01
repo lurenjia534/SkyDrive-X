@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.lurenjia534.skydrivex.ui.components.BottomNavBar
 import com.lurenjia534.skydrivex.ui.navigation.NavGraph
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
@@ -56,9 +57,19 @@ fun SkyDriveXAppContent(viewModel: MainViewModel = hiltViewModel()) {
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     SkyDriveXTheme(darkTheme = isDarkMode) {
         val navController = rememberNavController()
+        val backStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = backStackEntry?.destination?.route
+        // 仅在底栏页面显示 BottomNavBar；预览页为全屏（无底栏）
+        val showBottomBar = when {
+            currentRoute == null -> true
+            currentRoute.startsWith("preview/") -> false
+            currentRoute.startsWith("video/") -> false
+            else -> true
+        }
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            bottomBar = { BottomNavBar(navController = navController) }
+            bottomBar = { if (showBottomBar) BottomNavBar(navController = navController) }
         ) { innerPadding ->
             Box(
                 modifier = Modifier
