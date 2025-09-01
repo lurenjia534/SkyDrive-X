@@ -42,6 +42,7 @@ android {
 }
 
 dependencies {
+    val media3_version = "1.8.0"
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
     implementation(libs.androidx.lifecycle.service)
@@ -72,4 +73,8 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Media3 for video playback (Compose UI)
+    implementation("androidx.media3:media3-exoplayer:$media3_version")
+    implementation("androidx.media3:media3-ui-compose:$media3_version")
 }
