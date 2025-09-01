@@ -86,7 +86,7 @@ import androidx.compose.material.icons.rounded.Share
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
-import com.lurenjia534.skydrivex.service.TransferService
+import com.lurenjia534.skydrivex.ui.service.TransferService
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.IntentFilter
@@ -96,6 +96,7 @@ import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.util.showOrUpdateProgress
+import com.lurenjia534.skydrivex.ui.util.saveToTree
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -710,61 +711,4 @@ private fun FilesLoadingPlaceholder(modifier: Modifier = Modifier) {
     }
 }
 
-private fun saveToTree(
-    context: Context,
-    treeUriString: String,
-    fileName: String,
-    downloadUrl: String,
-    totalBytes: Long?,
-    onProgress: (downloaded: Long, total: Long) -> Unit,
-    cancelFlag: java.util.concurrent.atomic.AtomicBoolean
-): Boolean {
-    val resolver = context.contentResolver
-    val treeUri = treeUriString.toUri()
-    val parentDoc = DocumentsContract.buildDocumentUriUsingTree(
-        treeUri,
-        DocumentsContract.getTreeDocumentId(treeUri)
-    )
-    val newDocUri = try {
-        DocumentsContract.createDocument(
-            resolver,
-            parentDoc,
-            "application/octet-stream",
-            fileName
-        )
-    } catch (e: Exception) {
-        null
-    } ?: return false
-
-    return try {
-        resolver.openOutputStream(newDocUri)?.use { out ->
-            val url = URL(downloadUrl)
-            (url.openConnection() as HttpURLConnection).let { conn ->
-                conn.requestMethod = "GET"
-                conn.connectTimeout = 15000
-                conn.readTimeout = 30000
-                conn.inputStream.use { input ->
-                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-                    var downloaded = 0L
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read == -1) break
-                        if (cancelFlag.get()) {
-                            throw InterruptedException("cancelled")
-                        }
-                        out.write(buffer, 0, read)
-                        downloaded += read
-                        onProgress(downloaded, totalBytes ?: -1L)
-                    }
-                    out.flush()
-                }
-                conn.disconnect()
-            }
-        }
-        true
-    } catch (e: Exception) {
-        // try delete partial
-        try { DocumentsContract.deleteDocument(resolver, newDocUri) } catch (_: Exception) {}
-        false
-    }
-}
+// 文件保存工具已提取至 ui.util.FileSave.saveToTree

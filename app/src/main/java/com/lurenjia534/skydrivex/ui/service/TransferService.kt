@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.service
+package com.lurenjia534.skydrivex.ui.service
 
 import android.app.Notification
 import android.app.PendingIntent
@@ -28,8 +28,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 /**
- * Foreground service for user-initiated uploads.
- * Uses foregroundServiceType=dataSync to comply with Android 14+.
+ *用于用户启动的上传的前景服务。
+ *使用ForegroundServiceType = DataSync符合Android 14+。
  */
 @AndroidEntryPoint
 class TransferService : LifecycleService() {

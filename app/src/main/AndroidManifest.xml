@@ -33,7 +33,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SkyDriveX">
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.activity.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.SkyDriveX">
@@ -68,7 +68,7 @@
 
         <!-- Foreground service for user-initiated uploads/downloads -->
         <service
-            android:name=".service.TransferService"
+            android:name=".ui.service.TransferService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
     </application>

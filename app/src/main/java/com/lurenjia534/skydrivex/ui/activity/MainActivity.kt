@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex
+package com.lurenjia534.skydrivex.ui.activity
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
