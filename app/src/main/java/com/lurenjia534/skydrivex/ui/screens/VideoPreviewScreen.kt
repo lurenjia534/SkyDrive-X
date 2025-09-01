@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -54,13 +55,12 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
-import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.state.rememberPlayPauseButtonState
 import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
+import com.lurenjia534.skydrivex.ui.viewmodel.VideoPlayerViewModel
 import kotlinx.coroutines.delay
 import java.net.URLDecoder
 
@@ -73,6 +73,7 @@ fun VideoPreviewScreen(
     onBack: () -> Unit,
     filesViewModel: FilesViewModel = hiltViewModel(),
     mainViewModel: MainViewModel = hiltViewModel(),
+    playerViewModel: VideoPlayerViewModel = hiltViewModel(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val token by mainViewModel.token.collectAsState()
@@ -138,41 +139,9 @@ fun VideoPreviewScreen(
             if (src.isNullOrEmpty()) {
                 Text(text = if (isLoading) "加载中…" else "无法播放")
             } else {
-                val context = LocalContext.current
-                // 只创建一次播放器，离开页面时释放
-                val player = remember(context) { ExoPlayer.Builder(context).build() }
-
-                DisposableEffect(Unit) {
-                    onDispose { player.release() }
-                }
-
-                // 切换媒体源
-                LaunchedEffect(src) {
-                    player.setMediaItem(MediaItem.fromUri(src))
-                    player.prepare()
-                    player.playWhenReady = true
-                }
-
-                // 按视频尺寸保持宽高比显示（避免被拉伸）
-                var aspect by remember { mutableFloatStateOf(16f / 9f) }
-                fun ratioOf(v: VideoSize): Float {
-                    val h = if (v.height == 0) 1 else v.height
-                    val px = if (v.pixelWidthHeightRatio == 0f) 1f else v.pixelWidthHeightRatio
-                    return ((v.width * px) / h).coerceAtLeast(0.1f)
-                }
-                // 监听视频尺寸变化
-                LaunchedEffect(player) {
-                    aspect = ratioOf(player.videoSize)
-                }
-                DisposableEffect(player) {
-                    val l = object : Player.Listener {
-                        override fun onVideoSizeChanged(videoSize: VideoSize) {
-                            aspect = ratioOf(videoSize)
-                        }
-                    }
-                    player.addListener(l)
-                    onDispose { player.removeListener(l) }
-                }
+                val player = playerViewModel.getPlayer()
+                LaunchedEffect(src) { playerViewModel.setMedia(src) }
+                val aspect by playerViewModel.aspectRatio.collectAsState()
 
                 val videoModifier = if (androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
                     Modifier.fillMaxHeight().aspectRatio(aspect, matchHeightConstraintsFirst = true)
@@ -213,6 +182,23 @@ fun VideoPreviewScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp, vertical = if (isLandscape) 24.dp else 80.dp)
                     )
+                }
+
+                // 屏幕方向切换（右上角浮动按钮）
+                if (controlsVisible) {
+                    FloatingActionButton(
+                        onClick = {
+                            val act = findActivity(ctx) ?: return@FloatingActionButton
+                            val current = act.requestedOrientation
+                            val goingLandscape = current != android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                            act.requestedOrientation = if (goingLandscape)
+                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                            else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                        },
+                        modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+                    ) {
+                        Icon(Icons.Filled.ScreenRotation, contentDescription = "切换横竖屏")
+                    }
                 }
             }
         }
