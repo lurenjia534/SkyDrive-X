@@ -37,15 +37,12 @@ fun AudioPreviewScreen(
     val title = remember(nameEncoded) { runCatching { URLDecoder.decode(nameEncoded ?: "", "UTF-8") }.getOrDefault("") }
 
     var url by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(itemId, token) {
         if (!itemId.isNullOrEmpty() && !token.isNullOrEmpty()) {
-            isLoading = true
             runCatching { filesViewModel.getDownloadUrl(itemId, token!!) }
                 .onSuccess { url = it ?: run { snackbarHostState.showSnackbar("无法获取音频地址"); null } }
                 .onFailure { snackbarHostState.showSnackbar(it.message ?: "加载失败") }
-            isLoading = false
         }
     }
 
@@ -73,6 +70,10 @@ fun AudioPreviewScreen(
         ) {
             // 简单的标题/占位
             Text(text = title.ifEmpty { "音频" }, style = MaterialTheme.typography.titleLarge)
+            if (url == null) {
+                CircularProgressIndicator()
+                return@Column
+            }
 
             // 进度与控制
             AudioControls(player = player)
@@ -102,7 +103,6 @@ private fun AudioControls(player: androidx.media3.exoplayer.ExoPlayer) {
         IconButton(onClick = { player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0)) }) {
             Icon(Icons.Filled.FastRewind, contentDescription = "后退10秒")
         }
-        val isPlaying by remember { mutableStateOf(true) }
         // 用 playWhenReady + playbackState 判断
         val playing = player.playWhenReady && player.playbackState == androidx.media3.common.Player.STATE_READY
         FilledIconButton(onClick = { player.playWhenReady = !playing }) {
@@ -135,4 +135,3 @@ private fun AudioControls(player: androidx.media3.exoplayer.ExoPlayer) {
         player.playbackParameters = PlaybackParameters(speeds[speedIndex])
     }) { Text(text = "倍速 ${speeds[speedIndex]}x") }
 }
-
