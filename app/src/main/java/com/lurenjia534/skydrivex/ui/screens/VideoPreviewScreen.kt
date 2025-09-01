@@ -1,9 +1,22 @@
 package com.lurenjia534.skydrivex.ui.screens
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -11,8 +24,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -24,40 +37,32 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
-import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.state.rememberPlayPauseButtonState
 import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
-import java.net.URLDecoder
 import kotlinx.coroutines.delay
+import java.net.URLDecoder
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,18 +92,37 @@ fun VideoPreviewScreen(
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    var controlsVisible by remember(isLandscape) { mutableStateOf(!isLandscape) }
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(text = title.ifEmpty { "视频预览" }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回") } },
-                scrollBehavior = scrollBehavior
-            )
+            if (!isLandscape && controlsVisible) {
+                CenterAlignedTopAppBar(
+                    title = { Text(text = title.ifEmpty { "视频预览" }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回") } },
+                    scrollBehavior = scrollBehavior
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         val src = url
-        Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+        val view = androidx.compose.ui.platform.LocalView.current
+        // 横屏时隐藏系统栏，竖屏时显示
+        LaunchedEffect(isLandscape) {
+            val controller = androidx.core.view.ViewCompat.getWindowInsetsController(view)
+            controller?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            if (isLandscape) controller?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            else controller?.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .pointerInput(isLandscape) { detectTapGestures(onTap = { controlsVisible = !controlsVisible }) },
+            contentAlignment = Alignment.Center
+        ) {
             if (src.isNullOrEmpty()) {
                 Text(text = if (isLoading) "加载中…" else "无法播放")
             } else {
@@ -117,36 +141,74 @@ fun VideoPreviewScreen(
                     player.playWhenReady = true
                 }
 
-                // 视频画面（Compose 原生）
-                PlayerSurface(player = player, modifier = Modifier.fillMaxSize())
-
-                // 播放/暂停 FAB（右下角）
-                val playPause = rememberPlayPauseButtonState(player)
-                FloatingActionButton(
-                    onClick = playPause::onClick,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-                ) {
-                    Icon(
-                        imageVector = if (playPause.showPlay) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                        contentDescription = if (playPause.showPlay) "播放" else "暂停"
-                    )
+                // 按视频尺寸保持宽高比显示（避免被拉伸）
+                var aspect by remember { mutableStateOf(16f / 9f) }
+                fun ratioOf(v: VideoSize): Float {
+                    val h = if (v.height == 0) 1 else v.height
+                    val px = if (v.pixelWidthHeightRatio == 0f) 1f else v.pixelWidthHeightRatio
+                    return ((v.width * px) / h).coerceAtLeast(0.1f)
+                }
+                // 监听视频尺寸变化
+                LaunchedEffect(player) {
+                    aspect = ratioOf(player.videoSize)
+                }
+                DisposableEffect(player) {
+                    val l = object : Player.Listener {
+                        override fun onVideoSizeChanged(videoSize: VideoSize) {
+                            aspect = ratioOf(videoSize)
+                        }
+                    }
+                    player.addListener(l)
+                    onDispose { player.removeListener(l) }
                 }
 
-                // 控制栏（进度/音量/倍速），底部中间，给右下角 FAB 让出空间
-                ControlBar(
-                    player = player,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 80.dp)
-                )
+                val videoModifier = if (androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+                    Modifier.fillMaxHeight().aspectRatio(aspect, matchHeightConstraintsFirst = true)
+                } else {
+                    Modifier.fillMaxWidth().aspectRatio(aspect)
+                }
+                PlayerSurface(player = player, modifier = videoModifier.align(Alignment.Center))
+
+                // 自动隐藏控制（简单实现）：显示后3秒自动隐藏（横屏默认隐藏）
+                LaunchedEffect(controlsVisible, src) {
+                    if (controlsVisible) {
+                        delay(3000)
+                        controlsVisible = false
+                    }
+                }
+
+                // 播放/暂停 FAB（右下角）
+                if (controlsVisible) {
+                    val playPause = rememberPlayPauseButtonState(player)
+                    FloatingActionButton(
+                        onClick = playPause::onClick,
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (playPause.showPlay) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                            contentDescription = if (playPause.showPlay) "播放" else "暂停"
+                        )
+                    }
+                }
+
+                // 控制栏（进度/音量/倍速）
+                if (controlsVisible) {
+                    ControlBar(
+                        player = player,
+                        compact = isLandscape,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = if (isLandscape) 24.dp else 80.dp)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ControlBar(player: Player, modifier: Modifier = Modifier) {
+private fun ControlBar(player: Player, compact: Boolean, modifier: Modifier = Modifier) {
     // 进度状态（每 500ms 刷新一次）
     var durationMs by remember { mutableLongStateOf(0L) }
     var positionMs by remember { mutableLongStateOf(0L) }
@@ -177,13 +239,13 @@ private fun ControlBar(player: Player, modifier: Modifier = Modifier) {
 
     Surface(
         modifier = modifier,
-        color = androidx.compose.material3.MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-        tonalElevation = 6.dp,
-        shape = RoundedCornerShape(16.dp)
+        color = androidx.compose.material3.MaterialTheme.colorScheme.surface.copy(alpha = if (compact) 0.6f else 0.88f),
+        tonalElevation = if (compact) 2.dp else 6.dp,
+        shape = RoundedCornerShape(if (compact) 10.dp else 16.dp)
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            Modifier.fillMaxWidth().padding(if (compact) 8.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp)
         ) {
             // 进度 + 快退/快进
             Row(verticalAlignment = Alignment.CenterVertically) {
