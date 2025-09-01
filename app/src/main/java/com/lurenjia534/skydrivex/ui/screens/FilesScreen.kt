@@ -70,7 +70,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
-import com.lurenjia534.skydrivex.ui.util.startSystemDownloadWithNotification
+import com.lurenjia534.skydrivex.ui.notification.startSystemDownloadWithNotification
 import android.content.ClipData
 import android.content.Intent
 import androidx.compose.ui.text.font.FontWeight
@@ -92,10 +92,10 @@ import android.content.Context
 import android.content.IntentFilter
 import androidx.compose.runtime.DisposableEffect
 import androidx.core.content.ContextCompat
-import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
-import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
-import com.lurenjia534.skydrivex.ui.util.replaceWithCompletion
-import com.lurenjia534.skydrivex.ui.util.showOrUpdateProgress
+import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
+import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
+import com.lurenjia534.skydrivex.ui.notification.replaceWithCompletion
+import com.lurenjia534.skydrivex.ui.notification.showOrUpdateProgress
 import com.lurenjia534.skydrivex.ui.util.saveToTree
 
 /**

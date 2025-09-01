@@ -1,4 +1,12 @@
-package com.lurenjia534.skydrivex.ui.util
+package com.lurenjia534.skydrivex.ui.notification
+
+/**
+ * Notifications helpers for downloads/uploads.
+ * - Channel management
+ * - Progress/indeterminate updates
+ * - Completion replacement to avoid OEM stuck-notification issues
+ * - System DownloadManager bridging to app-managed notifications
+ */
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -16,6 +24,8 @@ import android.app.DownloadManager
 import android.content.IntentFilter
 import android.os.Environment
 import androidx.core.net.toUri
+import com.lurenjia534.skydrivex.ui.notification.CancelDownloadReceiver
+import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 
 private const val CHANNEL_ID = "downloads"
 

@@ -12,11 +12,11 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import com.lurenjia534.skydrivex.ui.util.DownloadRegistry
-import com.lurenjia534.skydrivex.ui.util.createDownloadChannel
-import com.lurenjia534.skydrivex.ui.util.finishUpload
-import com.lurenjia534.skydrivex.ui.util.updateUploadProgress
-import com.lurenjia534.skydrivex.ui.util.CancelDownloadReceiver
+import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
+import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
+import com.lurenjia534.skydrivex.ui.notification.finishUpload
+import com.lurenjia534.skydrivex.ui.notification.updateUploadProgress
+import com.lurenjia534.skydrivex.ui.notification.CancelDownloadReceiver
 import com.lurenjia534.skydrivex.data.repository.FilesRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException

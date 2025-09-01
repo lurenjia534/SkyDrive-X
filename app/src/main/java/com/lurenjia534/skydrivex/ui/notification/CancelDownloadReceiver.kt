@@ -1,8 +1,10 @@
-package com.lurenjia534.skydrivex.ui.util
+package com.lurenjia534.skydrivex.ui.notification
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
+import com.lurenjia534.skydrivex.ui.notification.replaceWithCompletion
 
 class CancelDownloadReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -21,4 +23,3 @@ class CancelDownloadReceiver : BroadcastReceiver() {
         const val EXTRA_TITLE = "title"
     }
 }
-
