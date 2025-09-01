@@ -80,6 +80,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Image
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
@@ -418,6 +419,26 @@ fun FilesScreen(
                                                                 expanded = false
                                                             },
                                                             leadingIcon = { Icon(Icons.Outlined.PlayCircle, contentDescription = null) }
+                                                        )
+                                                    }
+                                                }
+                                                // 预览音频（仅音频文件）
+                                                run {
+                                                    val amime = item.file?.mimeType
+                                                    if (amime != null && amime.startsWith("audio/")) {
+                                                        DropdownMenuItem(
+                                                            text = { Text("预览音频", fontWeight = FontWeight.Bold) },
+                                                            onClick = {
+                                                                val id = item.id
+                                                                if (id != null) {
+                                                                    val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
+                                                                    navController.navigate("audio/${id}/${encodedName}")
+                                                                } else {
+                                                                    scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
+                                                                }
+                                                                expanded = false
+                                                            },
+                                                            leadingIcon = { Icon(Icons.Outlined.LibraryMusic, contentDescription = null) }
                                                         )
                                                     }
                                                 }
