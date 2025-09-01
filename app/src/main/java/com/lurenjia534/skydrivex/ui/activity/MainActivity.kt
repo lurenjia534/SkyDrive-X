@@ -20,7 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import com.lurenjia534.skydrivex.ui.components.BottomNavBar
 import com.lurenjia534.skydrivex.ui.navigation.NavGraph
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
-import com.lurenjia534.skydrivex.viewmodel.MainViewModel
+import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

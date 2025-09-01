@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.viewmodel
+package com.lurenjia534.skydrivex.ui.viewmodel
 
 import android.app.Activity
 import android.content.Context

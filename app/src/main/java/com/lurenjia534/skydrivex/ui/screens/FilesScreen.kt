@@ -59,8 +59,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
-import com.lurenjia534.skydrivex.viewmodel.FilesViewModel
-import com.lurenjia534.skydrivex.viewmodel.MainViewModel
+import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
+import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import com.lurenjia534.skydrivex.ui.state.Breadcrumb
 import java.util.Locale
 import kotlinx.coroutines.launch
