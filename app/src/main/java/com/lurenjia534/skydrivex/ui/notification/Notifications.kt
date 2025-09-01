@@ -8,24 +8,22 @@ package com.lurenjia534.skydrivex.ui.notification
  * - System DownloadManager bridging to app-managed notifications
  */
 
+import android.Manifest
+import android.app.DownloadManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
-import androidx.core.app.NotificationCompat
-import java.util.concurrent.atomic.AtomicBoolean
-import androidx.core.app.NotificationManagerCompat
-import android.app.DownloadManager
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Environment
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import com.lurenjia534.skydrivex.ui.notification.CancelDownloadReceiver
-import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
+import java.util.concurrent.atomic.AtomicBoolean
 
 private const val CHANNEL_ID = "downloads"
 

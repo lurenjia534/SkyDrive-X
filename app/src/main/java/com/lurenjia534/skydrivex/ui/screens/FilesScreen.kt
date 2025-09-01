@@ -64,12 +64,8 @@ import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import com.lurenjia534.skydrivex.ui.state.Breadcrumb
 import java.util.Locale
 import kotlinx.coroutines.launch
-import androidx.core.net.toUri
-import android.provider.DocumentsContract
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 import com.lurenjia534.skydrivex.ui.notification.startSystemDownloadWithNotification
 import android.content.ClipData
 import android.content.Intent
