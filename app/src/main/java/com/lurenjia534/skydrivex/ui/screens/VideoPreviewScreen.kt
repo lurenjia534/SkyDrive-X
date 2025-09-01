@@ -109,12 +109,24 @@ fun VideoPreviewScreen(
     ) { padding ->
         val src = url
         val view = androidx.compose.ui.platform.LocalView.current
-        // 横屏时隐藏系统栏，竖屏时显示
+        val ctx = LocalContext.current
+        fun findActivity(c0: android.content.Context): android.app.Activity? {
+            var c = c0
+            while (c is android.content.ContextWrapper) {
+                if (c is android.app.Activity) return c
+                c = c.baseContext
+            }
+            return null
+        }
+        // 横屏时隐藏系统栏，竖屏时显示（使用 WindowCompat 建议 API）
         LaunchedEffect(isLandscape) {
-            val controller = androidx.core.view.ViewCompat.getWindowInsetsController(view)
-            controller?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            if (isLandscape) controller?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-            else controller?.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            val act = findActivity(ctx)
+            if (act != null) {
+                val controller = androidx.core.view.WindowCompat.getInsetsController(act.window, view)
+                controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                if (isLandscape) controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                else controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
         }
         Box(
             modifier = Modifier
@@ -142,7 +154,7 @@ fun VideoPreviewScreen(
                 }
 
                 // 按视频尺寸保持宽高比显示（避免被拉伸）
-                var aspect by remember { mutableStateOf(16f / 9f) }
+                var aspect by remember { mutableFloatStateOf(16f / 9f) }
                 fun ratioOf(v: VideoSize): Float {
                     val h = if (v.height == 0) 1 else v.height
                     val px = if (v.pixelWidthHeightRatio == 0f) 1f else v.pixelWidthHeightRatio
