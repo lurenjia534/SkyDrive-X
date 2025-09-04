@@ -69,6 +69,7 @@ import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 @AndroidEntryPoint
 class SettingsActivity : ComponentActivity() {
@@ -310,7 +311,7 @@ fun SettingsScreen(
             item {
                 ListItem(
                     headlineContent = { Text("自定义目录") },
-                    supportingContent = { Text(downloadPref.treeUri?.let { "当前：$it" } ?: "未选择") },
+                    supportingContent = { Text("使用你选择的目录保存下载内容") },
                     trailingContent = {
                         RadioButton(
                             selected = downloadPref.mode.name == "CUSTOM_TREE",
@@ -326,7 +327,7 @@ fun SettingsScreen(
                 item {
                     ListItem(
                         headlineContent = { Text("选择文件夹") },
-                        supportingContent = { Text(downloadPref.treeUri ?: "未选择目录") },
+                        supportingContent = { Text("当前：" + formatTreeUri(downloadPref.treeUri)) },
                         trailingContent = {
                             TextButton(onClick = { pickFolderLauncher.launch(null) }) {
                                 Text("选择文件夹")
@@ -543,5 +544,22 @@ private fun formatBytes(bytes: Long): String {
         bytes >= mb -> "%.2f MB".format(java.util.Locale.US, bytes.toDouble() / mb)
         bytes >= kb -> "%.2f KB".format(java.util.Locale.US, bytes.toDouble() / kb)
         else -> "$bytes B"
+    }
+}
+
+// 将 SAF treeUri 更友好地显示，例如
+// content://.../tree/primary%3ADownload%2FOneDrive -> 内部存储/Download/OneDrive
+private fun formatTreeUri(uri: String?): String {
+    if (uri.isNullOrBlank()) return "未选择目录"
+    return try {
+        val u = uri.toUri()
+        val last = u.lastPathSegment ?: return uri
+        val decoded = java.net.URLDecoder.decode(last, "UTF-8")
+        val core = decoded.substringAfter("tree/", decoded)
+        val path = core.substringAfter(":", core)
+        val prefix = if (core.startsWith("primary:")) "内部存储/" else ""
+        prefix + path
+    } catch (_: Exception) {
+        uri
     }
 }
