@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -45,10 +44,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,6 +111,7 @@ fun SettingsScreen(
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
     val downloadPref by viewModel.downloadPreference.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val pickFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -131,15 +134,13 @@ fun SettingsScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
         val anyGranted = results.values.any { it }
-        Toast.makeText(
-            activity,
-            if (anyGranted) "媒体访问权限已更新" else "媒体访问权限被拒绝",
-            Toast.LENGTH_SHORT
-        ).show()
+        val msg = if (anyGranted) "媒体访问权限已更新" else "媒体访问权限被拒绝"
+        scope.launch { snackbarHostState.showSnackbar(message = msg) }
     }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             LargeTopAppBar(
                 title = { Text("设置") },
@@ -227,7 +228,7 @@ fun SettingsScreen(
                                         token?.let { t ->
                                             scope.launch {
                                                 clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", t)))
-                                                Toast.makeText(activity, "已复制", Toast.LENGTH_SHORT).show()
+                                                snackbarHostState.showSnackbar(message = "已复制到剪贴板")
                                             }
                                         }
                                     }, enabled = token != null) {
@@ -240,7 +241,7 @@ fun SettingsScreen(
                                         if (token != null) Modifier.clickable {
                                             scope.launch {
                                                 clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", token!!)))
-                                                Toast.makeText(activity, "已复制", Toast.LENGTH_SHORT).show()
+                                                snackbarHostState.showSnackbar(message = "已复制到剪贴板")
                                             }
                                         } else Modifier
                                     )
