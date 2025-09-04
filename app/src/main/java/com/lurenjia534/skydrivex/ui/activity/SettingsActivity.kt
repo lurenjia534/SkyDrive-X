@@ -28,16 +28,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Key
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -113,7 +108,6 @@ fun SettingsScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
-    val scrollState = rememberScrollState()
     val downloadPref by viewModel.downloadPreference.collectAsState()
 
     val pickFolderLauncher = rememberLauncherForActivityResult(
@@ -226,7 +220,6 @@ fun SettingsScreen(
                         item {
                             val clipboard = LocalClipboard.current
                             ListItem(
-                                leadingContent = { Icon(imageVector = Icons.Outlined.Key, contentDescription = null) },
                                 headlineContent = { Text("访问令牌") },
                                 supportingContent = { Text(if (token != null) "点击复制到剪贴板" else "当前无令牌") },
                                 trailingContent = {
@@ -258,12 +251,6 @@ fun SettingsScreen(
                             val typeText = if (type == "personal") "个人版" else "企业版"
                             item {
                                 ListItem(
-                                    leadingContent = {
-                                        Icon(
-                                            imageVector = if (type == "business") Icons.Outlined.Work else Icons.Outlined.Person,
-                                            contentDescription = null,
-                                        )
-                                    },
                                     headlineContent = { Text("OneDrive 类型") },
                                     supportingContent = { Text(typeText) }
                                 )
@@ -274,7 +261,6 @@ fun SettingsScreen(
                             if (quota.total != null && quota.used != null) {
                                 item {
                                     ListItem(
-                                        leadingContent = { Icon(Icons.Outlined.Storage, contentDescription = null) },
                                         headlineContent = { Text("存储空间") },
                                         supportingContent = {
                                             Column {
