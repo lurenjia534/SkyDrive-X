@@ -53,7 +53,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:5.1.0")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
     implementation("androidx.datastore:datastore-preferences:1.1.7")
-    implementation("com.microsoft.identity.client:msal:6.2.0")
+    implementation("com.microsoft.identity.client:msal:7.1.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("com.eygraber:compose-placeholder-material3:1.0.11")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
