@@ -15,6 +15,8 @@ import com.lurenjia534.skydrivex.data.model.upload.DriveItemUploadableProperties
 import retrofit2.HttpException
 import android.util.Log
 import android.net.Uri
+import com.lurenjia534.skydrivex.data.model.driveitem.MoveItemBody
+import com.lurenjia534.skydrivex.data.model.driveitem.ParentReferenceUpdate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
@@ -27,6 +29,9 @@ class FilesRepository @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val moshi: Moshi
 ) {
+    suspend fun getRootId(token: String): String? =
+        graphApiService.getRootItem(token).id
+
     suspend fun getRootChildren(token: String): List<DriveItemDto> =
         graphApiService.getRootChildren(token).value
 
@@ -233,5 +238,22 @@ class FilesRepository @Inject constructor(
             completedItem?.let { return it }
         }
         error("Upload did not complete")
+    }
+
+    suspend fun moveItem(
+        itemId: String,
+        token: String,
+        newParentId: String,
+        newName: String? = null
+    ): DriveItemDto {
+        val body = MoveItemBody(
+            parentReference = ParentReferenceUpdate(id = newParentId),
+            name = newName
+        )
+        return graphApiService.moveItem(
+            itemId = itemId,
+            token = token,
+            body = body
+        )
     }
 }
