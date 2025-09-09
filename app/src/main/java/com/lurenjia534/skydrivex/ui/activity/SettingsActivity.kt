@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,10 +51,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -65,10 +71,13 @@ import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
 import com.lurenjia534.skydrivex.ui.settings.components.SectionHeader
+import com.lurenjia534.skydrivex.ui.settings.components.CopyableListItem
+import com.lurenjia534.skydrivex.ui.settings.components.CopyableCustomItem
+import com.lurenjia534.skydrivex.ui.settings.components.formatBytes
+import com.lurenjia534.skydrivex.ui.settings.components.formatTreeUri
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 
 @AndroidEntryPoint
@@ -114,6 +123,10 @@ fun SettingsScreen(
     val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
     val downloadPref by viewModel.downloadPreference.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val clipboard = LocalClipboard.current
+    var pendingSnack by remember { mutableStateOf<String?>(null) }
+    var pendingCopy by remember { mutableStateOf<String?>(null) }
+    
 
     val pickFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -137,7 +150,7 @@ fun SettingsScreen(
     ) { results ->
         val anyGranted = results.values.any { it }
         val msg = if (anyGranted) "媒体访问权限已更新" else "媒体访问权限被拒绝"
-        scope.launch { snackbarHostState.showSnackbar(message = msg) }
+        pendingSnack = msg
     }
 
     Scaffold(
@@ -155,6 +168,19 @@ fun SettingsScreen(
             )
         }
     ) { innerPadding ->
+        // 统一通过 LaunchedEffect 展示 Snack，避免在 Composition 期间直接 launch
+        LaunchedEffect(pendingSnack) {
+            pendingSnack?.let {
+                snackbarHostState.showSnackbar(it)
+                pendingSnack = null
+            }
+        }
+        LaunchedEffect(pendingCopy) {
+            pendingCopy?.let { text ->
+                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("copy", text)))
+                pendingCopy = null
+            }
+        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -222,40 +248,36 @@ fun SettingsScreen(
                         // 访问令牌
                         item {
                             val clipboard = LocalClipboard.current
-                            ListItem(
-                                headlineContent = { Text("访问令牌") },
-                                supportingContent = { Text(if (token != null) "点击复制到剪贴板" else "当前无令牌") },
-                                trailingContent = {
+                            CopyableListItem(
+                                headline = "访问令牌",
+                                supporting = if (token != null) "点击复制到剪贴板" else "当前无令牌",
+                                trailing = {
                                     TextButton(onClick = {
                                         token?.let { t ->
-                                            scope.launch {
-                                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", t)))
-                                                snackbarHostState.showSnackbar(message = "已复制到剪贴板")
-                                            }
+                                            pendingCopy = t
+                                            pendingSnack = "已复制到剪贴板"
                                         }
-                                    }, enabled = token != null) {
-                                        Text("复制")
-                                    }
+                                    }, enabled = token != null) { Text("复制") }
                                 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .then(
-                                        if (token != null) Modifier.clickable {
-                                            scope.launch {
-                                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("token", token!!)))
-                                                snackbarHostState.showSnackbar(message = "已复制到剪贴板")
-                                            }
-                                        } else Modifier
-                                    )
+                                onCopy = { _ ->
+                                    token?.let { t ->
+                                        pendingCopy = t
+                                        pendingSnack = "已复制到剪贴板"
+                                    }
+                                }
                             )
                         }
                         // 类型
                         driveState.data!!.driveType?.let { type ->
                             val typeText = if (type == "personal") "个人版" else "企业版"
                             item {
-                                ListItem(
-                                    headlineContent = { Text("OneDrive 类型") },
-                                    supportingContent = { Text(typeText) }
+                                CopyableListItem(
+                                    headline = "OneDrive 类型",
+                                    supporting = typeText,
+                                    onCopy = { value ->
+                                        pendingCopy = value
+                                        pendingSnack = "已复制：$value"
+                                    }
                                 )
                             }
                         }
@@ -263,32 +285,73 @@ fun SettingsScreen(
                         driveState.data!!.quota?.let { quota ->
                             if (quota.total != null && quota.used != null) {
                                 item {
-                                    ListItem(
-                                        headlineContent = { Text("存储空间") },
-                                        supportingContent = {
-                                            Column {
-                                                Text("${formatBytes(quota.used)} / ${formatBytes(quota.total)}")
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                LinearProgressIndicator(
-                                                    progress = { quota.used.toFloat() / quota.total.toFloat() },
-                                                    modifier = Modifier.fillMaxWidth()
-                                                )
-                                            }
+                                    val usedText = "${formatBytes(quota.used)} / ${formatBytes(quota.total)}"
+                                    CopyableCustomItem(
+                                        headline = "存储空间",
+                                        copyText = usedText,
+                                        onCopy = { value ->
+                                            pendingCopy = value
+                                            pendingSnack = "已复制：$value"
+                                        }
+                                    ) {
+                                        Column {
+                                            Text(usedText)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            LinearProgressIndicator(
+                                                progress = { quota.used.toFloat() / quota.total.toFloat() },
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            quota.remaining?.let { r ->
+                                item {
+                                    CopyableListItem(
+                                        headline = "剩余",
+                                        supporting = formatBytes(r),
+                                        onCopy = { value ->
+                                            pendingCopy = value
+                                            pendingSnack = "已复制：$value"
                                         }
                                     )
                                 }
                             }
-                            quota.remaining?.let { r ->
-                                item { ListItem(headlineContent = { Text("剩余") }, supportingContent = { Text(formatBytes(r)) }) }
-                            }
                             quota.deleted?.let { d ->
-                                item { ListItem(headlineContent = { Text("已删除") }, supportingContent = { Text(formatBytes(d)) }) }
+                                item {
+                                    CopyableListItem(
+                                        headline = "已删除",
+                                        supporting = formatBytes(d),
+                                        onCopy = { value ->
+                                            pendingCopy = value
+                                            pendingSnack = "已复制：$value"
+                                        }
+                                    )
+                                }
                             }
                             quota.state?.let { s ->
-                                item { ListItem(headlineContent = { Text("状态") }, supportingContent = { Text(s) }) }
+                                item {
+                                    CopyableListItem(
+                                        headline = "状态",
+                                        supporting = s,
+                                        onCopy = { value ->
+                                            pendingCopy = value
+                                            pendingSnack = "已复制：$value"
+                                        }
+                                    )
+                                }
                             }
                             quota.storagePlanInformation?.upgradeAvailable?.let { up ->
-                                item { ListItem(headlineContent = { Text("可升级") }, supportingContent = { Text(if (up) "是" else "否") }) }
+                                item {
+                                    CopyableListItem(
+                                        headline = "可升级",
+                                        supporting = if (up) "是" else "否",
+                                        onCopy = { value ->
+                                            pendingCopy = value
+                                            pendingSnack = "已复制：$value"
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -320,35 +383,32 @@ fun SettingsScreen(
                 // 依次加入字段（用可空判断）
                 if (userState.data != null) {
                     val u = userState.data!!
-                    if (!u.displayName.isNullOrBlank()) item { ListItem(headlineContent = { Text("显示名称") }, supportingContent = { Text(
-                        u.displayName
-                    ) }) }
-                    if (!u.userPrincipalName.isNullOrBlank()) item { ListItem(headlineContent = { Text("用户主体名称") }, supportingContent = { Text(
-                        u.userPrincipalName
-                    ) }) }
-                    if (!u.givenName.isNullOrBlank()) item { ListItem(headlineContent = { Text("名") }, supportingContent = { Text(
-                        u.givenName
-                    ) }) }
-                    if (!u.surname.isNullOrBlank()) item { ListItem(headlineContent = { Text("姓") }, supportingContent = { Text(
-                        u.surname
-                    ) }) }
-                    if (!u.jobTitle.isNullOrBlank()) item { ListItem(headlineContent = { Text("职位") }, supportingContent = { Text(
-                        u.jobTitle
-                    ) }) }
-                    if (!u.mail.isNullOrBlank()) item { ListItem(headlineContent = { Text("邮箱") }, supportingContent = { Text(
-                        u.mail
-                    ) }) }
-                    if (!u.mobilePhone.isNullOrBlank()) item { ListItem(headlineContent = { Text("手机") }, supportingContent = { Text(
-                        u.mobilePhone
-                    ) }) }
-                    if (!u.officeLocation.isNullOrBlank()) item { ListItem(headlineContent = { Text("办公地点") }, supportingContent = { Text(
-                        u.officeLocation
-                    ) }) }
-                    if (!u.preferredLanguage.isNullOrBlank()) item { ListItem(headlineContent = { Text("首选语言") }, supportingContent = { Text(
-                        u.preferredLanguage
-                    ) }) }
+                    fun addCopyRow(label: String, value: String?) {
+                        if (!value.isNullOrBlank()) {
+                            val v = value
+                            item {
+                                CopyableListItem(
+                                    headline = label,
+                                    supporting = v,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    addCopyRow("显示名称", u.displayName)
+                    addCopyRow("用户主体名称", u.userPrincipalName)
+                    addCopyRow("名", u.givenName)
+                    addCopyRow("姓", u.surname)
+                    addCopyRow("职位", u.jobTitle)
+                    addCopyRow("邮箱", u.mail)
+                    addCopyRow("手机", u.mobilePhone)
+                    addCopyRow("办公地点", u.officeLocation)
+                    addCopyRow("首选语言", u.preferredLanguage)
                     val phones = u.businessPhones?.filter { it.isNotBlank() }?.joinToString()
-                    if (!phones.isNullOrBlank()) item { ListItem(headlineContent = { Text("商务电话") }, supportingContent = { Text(phones) }) }
+                    addCopyRow("商务电话", phones)
                 }
             }
 
@@ -658,31 +718,3 @@ private fun UserInfoPlaceholder(modifier: Modifier = Modifier) {
     }
 }
 
-private fun formatBytes(bytes: Long): String {
-    val kb = 1024L
-    val mb = kb * 1024
-    val gb = mb * 1024
-    return when {
-        bytes >= gb -> "%.2f GB".format(java.util.Locale.US, bytes.toDouble() / gb)
-        bytes >= mb -> "%.2f MB".format(java.util.Locale.US, bytes.toDouble() / mb)
-        bytes >= kb -> "%.2f KB".format(java.util.Locale.US, bytes.toDouble() / kb)
-        else -> "$bytes B"
-    }
-}
-
-// 将 SAF treeUri 更友好地显示，例如
-// content://.../tree/primary%3ADownload%2FOneDrive -> 内部存储/Download/OneDrive
-private fun formatTreeUri(uri: String?): String {
-    if (uri.isNullOrBlank()) return "未选择目录"
-    return try {
-        val u = uri.toUri()
-        val last = u.lastPathSegment ?: return uri
-        val decoded = java.net.URLDecoder.decode(last, "UTF-8")
-        val core = decoded.substringAfter("tree/", decoded)
-        val path = core.substringAfter(":", core)
-        val prefix = if (core.startsWith("primary:")) "内部存储/" else ""
-        prefix + path
-    } catch (_: Exception) {
-        uri
-    }
-}
