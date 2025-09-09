@@ -351,4 +351,21 @@ class FilesViewModel @Inject constructor(
         )
         return item
     }
+
+    suspend fun moveItem(
+        itemId: String,
+        token: String,
+        newParentId: String,
+        newName: String? = null
+    ): DriveItemDto {
+        val moved = filesRepository.moveItem(
+            itemId = itemId,
+            token = "Bearer $token",
+            newParentId = newParentId,
+            newName = newName
+        )
+        // 移动后刷新当前目录（无论移动入/移出，至少确保当前视图更新）
+        refreshCurrent(token)
+        return moved
+    }
 }
