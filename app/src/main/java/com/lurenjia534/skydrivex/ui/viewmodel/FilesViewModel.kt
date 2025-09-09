@@ -368,4 +368,21 @@ class FilesViewModel @Inject constructor(
         refreshCurrent(token)
         return moved
     }
+
+    suspend fun copyItem(
+        itemId: String,
+        token: String,
+        newParentId: String,
+        newName: String? = null
+    ): DriveItemDto? {
+        val copied = filesRepository.copyItem(
+            itemId = itemId,
+            token = "Bearer $token",
+            newParentId = newParentId,
+            newName = newName
+        )
+        // Refresh current directory to reflect new copy if copied into it
+        refreshCurrent(token)
+        return copied
+    }
 }
