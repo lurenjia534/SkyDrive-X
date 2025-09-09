@@ -17,6 +17,9 @@ import android.util.Log
 import android.net.Uri
 import com.lurenjia534.skydrivex.data.model.driveitem.MoveItemBody
 import com.lurenjia534.skydrivex.data.model.driveitem.ParentReferenceUpdate
+import com.lurenjia534.skydrivex.data.model.driveitem.CopyItemBody
+import com.lurenjia534.skydrivex.data.model.driveitem.CopyParentReference
+import com.lurenjia534.skydrivex.data.model.driveitem.CopyMonitorStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
@@ -255,5 +258,67 @@ class FilesRepository @Inject constructor(
             token = token,
             body = body
         )
+    }
+
+    /**
+     * Copy an item to a new parent (optionally with a new name). This method waits for the async
+     * operation to complete by polling the monitor URL returned in the Location header.
+     * Returns the created DriveItemDto when available, or null if completion cannot be resolved.
+     */
+    suspend fun copyItem(
+        itemId: String,
+        token: String,
+        newParentId: String,
+        newName: String? = null,
+        timeoutMillis: Long = 60_000,
+        pollIntervalMillis: Long = 1000
+    ): DriveItemDto? {
+        // Resolve destination driveId (Graph wants driveId + id in parentReference)
+        val destParent = graphApiService.getItemParentReference(newParentId, token)
+        val driveId = destParent.parentReference?.driveId
+        val body = CopyItemBody(
+            parentReference = CopyParentReference(driveId = driveId, id = newParentId),
+            name = newName
+        )
+
+        val resp = graphApiService.copyItem(itemId = itemId, token = token, body = body)
+        if (resp.code() != 202) {
+            val msg = "Copy not accepted: HTTP ${resp.code()}"
+            Log.e("CopyItem", msg)
+            error(msg)
+        }
+        val location = resp.headers()["Location"]
+        if (location.isNullOrBlank()) {
+            // Some tenants may return 202 without a monitor URL; fallback to returning null
+            Log.w("CopyItem", "No monitor Location header; cannot await completion")
+            return null
+        }
+
+        val adapter = moshi.adapter(CopyMonitorStatus::class.java)
+        val start = System.currentTimeMillis()
+        var lastStatus: String? = null
+        var resourceId: String? = null
+        while (System.currentTimeMillis() - start < timeoutMillis) {
+            withContext(Dispatchers.IO) {
+                okHttpClient.newCall(Request.Builder().url(location).get().build()).execute().use { r ->
+                    val bodyStr = try { r.body.string() } catch (_: Exception) { null }
+                    if (!bodyStr.isNullOrBlank()) {
+                        val st = adapter.fromJson(bodyStr)
+                        lastStatus = st?.status
+                        resourceId = st?.resourceId ?: st?.resourceLocation?.substringAfterLast('/')
+                    }
+                }
+            }
+            if (lastStatus == "completed") break
+            if (lastStatus == "failed") {
+                error("Copy failed")
+            }
+            kotlinx.coroutines.delay(pollIntervalMillis)
+        }
+
+        // If new resource id known, fetch it; otherwise return null
+        return resourceId?.let {
+            runCatching { graphApiService.getItemBasic(it, token) }.getOrNull()
+        }
     }
 }
