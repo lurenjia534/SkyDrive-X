@@ -1,6 +1,15 @@
 package com.lurenjia534.skydrivex.ui.screens
 
+import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,97 +20,85 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.SearchBar
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
-import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
-import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
-import com.lurenjia534.skydrivex.ui.state.Breadcrumb
-import java.util.Locale
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import com.lurenjia534.skydrivex.ui.notification.startSystemDownloadWithNotification
-import android.content.ClipData
-import android.content.Intent
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.toClipEntry
-import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.outlined.LibraryMusic
-import androidx.compose.material.icons.outlined.PlayCircle
-import androidx.compose.material.icons.outlined.Image
-import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import com.lurenjia534.skydrivex.ui.components.CopyItemSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
-import com.lurenjia534.skydrivex.ui.service.TransferService
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.IntentFilter
-import androidx.compose.runtime.DisposableEffect
-import androidx.core.content.ContextCompat
+import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import com.lurenjia534.skydrivex.ui.components.MoveItemSheet
+import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.notification.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.notification.showOrUpdateProgress
+import com.lurenjia534.skydrivex.ui.notification.startSystemDownloadWithNotification
+import com.lurenjia534.skydrivex.ui.service.TransferService
+import com.lurenjia534.skydrivex.ui.state.Breadcrumb
 import com.lurenjia534.skydrivex.ui.util.saveToTree
+import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
+import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Locale
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -121,7 +118,7 @@ fun FilesScreen(
     val scope = rememberCoroutineScope()
     val downloadPref by mainViewModel.downloadPreference.collectAsState()
     val driveState by mainViewModel.driveState.collectAsState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    // 移除与 TopAppBar 的嵌套滚动耦合，避免顶部高度计算异常
     val clipboard = LocalClipboard.current
     var shareTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // itemId to name
     var showShareDialog by remember { mutableStateOf(false) }
@@ -237,48 +234,7 @@ fun FilesScreen(
     var searchActive by remember { mutableStateOf(false) }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            Column {
-                // Material3 SearchBar：放在最顶端（标题“文件”上方）
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onSearch = { searchActive = false },
-                    active = searchActive,
-                    onActiveChange = { searchActive = it },
-                    placeholder = { Text("搜索文件和文件夹") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Filled.Close, contentDescription = "清除")
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    // 建议/历史：此处暂不提供复杂建议，保留空内容以符合 API 结构
-                }
-                LargeTopAppBar(
-                    title = { Text("文件") },
-                    navigationIcon = {
-                        if (uiState.canGoBack) {
-                            IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
-                            }
-                        }
-                    },
-                    scrollBehavior = scrollBehavior
-                )
-                BreadcrumbBar(
-                    path = uiState.path,
-                    onNavigate = { index -> if (token != null) viewModel.navigateTo(index, token) }
-                )
-            }
-        },
+        topBar = {},
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showSheet = true }) {
@@ -291,35 +247,70 @@ fun FilesScreen(
             if (searchQuery.isBlank()) list
             else list.filter { (it.name ?: "").contains(searchQuery, ignoreCase = true) }
         }
+        // 统一用 Column 包裹，顶部放搜索/标题/面包屑，底部权重占满显示列表
+        Column(modifier = contentModifier) {
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                onSearch = { searchActive = false },
+                active = searchActive,
+                onActiveChange = { searchActive = it },
+                placeholder = { Text("搜索文件和文件夹") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Filled.Close, contentDescription = "清除")
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {}
 
-        when {
-            uiState.isLoading -> {
-                FilesLoadingPlaceholder(modifier = contentModifier)
-            }
-
-            uiState.error != null -> {
-                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
-                    Text(text = uiState.error ?: "加载失败")
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
+                if (uiState.canGoBack) {
+                    IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
+                    }
                 }
+                Text(text = "文件", style = MaterialTheme.typography.headlineLarge)
             }
 
-            uiState.items == null -> {
-                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
-                    Text(text = "暂无文件")
+            BreadcrumbBar(
+                path = uiState.path,
+                onNavigate = { index -> if (token != null) viewModel.navigateTo(index, token) }
+            )
+
+            when {
+                uiState.isLoading -> {
+                    FilesLoadingPlaceholder(modifier = Modifier.weight(1f).fillMaxWidth())
                 }
-            }
 
-            filteredItems.isEmpty() -> {
-                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
-                    Text(text = if (searchQuery.isNotBlank()) "无匹配结果" else "暂无文件")
+                uiState.error != null -> {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(text = uiState.error ?: "加载失败")
+                    }
                 }
-            }
 
-            else -> {
-                LazyColumn(modifier = contentModifier) {
-                    items(filteredItems) { item ->
-                        val isFolder = item.folder != null
-                        var expanded by remember { mutableStateOf(false) }
+                uiState.items == null -> {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(text = "暂无文件")
+                    }
+                }
+
+                filteredItems.isEmpty() -> {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(text = if (searchQuery.isNotBlank()) "无匹配结果" else "暂无文件")
+                    }
+                }
+
+                else -> {
+                    LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        items(filteredItems) { item ->
+                            val isFolder = item.folder != null
+                            var expanded by remember { mutableStateOf(false) }
 
                         Box {
                             ListItem(
@@ -557,6 +548,7 @@ fun FilesScreen(
                                 },
                             )
                         }
+                    }
                     }
                 }
             }
