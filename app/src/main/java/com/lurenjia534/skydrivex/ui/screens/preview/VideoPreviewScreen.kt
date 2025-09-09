@@ -1,6 +1,7 @@
 package com.lurenjia534.skydrivex.ui.screens.preview
 
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackParameters
@@ -100,11 +102,18 @@ fun VideoPreviewScreen(
                 CenterAlignedTopAppBar(
                     title = { Text(text = title.ifEmpty { "视频预览" }, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回") } },
-                    scrollBehavior = scrollBehavior
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Black,
+                        navigationIconContentColor = Color.White,
+                        titleContentColor = Color.White
+                    )
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Black,
+        contentColor = Color.White
     ) { padding ->
         val src = url
         val view = androidx.compose.ui.platform.LocalView.current
@@ -130,6 +139,7 @@ fun VideoPreviewScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.Black)
                 .padding(padding)
                 .pointerInput(isLandscape) { detectTapGestures(onTap = { controlsVisible = !controlsVisible }) },
             contentAlignment = Alignment.Center
