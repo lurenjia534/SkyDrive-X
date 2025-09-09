@@ -11,7 +11,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.lurenjia534.skydrivex.ui.screens.FilesScreen
 import com.lurenjia534.skydrivex.ui.screens.HomeScreen
-import com.lurenjia534.skydrivex.ui.screens.ProfileScreen
 import com.lurenjia534.skydrivex.ui.screens.preview.ImagePreviewScreen
 import com.lurenjia534.skydrivex.ui.screens.preview.VideoPreviewScreen
 import com.lurenjia534.skydrivex.ui.screens.preview.AudioPreviewScreen
@@ -34,15 +33,6 @@ fun NavGraph(
         composable(NavDestination.Files.route) {
             val token by viewModel.token.collectAsState()
             FilesScreen(token = token, navController = navController)
-        }
-        composable(NavDestination.Profile.route) {
-            val uiState by viewModel.userState.collectAsState()
-            val driveState by viewModel.driveState.collectAsState()
-            ProfileScreen(
-                uiState = uiState,
-                driveState = driveState,
-                onRefresh = viewModel::retry,
-            )
         }
         composable(NavDestination.Settings.route) {
             // 空白页面，点击导航时会启动SettingsActivity
