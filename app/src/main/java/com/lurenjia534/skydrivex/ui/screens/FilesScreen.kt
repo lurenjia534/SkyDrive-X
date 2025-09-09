@@ -92,6 +92,7 @@ import android.content.Context
 import android.content.IntentFilter
 import androidx.compose.runtime.DisposableEffect
 import androidx.core.content.ContextCompat
+import com.lurenjia534.skydrivex.ui.components.MoveItemSheet
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.notification.replaceWithCompletion
@@ -121,6 +122,8 @@ fun FilesScreen(
     var shareTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // itemId to name
     var showShareDialog by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<Triple<String, String?, Boolean>?>(null) } // id, name, isFolder
+    var moveTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // id, currentName
+    var showMoveSheet by remember { mutableStateOf(false) }
 
     // Listen for upload completion broadcast to refresh current folder
     DisposableEffect(token) {
@@ -307,6 +310,20 @@ fun FilesScreen(
                                             onDismissRequest = { expanded = false },
                                             offset = DpOffset(x = 0.dp, y = 0.dp) // 如需可微调
                                         ) {
+                                            DropdownMenuItem(
+                                                text = { Text("移动…", fontWeight = FontWeight.Bold) },
+                                                onClick = {
+                                                    val id = item.id
+                                                    if (id != null) {
+                                                        moveTarget = id to item.name
+                                                        showMoveSheet = true
+                                                    } else {
+                                                        scope.launch { snackbarHostState.showSnackbar("无法移动：缺少条目ID") }
+                                                    }
+                                                    expanded = false
+                                                },
+                                                leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null) }
+                                            )
                                             if (!isFolder) {
                                                 DropdownMenuItem(
                                                     text = { Text("下载", fontWeight = FontWeight.Bold) },
@@ -558,6 +575,34 @@ fun FilesScreen(
                         } catch (_: Exception) {
                             snackbarHostState.showSnackbar("删除失败")
                         }
+                    }
+                }
+            }
+        )
+    }
+
+    // Move bottom sheet
+    val tgt = moveTarget
+    if (showMoveSheet && tgt != null && token != null) {
+        MoveItemSheet(
+            token = token,
+            visible = showMoveSheet,
+            initialName = tgt.second,
+            onDismiss = { showMoveSheet = false },
+            onConfirm = { folderId, newName ->
+                scope.launch {
+                    try {
+                        viewModel.moveItem(
+                            itemId = tgt.first,
+                            token = token,
+                            newParentId = folderId,
+                            newName = newName
+                        )
+                        snackbarHostState.showSnackbar("已移动")
+                    } catch (e: Exception) {
+                        snackbarHostState.showSnackbar(e.message ?: "移动失败")
+                    } finally {
+                        showMoveSheet = false
                     }
                 }
             }
