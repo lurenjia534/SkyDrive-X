@@ -385,4 +385,18 @@ class FilesViewModel @Inject constructor(
         refreshCurrent(token)
         return copied
     }
+
+    suspend fun renameItem(
+        itemId: String,
+        token: String,
+        newName: String
+    ): DriveItemDto {
+        val renamed = filesRepository.renameItem(
+            itemId = itemId,
+            token = "Bearer $token",
+            newName = newName
+        )
+        refreshCurrent(token)
+        return renamed
+    }
 }
