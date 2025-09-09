@@ -7,6 +7,7 @@ import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDownloadUrlDto
 import com.lurenjia534.skydrivex.data.model.permission.CreateLinkRequest
 import com.lurenjia534.skydrivex.data.model.permission.CreateLinkResponse
 import com.lurenjia534.skydrivex.data.model.driveitem.CreateFolderBody
+import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 import okhttp3.RequestBody
 import retrofit2.Response
 import com.lurenjia534.skydrivex.data.model.upload.CreateUploadSessionRequest
@@ -19,6 +20,7 @@ import retrofit2.http.PUT
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.PATCH
 
 interface GraphApiService {
     @DELETE("me/drive/items/{itemId}")
@@ -132,4 +134,18 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Body body: CreateUploadSessionRequest
     ): UploadSessionDto
+
+    // Move item to a new parent (and/or rename) via PATCH update
+    @PATCH("me/drive/items/{itemId}")
+    suspend fun moveItem(
+        @Path("itemId") itemId: String,
+        @Header("Authorization") token: String,
+        @Body body: com.lurenjia534.skydrivex.data.model.driveitem.MoveItemBody
+    ): DriveItemDto
+
+    // Fetch root item (only id)
+    @GET("me/drive/root?\$select=id")
+    suspend fun getRootItem(
+        @Header("Authorization") token: String
+    ): DriveItemDto
 }
