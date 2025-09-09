@@ -105,6 +105,7 @@ fun SettingsScreen(
     activity: ComponentActivity
 ) {
     val driveState by viewModel.driveState.collectAsState()
+    val userState  by viewModel.userState.collectAsState()
     val account by viewModel.account.collectAsState()
     val token by viewModel.token.collectAsState()
     val scope = rememberCoroutineScope()
@@ -277,8 +278,60 @@ fun SettingsScreen(
                                     )
                                 }
                             }
+                            quota.remaining?.let { r ->
+                                item { ListItem(headlineContent = { Text("剩余") }, supportingContent = { Text(formatBytes(r)) }) }
+                            }
+                            quota.deleted?.let { d ->
+                                item { ListItem(headlineContent = { Text("已删除") }, supportingContent = { Text(formatBytes(d)) }) }
+                            }
+                            quota.state?.let { s ->
+                                item { ListItem(headlineContent = { Text("状态") }, supportingContent = { Text(s) }) }
+                            }
+                            quota.storagePlanInformation?.upgradeAvailable?.let { up ->
+                                item { ListItem(headlineContent = { Text("可升级") }, supportingContent = { Text(if (up) "是" else "否") }) }
+                            }
                         }
                     }
+                }
+            }
+
+            // 个人信息（合并原 ProfileScreen 信息到设置页风格）
+            if (account != null) {
+                item { SectionHeader("个人信息") }
+                when {
+                    userState.isLoading -> {
+                        // 简单占位（保持设置风格）
+                        item { ListItem(headlineContent = { Text("正在加载个人信息…") }) }
+                    }
+                    userState.data != null -> {
+                        val u = userState.data!!
+                        fun addItem(label: String, value: String?) {
+                            if (!value.isNullOrBlank()) {
+                                @Suppress("UNUSED_EXPRESSION")
+                                run {
+                                    // 使用 apply_patch 追加 item 需要在 Kotlin 内部构造 LazyList DSL，改用 when 块内多 item {}
+                                }
+                            }
+                        }
+                    }
+                    userState.error != null -> {
+                        item { ListItem(headlineContent = { Text("加载失败") }, supportingContent = { Text(userState.error ?: "") }) }
+                    }
+                }
+                // 依次加入字段（用可空判断）
+                if (userState.data != null) {
+                    val u = userState.data!!
+                    if (!u.displayName.isNullOrBlank()) item { ListItem(headlineContent = { Text("显示名称") }, supportingContent = { Text(u.displayName!!) }) }
+                    if (!u.userPrincipalName.isNullOrBlank()) item { ListItem(headlineContent = { Text("用户主体名称") }, supportingContent = { Text(u.userPrincipalName!!) }) }
+                    if (!u.givenName.isNullOrBlank()) item { ListItem(headlineContent = { Text("名") }, supportingContent = { Text(u.givenName!!) }) }
+                    if (!u.surname.isNullOrBlank()) item { ListItem(headlineContent = { Text("姓") }, supportingContent = { Text(u.surname!!) }) }
+                    if (!u.jobTitle.isNullOrBlank()) item { ListItem(headlineContent = { Text("职位") }, supportingContent = { Text(u.jobTitle!!) }) }
+                    if (!u.mail.isNullOrBlank()) item { ListItem(headlineContent = { Text("邮箱") }, supportingContent = { Text(u.mail!!) }) }
+                    if (!u.mobilePhone.isNullOrBlank()) item { ListItem(headlineContent = { Text("手机") }, supportingContent = { Text(u.mobilePhone!!) }) }
+                    if (!u.officeLocation.isNullOrBlank()) item { ListItem(headlineContent = { Text("办公地点") }, supportingContent = { Text(u.officeLocation!!) }) }
+                    if (!u.preferredLanguage.isNullOrBlank()) item { ListItem(headlineContent = { Text("首选语言") }, supportingContent = { Text(u.preferredLanguage!!) }) }
+                    val phones = u.businessPhones?.filter { it.isNotBlank() }?.joinToString()
+                    if (!phones.isNullOrBlank()) item { ListItem(headlineContent = { Text("商务电话") }, supportingContent = { Text(phones) }) }
                 }
             }
 
