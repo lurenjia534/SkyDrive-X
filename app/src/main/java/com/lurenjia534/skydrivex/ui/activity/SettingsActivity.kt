@@ -514,95 +514,117 @@ fun SettingsScreen(
 private fun DriveInfoPlaceholder(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 占位行 1
+        // 访问令牌（带右侧按钮）的骨架
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 左侧图标
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+            )
+            Spacer(Modifier.width(12.dp))
+            // 标题 + 文案
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.35f)
+                        .height(18.dp)
+                        .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f)
+                        .height(14.dp)
+                        .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            // 右侧“复制”按钮占位
+            Box(
+                modifier = Modifier
+                    .width(56.dp)
+                    .height(32.dp)
+                    .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+            )
+        }
+
+        // OneDrive 类型 行
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(24.dp)
-                    .placeholder(
-                        visible = true,
-                        highlight = PlaceholderHighlight.shimmer(),
-                        shape = MaterialTheme.shapes.small
-                    )
+                    .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.5f)
                         .height(18.dp)
-                        .placeholder(
-                            visible = true,
-                            highlight = PlaceholderHighlight.shimmer(),
-                            shape = MaterialTheme.shapes.small
-                        )
+                        .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
                 )
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.7f)
+                        .fillMaxWidth(0.25f)
                         .height(14.dp)
-                        .placeholder(
-                            visible = true,
-                            highlight = PlaceholderHighlight.shimmer(),
-                            shape = MaterialTheme.shapes.small
-                        )
+                        .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
                 )
             }
         }
-        // 占位行 2
+
+        // 存储空间 + 进度条
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(24.dp)
-                    .placeholder(
-                        visible = true,
-                        highlight = PlaceholderHighlight.shimmer(),
-                        shape = MaterialTheme.shapes.small
-                    )
+                    .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.6f)
+                        .fillMaxWidth(0.45f)
                         .height(18.dp)
-                        .placeholder(
-                            visible = true,
-                            highlight = PlaceholderHighlight.shimmer(),
-                            shape = MaterialTheme.shapes.small
-                        )
+                        .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
                 )
+                Spacer(Modifier.height(8.dp))
+                // 进度条骨架
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.4f)
-                        .height(14.dp)
-                        .placeholder(
-                            visible = true,
-                            highlight = PlaceholderHighlight.shimmer(),
-                            shape = MaterialTheme.shapes.small
-                        )
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.medium)
                 )
             }
         }
-        // 进度条占位
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .placeholder(
-                    visible = true,
-                    highlight = PlaceholderHighlight.shimmer(),
-                    shape = MaterialTheme.shapes.medium
+
+        // 其余简洁字段：剩余 / 已删除 / 状态 / 可升级
+        repeat(4) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
                 )
-        )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.35f)
+                            .height(18.dp)
+                            .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.3f)
+                            .height(14.dp)
+                            .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+                    )
+                }
+            }
+        }
     }
 }
 
