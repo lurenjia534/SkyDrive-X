@@ -11,7 +11,7 @@ composeBom = "2024.09.00"
 hilt      = "2.57"
 ksp = "2.2.0-2.0.2"      # 与当前 Kotlin 2.2.x 对应的 KSP
 hiltx     = "1.2.0"
-lifecycleService = "2.9.2"             # AndroidX Hilt 扩展最新稳定
+lifecycleService = "2.9.3"             # AndroidX Hilt 扩展最新稳定
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
