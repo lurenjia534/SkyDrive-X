@@ -260,6 +260,23 @@ class FilesRepository @Inject constructor(
         )
     }
 
+    // Rename item by PATCH with only name field
+    suspend fun renameItem(
+        itemId: String,
+        token: String,
+        newName: String
+    ): DriveItemDto {
+        val body = com.lurenjia534.skydrivex.data.model.driveitem.MoveItemBody(
+            parentReference = null,
+            name = newName
+        )
+        return graphApiService.moveItem(
+            itemId = itemId,
+            token = token,
+            body = body
+        )
+    }
+
     /**
      * Copy an item to a new parent (optionally with a new name). This method waits for the async
      * operation to complete by polling the monitor URL returned in the Location header.
