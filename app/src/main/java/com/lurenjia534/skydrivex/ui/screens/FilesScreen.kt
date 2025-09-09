@@ -84,6 +84,7 @@ import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Image
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
+import com.lurenjia534.skydrivex.ui.components.CopyItemSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import com.lurenjia534.skydrivex.ui.service.TransferService
@@ -214,6 +215,8 @@ fun FilesScreen(
     var showSheet by remember { mutableStateOf(false) }
     var showNewFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
+    var showCopySheet by remember { mutableStateOf(false) }
+    var copyTarget by remember { mutableStateOf<Pair<String, String?>?>(null) }
 
     LaunchedEffect(key1 = token) {
         token?.let { viewModel.loadRoot(it) }
@@ -310,6 +313,20 @@ fun FilesScreen(
                                             onDismissRequest = { expanded = false },
                                             offset = DpOffset(x = 0.dp, y = 0.dp) // 如需可微调
                                         ) {
+                                        DropdownMenuItem(
+                                                text = { Text("复制…", fontWeight = FontWeight.Bold) },
+                                                onClick = {
+                                                    val id = item.id
+                                                    if (id != null) {
+                                                        copyTarget = id to item.name
+                                                        showCopySheet = true
+                                                    } else {
+                                                        scope.launch { snackbarHostState.showSnackbar("无法复制：缺少条目ID") }
+                                                    }
+                                                    expanded = false
+                                                },
+                                                leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null) }
+                                            )
                                             DropdownMenuItem(
                                                 text = { Text("移动…", fontWeight = FontWeight.Bold) },
                                                 onClick = {
@@ -575,6 +592,29 @@ fun FilesScreen(
                         } catch (_: Exception) {
                             snackbarHostState.showSnackbar("删除失败")
                         }
+                    }
+                }
+            }
+        )
+    }
+
+    // Copy sheet
+    if (showCopySheet && token != null && copyTarget != null) {
+        CopyItemSheet(
+            token = token,
+            visible = true,
+            initialName = copyTarget!!.second,
+            onDismiss = { showCopySheet = false },
+            onConfirm = { targetFolderId, newName ->
+                val itemId = copyTarget!!.first
+                scope.launch {
+                    snackbarHostState.showSnackbar("正在复制…")
+                    runCatching {
+                        viewModel.copyItem(itemId = itemId, token = token, newParentId = targetFolderId, newName = newName)
+                    }.onSuccess {
+                        snackbarHostState.showSnackbar("复制完成")
+                    }.onFailure {
+                        snackbarHostState.showSnackbar(it.message ?: "复制失败")
                     }
                 }
             }
