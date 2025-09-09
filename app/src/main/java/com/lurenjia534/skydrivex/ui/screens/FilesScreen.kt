@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.PlayCircle
@@ -52,7 +53,7 @@ import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
+import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -84,6 +85,7 @@ import com.eygraber.compose.placeholder.material3.shimmer
 import com.lurenjia534.skydrivex.ui.components.CopyItemSheet
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import com.lurenjia534.skydrivex.ui.components.MoveItemSheet
+import com.lurenjia534.skydrivex.ui.components.RenameItemDialog
 import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
@@ -217,6 +219,8 @@ fun FilesScreen(
     var newFolderName by remember { mutableStateOf("") }
     var showCopySheet by remember { mutableStateOf(false) }
     var copyTarget by remember { mutableStateOf<Pair<String, String?>?>(null) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameTarget by remember { mutableStateOf<Pair<String, String?>?>(null) }
 
     LaunchedEffect(key1 = token) {
         token?.let { viewModel.loadRoot(it) }
@@ -249,12 +253,13 @@ fun FilesScreen(
         }
         // 统一用 Column 包裹，顶部放搜索/标题/面包屑，底部权重占满显示列表
         Column(modifier = contentModifier) {
-            SearchBar(
+            DockedSearchBar(
                 query = searchQuery,
                 onQueryChange = { searchQuery = it },
                 onSearch = { searchActive = false },
-                active = searchActive,
-                onActiveChange = { searchActive = it },
+                // 始终保持收起形态，避免显示空的“建议”面板
+                active = false,
+                onActiveChange = {},
                 placeholder = { Text("搜索文件和文件夹") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
@@ -343,8 +348,22 @@ fun FilesScreen(
                                             onDismissRequest = { expanded = false },
                                             offset = DpOffset(x = 0.dp, y = 0.dp) // 如需可微调
                                         ) {
-                                        DropdownMenuItem(
-                                                text = { Text("复制…", fontWeight = FontWeight.Bold) },
+                                            DropdownMenuItem(
+                                                text = { Text("重命名", fontWeight = FontWeight.Bold) },
+                                                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                                                onClick = {
+                                                    val id = item.id
+                                                    if (id != null) {
+                                                        renameTarget = id to item.name
+                                                        showRenameDialog = true
+                                                    } else {
+                                                        scope.launch { snackbarHostState.showSnackbar("无法重命名：缺少条目ID") }
+                                                    }
+                                                    expanded = false
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text("复制到", fontWeight = FontWeight.Bold) },
                                                 onClick = {
                                                     val id = item.id
                                                     if (id != null) {
@@ -358,7 +377,7 @@ fun FilesScreen(
                                                 leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null) }
                                             )
                                             DropdownMenuItem(
-                                                text = { Text("移动…", fontWeight = FontWeight.Bold) },
+                                                text = { Text("移动到", fontWeight = FontWeight.Bold) },
                                                 onClick = {
                                                     val id = item.id
                                                     if (id != null) {
@@ -647,6 +666,23 @@ fun FilesScreen(
                     }.onFailure {
                         snackbarHostState.showSnackbar(it.message ?: "复制失败")
                     }
+                }
+            }
+        )
+    }
+
+    if (showRenameDialog && token != null && renameTarget != null) {
+        RenameItemDialog(
+            currentName = renameTarget!!.second,
+            onDismiss = { showRenameDialog = false },
+            onConfirm = { newName ->
+                val id = renameTarget!!.first
+                showRenameDialog = false
+                scope.launch {
+                    snackbarHostState.showSnackbar("正在重命名…")
+                    runCatching { viewModel.renameItem(id, token!!, newName) }
+                        .onSuccess { snackbarHostState.showSnackbar("已重命名为：$newName") }
+                        .onFailure { snackbarHostState.showSnackbar(it.message ?: "重命名失败") }
                 }
             }
         )
