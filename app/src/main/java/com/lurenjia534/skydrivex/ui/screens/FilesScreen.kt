@@ -274,13 +274,12 @@ fun FilesScreen(
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {}
 
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
                 if (uiState.canGoBack) {
                     IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
                     }
                 }
-                Text(text = "文件", style = MaterialTheme.typography.headlineLarge)
             }
 
             BreadcrumbBar(
