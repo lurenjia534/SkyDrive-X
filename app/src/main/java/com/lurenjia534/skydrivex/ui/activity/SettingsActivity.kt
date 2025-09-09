@@ -300,8 +300,7 @@ fun SettingsScreen(
                 item { SectionHeader("个人信息") }
                 when {
                     userState.isLoading -> {
-                        // 简单占位（保持设置风格）
-                        item { ListItem(headlineContent = { Text("正在加载个人信息…") }) }
+                        item { UserInfoPlaceholder(modifier = Modifier.fillMaxWidth()) }
                     }
                     userState.data != null -> {
                         val u = userState.data!!
@@ -619,6 +618,37 @@ private fun DriveInfoPlaceholder(modifier: Modifier = Modifier) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.3f)
+                            .height(14.dp)
+                            .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UserInfoPlaceholder(modifier: Modifier = Modifier) {
+    // 以设置列表风格展示：若干条 ListItem 骨架（图标 + 两行文本）
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        repeat(6) { // 显示名称、UPN、邮箱、手机、职位、语言 等
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.4f)
+                            .height(18.dp)
+                            .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.55f)
                             .height(14.dp)
                             .placeholder(visible = true, highlight = PlaceholderHighlight.shimmer(), shape = MaterialTheme.shapes.small)
                     )
