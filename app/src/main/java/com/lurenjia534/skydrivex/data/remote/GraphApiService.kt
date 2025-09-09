@@ -73,7 +73,7 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Header("Content-Type") contentType: String,
         @Body body: RequestBody
-    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+    ): DriveItemDto
 
     // Upload a new small file into root by filename
     // PUT /me/drive/root:/{filename}:/content
@@ -83,7 +83,7 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Header("Content-Type") contentType: String,
         @Body body: RequestBody
-    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+    ): DriveItemDto
 
     // Replace the contents of an existing file by item id
     // PUT /me/drive/items/{item-id}/content
@@ -93,7 +93,7 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Header("Content-Type") contentType: String,
         @Body body: RequestBody
-    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+    ): DriveItemDto
 
     // Create folder under a specific parent by ID
     @POST("me/drive/items/{parentId}/children")
@@ -101,14 +101,14 @@ interface GraphApiService {
         @Path("parentId") parentId: String,
         @Header("Authorization") token: String,
         @Body body: CreateFolderBody
-    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+    ): DriveItemDto
 
     // Create folder under root
     @POST("me/drive/root/children")
     suspend fun createFolderUnderRoot(
         @Header("Authorization") token: String,
         @Body body: CreateFolderBody
-    ): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
+    ): DriveItemDto
 
     // Create upload session for new file under parent
     @POST("me/drive/items/{parentId}:/{fileName}:/createUploadSession")
