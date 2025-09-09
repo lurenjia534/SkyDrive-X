@@ -17,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +33,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.SearchBar
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -230,10 +233,35 @@ fun FilesScreen(
         }
     }
 
+    var searchQuery by remember { mutableStateOf("") }
+    var searchActive by remember { mutableStateOf(false) }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             Column {
+                // Material3 SearchBar：放在最顶端（标题“文件”上方）
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onSearch = { searchActive = false },
+                    active = searchActive,
+                    onActiveChange = { searchActive = it },
+                    placeholder = { Text("搜索文件和文件夹") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Filled.Close, contentDescription = "清除")
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    // 建议/历史：此处暂不提供复杂建议，保留空内容以符合 API 结构
+                }
                 LargeTopAppBar(
                     title = { Text("文件") },
                     navigationIcon = {
@@ -259,6 +287,11 @@ fun FilesScreen(
         }
     ) { padding ->
         val contentModifier = modifier.fillMaxSize().padding(padding)
+        val filteredItems = uiState.items.orEmpty().let { list ->
+            if (searchQuery.isBlank()) list
+            else list.filter { (it.name ?: "").contains(searchQuery, ignoreCase = true) }
+        }
+
         when {
             uiState.isLoading -> {
                 FilesLoadingPlaceholder(modifier = contentModifier)
@@ -270,15 +303,21 @@ fun FilesScreen(
                 }
             }
 
-            uiState.items.isNullOrEmpty() -> {
+            uiState.items == null -> {
                 Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
                     Text(text = "暂无文件")
                 }
             }
 
+            filteredItems.isEmpty() -> {
+                Box(modifier = contentModifier, contentAlignment = Alignment.Center) {
+                    Text(text = if (searchQuery.isNotBlank()) "无匹配结果" else "暂无文件")
+                }
+            }
+
             else -> {
                 LazyColumn(modifier = contentModifier) {
-                    items(uiState.items.orEmpty()) { item ->
+                    items(filteredItems) { item ->
                         val isFolder = item.folder != null
                         var expanded by remember { mutableStateOf(false) }
 
