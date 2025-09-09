@@ -266,7 +266,7 @@ class FilesRepository @Inject constructor(
         token: String,
         newName: String
     ): DriveItemDto {
-        val body = com.lurenjia534.skydrivex.data.model.driveitem.MoveItemBody(
+        val body = MoveItemBody(
             parentReference = null,
             name = newName
         )

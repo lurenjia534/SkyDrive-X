@@ -680,7 +680,7 @@ fun FilesScreen(
                 showRenameDialog = false
                 scope.launch {
                     snackbarHostState.showSnackbar("正在重命名…")
-                    runCatching { viewModel.renameItem(id, token!!, newName) }
+                    runCatching { viewModel.renameItem(id, token, newName) }
                         .onSuccess { snackbarHostState.showSnackbar("已重命名为：$newName") }
                         .onFailure { snackbarHostState.showSnackbar(it.message ?: "重命名失败") }
                 }
