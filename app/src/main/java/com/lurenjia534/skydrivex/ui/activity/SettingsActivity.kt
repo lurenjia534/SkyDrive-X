@@ -321,15 +321,33 @@ fun SettingsScreen(
                 // 依次加入字段（用可空判断）
                 if (userState.data != null) {
                     val u = userState.data!!
-                    if (!u.displayName.isNullOrBlank()) item { ListItem(headlineContent = { Text("显示名称") }, supportingContent = { Text(u.displayName!!) }) }
-                    if (!u.userPrincipalName.isNullOrBlank()) item { ListItem(headlineContent = { Text("用户主体名称") }, supportingContent = { Text(u.userPrincipalName!!) }) }
-                    if (!u.givenName.isNullOrBlank()) item { ListItem(headlineContent = { Text("名") }, supportingContent = { Text(u.givenName!!) }) }
-                    if (!u.surname.isNullOrBlank()) item { ListItem(headlineContent = { Text("姓") }, supportingContent = { Text(u.surname!!) }) }
-                    if (!u.jobTitle.isNullOrBlank()) item { ListItem(headlineContent = { Text("职位") }, supportingContent = { Text(u.jobTitle!!) }) }
-                    if (!u.mail.isNullOrBlank()) item { ListItem(headlineContent = { Text("邮箱") }, supportingContent = { Text(u.mail!!) }) }
-                    if (!u.mobilePhone.isNullOrBlank()) item { ListItem(headlineContent = { Text("手机") }, supportingContent = { Text(u.mobilePhone!!) }) }
-                    if (!u.officeLocation.isNullOrBlank()) item { ListItem(headlineContent = { Text("办公地点") }, supportingContent = { Text(u.officeLocation!!) }) }
-                    if (!u.preferredLanguage.isNullOrBlank()) item { ListItem(headlineContent = { Text("首选语言") }, supportingContent = { Text(u.preferredLanguage!!) }) }
+                    if (!u.displayName.isNullOrBlank()) item { ListItem(headlineContent = { Text("显示名称") }, supportingContent = { Text(
+                        u.displayName
+                    ) }) }
+                    if (!u.userPrincipalName.isNullOrBlank()) item { ListItem(headlineContent = { Text("用户主体名称") }, supportingContent = { Text(
+                        u.userPrincipalName
+                    ) }) }
+                    if (!u.givenName.isNullOrBlank()) item { ListItem(headlineContent = { Text("名") }, supportingContent = { Text(
+                        u.givenName
+                    ) }) }
+                    if (!u.surname.isNullOrBlank()) item { ListItem(headlineContent = { Text("姓") }, supportingContent = { Text(
+                        u.surname
+                    ) }) }
+                    if (!u.jobTitle.isNullOrBlank()) item { ListItem(headlineContent = { Text("职位") }, supportingContent = { Text(
+                        u.jobTitle
+                    ) }) }
+                    if (!u.mail.isNullOrBlank()) item { ListItem(headlineContent = { Text("邮箱") }, supportingContent = { Text(
+                        u.mail
+                    ) }) }
+                    if (!u.mobilePhone.isNullOrBlank()) item { ListItem(headlineContent = { Text("手机") }, supportingContent = { Text(
+                        u.mobilePhone
+                    ) }) }
+                    if (!u.officeLocation.isNullOrBlank()) item { ListItem(headlineContent = { Text("办公地点") }, supportingContent = { Text(
+                        u.officeLocation
+                    ) }) }
+                    if (!u.preferredLanguage.isNullOrBlank()) item { ListItem(headlineContent = { Text("首选语言") }, supportingContent = { Text(
+                        u.preferredLanguage
+                    ) }) }
                     val phones = u.businessPhones?.filter { it.isNotBlank() }?.joinToString()
                     if (!phones.isNullOrBlank()) item { ListItem(headlineContent = { Text("商务电话") }, supportingContent = { Text(phones) }) }
                 }
