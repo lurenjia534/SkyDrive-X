@@ -148,4 +148,26 @@ interface GraphApiService {
     suspend fun getRootItem(
         @Header("Authorization") token: String
     ): DriveItemDto
+
+    // Get an item with only parentReference (to read its driveId)
+    @GET("me/drive/items/{itemId}?\$select=parentReference")
+    suspend fun getItemParentReference(
+        @Path("itemId") itemId: String,
+        @Header("Authorization") token: String
+    ): DriveItemDto
+
+    // Fetch basic fields of an item by id
+    @GET("me/drive/items/{itemId}?\$select=id,name,size,parentReference,folder,file")
+    suspend fun getItemBasic(
+        @Path("itemId") itemId: String,
+        @Header("Authorization") token: String
+    ): DriveItemDto
+
+    // Copy item asynchronously
+    @POST("me/drive/items/{itemId}/copy")
+    suspend fun copyItem(
+        @Path("itemId") itemId: String,
+        @Header("Authorization") token: String,
+        @Body body: com.lurenjia534.skydrivex.data.model.driveitem.CopyItemBody
+    ): Response<Unit>
 }
