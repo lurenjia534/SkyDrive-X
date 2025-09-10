@@ -20,4 +20,8 @@ data class FilesUiState(
     val error: String?,
     val canGoBack: Boolean,
     val path: List<Breadcrumb>,
+    // Server-side search state
+    val searchResults: List<DriveItemDto>? = null,
+    val isSearching: Boolean = false,
+    val searchError: String? = null,
 )
