@@ -32,12 +32,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import java.net.URLDecoder
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ImagePreviewScreen(
     itemId: String?,
@@ -107,13 +109,27 @@ fun ImagePreviewScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
             when {
                 imageUrl.isNullOrEmpty() -> {
-                    Text(text = if (isLoading) "加载中…" else "无法加载图片")
+                    if (isLoading) {
+                        LoadingIndicator()
+                    } else {
+                        Text(text = "无法加载图片")
+                    }
                 }
                 else -> {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = imageUrl,
                         contentDescription = name,
                         contentScale = ContentScale.Fit,
+                        loading = {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                LoadingIndicator()
+                            }
+                        },
+                        error = {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("加载失败")
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer(
