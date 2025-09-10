@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lurenjia534.skydrivex.ui.state.Breadcrumb
@@ -138,7 +139,7 @@ fun MoveItemSheet(
                 TextButton(onClick = {
                     onConfirm(viewModel.currentFolderId(), newName.ifBlank { null })
                     onDismiss()
-                }) { Text("移动") }
+                }) { Text("移动",fontWeight = FontWeight.Bold) }
             }
             Spacer(Modifier.height(8.dp))
             Text(

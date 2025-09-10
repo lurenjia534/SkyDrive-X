@@ -30,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lurenjia534.skydrivex.ui.state.Breadcrumb
@@ -121,7 +122,7 @@ fun CopyItemSheet(
                 TextButton(onClick = {
                     onConfirm(viewModel.currentFolderId(), newName.ifBlank { null })
                     onDismiss()
-                }) { Text("复制") }
+                }) { Text("复制", fontWeight = FontWeight.Bold) }
             }
             Spacer(Modifier.height(8.dp))
             Text("提示：复制为异步操作，完成后文件列表会自动刷新。",
