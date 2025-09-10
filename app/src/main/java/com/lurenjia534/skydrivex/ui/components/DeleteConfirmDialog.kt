@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun DeleteConfirmDialog(
@@ -19,7 +20,7 @@ fun DeleteConfirmDialog(
         title = { Text("删除确认") },
         text = {
             val typeLabel = if (isFolder) "文件夹" else "文件"
-            Text("确定删除 ${name ?: ""} $typeLabel 吗？")
+            Text("确定删除 ${name ?: ""} $typeLabel 吗？", fontWeight = FontWeight.Bold)
         },
         confirmButton = {
             TextButton(
@@ -28,7 +29,7 @@ fun DeleteConfirmDialog(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("删除")
+                Text("删除", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
