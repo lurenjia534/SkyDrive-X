@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.LibraryMusic
@@ -842,23 +843,33 @@ private fun BreadcrumbBar(
     path: List<Breadcrumb>,
     onNavigate: (index: Int) -> Unit
 ) {
+    val scroll = rememberScrollState()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .horizontalScroll(rememberScrollState()),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .horizontalScroll(scroll),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         path.forEachIndexed { index, crumb ->
-            AssistChip(
-                onClick = { onNavigate(index) },
-                label = { Text(crumb.name) },
-                enabled = index != path.lastIndex
+            val isLast = index == path.lastIndex
+            val color = if (isLast) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            Text(
+                text = crumb.name,
+                color = color,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                modifier = Modifier
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .then(if (!isLast) Modifier.clickable { onNavigate(index) } else Modifier)
             )
-            if (index != path.lastIndex) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(">", style = MaterialTheme.typography.labelLarge)
-                Spacer(modifier = Modifier.width(8.dp))
+            if (!isLast) {
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
