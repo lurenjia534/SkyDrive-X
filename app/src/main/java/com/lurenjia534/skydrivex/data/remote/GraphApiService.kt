@@ -170,4 +170,44 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Body body: com.lurenjia534.skydrivex.data.model.driveitem.CopyItemBody
     ): Response<Unit>
+
+    // Search within current user's drive root hierarchy
+    // GET /me/drive/root/search(q='{search-text}')
+    @GET("me/drive/root/search(q='{q}')")
+    suspend fun searchInRoot(
+        @Path("q") q: String,
+        @Header("Authorization") token: String,
+        @Query("\$top") top: Int? = null,
+        @Query("\$orderby") orderBy: String? = null,
+        @Query("\$select") select: String? = null,
+        @Query("\$expand") expand: String? = null,
+        @Query("\$skipToken") skipToken: String? = null
+    ): DriveItemsResponse
+
+    // Search across the drive (includes items shared with the user)
+    // GET /me/drive/search(q='{search-text}')
+    @GET("me/drive/search(q='{q}')")
+    suspend fun searchInDrive(
+        @Path("q") q: String,
+        @Header("Authorization") token: String,
+        @Query("\$top") top: Int? = null,
+        @Query("\$orderby") orderBy: String? = null,
+        @Query("\$select") select: String? = null,
+        @Query("\$expand") expand: String? = null,
+        @Query("\$skipToken") skipToken: String? = null
+    ): DriveItemsResponse
+
+    // Search within a specific folder hierarchy
+    // GET /me/drive/items/{itemId}/search(q='{search-text}')
+    @GET("me/drive/items/{itemId}/search(q='{q}')")
+    suspend fun searchInFolder(
+        @Path("itemId") itemId: String,
+        @Path("q") q: String,
+        @Header("Authorization") token: String,
+        @Query("\$top") top: Int? = null,
+        @Query("\$orderby") orderBy: String? = null,
+        @Query("\$select") select: String? = null,
+        @Query("\$expand") expand: String? = null,
+        @Query("\$skipToken") skipToken: String? = null
+    ): DriveItemsResponse
 }
