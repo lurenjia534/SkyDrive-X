@@ -35,7 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.SubcomposeAsyncImage
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
+import com.lurenjia534.skydrivex.ui.viewmodel.ImagePreviewViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import java.net.URLDecoder
 
@@ -45,29 +45,24 @@ fun ImagePreviewScreen(
     itemId: String?,
     nameEncoded: String?,
     onBack: () -> Unit,
-    filesViewModel: FilesViewModel = hiltViewModel(),
+    previewViewModel: ImagePreviewViewModel = hiltViewModel(),
     mainViewModel: MainViewModel = hiltViewModel(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val token by mainViewModel.token.collectAsState()
     val name = remember(nameEncoded) { runCatching { URLDecoder.decode(nameEncoded ?: "", "UTF-8") }.getOrDefault("") }
 
-    var imageUrl by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-
     LaunchedEffect(itemId, token) {
         if (!itemId.isNullOrEmpty() && !token.isNullOrEmpty()) {
-            isLoading = true
-            runCatching {
-                filesViewModel.getDownloadUrl(itemId, token!!)
-            }.onSuccess {
-                imageUrl = it
-                if (it == null) snackbarHostState.showSnackbar("无法获取图片地址")
-            }.onFailure {
-                snackbarHostState.showSnackbar(it.message ?: "加载失败")
-            }
-            isLoading = false
+            previewViewModel.load(itemId, token!!)
         }
+    }
+
+    val imageUrl by previewViewModel.imageUrl.collectAsState()
+    val isLoading by previewViewModel.isLoading.collectAsState()
+    val error by previewViewModel.error.collectAsState()
+    LaunchedEffect(error) {
+        error?.let { snackbarHostState.showSnackbar(it) }
     }
 
     // 缩放/位移状态
