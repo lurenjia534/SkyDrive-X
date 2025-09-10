@@ -71,6 +71,11 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
@@ -258,7 +263,19 @@ fun FilesScreen(
         }
         // 统一用 Column 包裹，顶部放搜索/标题/面包屑，底部权重占满显示列表
         Column(modifier = contentModifier) {
-            AnimatedVisibility(visible = !hideSearch, enter = fadeIn(), exit = fadeOut()) {
+            AnimatedVisibility(
+                visible = !hideSearch,
+                enter =
+                    slideInVertically(
+                        initialOffsetY = { -it / 2 },
+                        animationSpec = tween(durationMillis = 150, easing = LinearOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(150, easing = LinearOutSlowInEasing)),
+                exit =
+                    slideOutVertically(
+                        targetOffsetY = { -it / 2 },
+                        animationSpec = tween(durationMillis = 100, easing = FastOutLinearInEasing)
+                    ) + fadeOut(animationSpec = tween(90, easing = FastOutLinearInEasing))
+            ) {
                 Column {
                     DockedSearchBar(
                         query = searchQuery,
