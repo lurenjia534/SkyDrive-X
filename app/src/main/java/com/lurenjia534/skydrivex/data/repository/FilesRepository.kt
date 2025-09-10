@@ -123,6 +123,72 @@ class FilesRepository @Inject constructor(
         }
     }
 
+    // Search helpers
+    suspend fun searchInDrive(
+        token: String,
+        query: String,
+        top: Int? = null,
+        orderBy: String? = null,
+        select: String? = null,
+        expand: String? = null,
+        skipToken: String? = null
+    ): Pair<List<DriveItemDto>, String?> {
+        val resp = graphApiService.searchInDrive(
+            q = query,
+            token = token,
+            top = top,
+            orderBy = orderBy,
+            select = select,
+            expand = expand,
+            skipToken = skipToken
+        )
+        return resp.value to resp.nextLink
+    }
+
+    suspend fun searchInRoot(
+        token: String,
+        query: String,
+        top: Int? = null,
+        orderBy: String? = null,
+        select: String? = null,
+        expand: String? = null,
+        skipToken: String? = null
+    ): Pair<List<DriveItemDto>, String?> {
+        val resp = graphApiService.searchInRoot(
+            q = query,
+            token = token,
+            top = top,
+            orderBy = orderBy,
+            select = select,
+            expand = expand,
+            skipToken = skipToken
+        )
+        return resp.value to resp.nextLink
+    }
+
+    suspend fun searchInFolder(
+        folderId: String,
+        token: String,
+        query: String,
+        top: Int? = null,
+        orderBy: String? = null,
+        select: String? = null,
+        expand: String? = null,
+        skipToken: String? = null
+    ): Pair<List<DriveItemDto>, String?> {
+        val resp = graphApiService.searchInFolder(
+            itemId = folderId,
+            q = query,
+            token = token,
+            top = top,
+            orderBy = orderBy,
+            select = select,
+            expand = expand,
+            skipToken = skipToken
+        )
+        return resp.value to resp.nextLink
+    }
+
     // Large file upload via Upload Session.
     suspend fun uploadLargeFile(
         parentId: String?,
