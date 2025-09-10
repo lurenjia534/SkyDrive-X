@@ -131,6 +131,79 @@ class FilesViewModel @Inject constructor(
         }
     }
 
+    // --- Search API (server-side) ---
+    fun clearSearch() {
+        _filesState.value = _filesState.value.copy(
+            searchResults = null,
+            isSearching = false,
+            searchError = null
+        )
+    }
+
+    fun searchInDrive(token: String, query: String, top: Int? = 50) {
+        if (query.isBlank()) {
+            clearSearch()
+            return
+        }
+        viewModelScope.launch {
+            _filesState.value = _filesState.value.copy(isSearching = true, searchError = null)
+            try {
+                val (items, _next) = filesRepository.searchInDrive(
+                    token = "Bearer $token",
+                    query = query,
+                    top = top
+                )
+                _filesState.value = _filesState.value.copy(
+                    searchResults = items,
+                    isSearching = false,
+                    searchError = null
+                )
+            } catch (e: Exception) {
+                _filesState.value = _filesState.value.copy(
+                    isSearching = false,
+                    searchError = e.message
+                )
+            }
+        }
+    }
+
+    fun searchInCurrentFolder(token: String, query: String, top: Int? = 50) {
+        val folderId = currentFolderId()
+        if (query.isBlank()) {
+            clearSearch()
+            return
+        }
+        viewModelScope.launch {
+            _filesState.value = _filesState.value.copy(isSearching = true, searchError = null)
+            try {
+                val (items, _next) = if (folderId == "root") {
+                    filesRepository.searchInRoot(
+                        token = "Bearer $token",
+                        query = query,
+                        top = top
+                    )
+                } else {
+                    filesRepository.searchInFolder(
+                        folderId = folderId,
+                        token = "Bearer $token",
+                        query = query,
+                        top = top
+                    )
+                }
+                _filesState.value = _filesState.value.copy(
+                    searchResults = items,
+                    isSearching = false,
+                    searchError = null
+                )
+            } catch (e: Exception) {
+                _filesState.value = _filesState.value.copy(
+                    isSearching = false,
+                    searchError = e.message
+                )
+            }
+        }
+    }
+
     fun navigateTo(index: Int, token: String) {
         if (index < 0 || index >= stack.size) return
         if (index == stack.lastIndex) return
