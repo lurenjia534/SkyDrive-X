@@ -10,7 +10,9 @@ data class DriveItemDto(
     val size: Long?,
     val folder: FolderFacet?,
     val file: FileFacet?,
-    @param:Json(name = "parentReference") val parentReference: ItemReference?
+    @param:Json(name = "parentReference") val parentReference: ItemReference?,
+    val searchResult: SearchResultFacet? = null,
+    val remoteItem: RemoteItemFacet? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -28,4 +30,15 @@ data class ItemReference(
     val driveId: String?,
     val id: String?,
     val path: String?
+)
+
+@JsonClass(generateAdapter = true)
+data class SearchResultFacet(
+    val onClickTelemetryUrl: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class RemoteItemFacet(
+    val id: String?,
+    @param:Json(name = "parentReference") val parentReference: ItemReference?
 )
