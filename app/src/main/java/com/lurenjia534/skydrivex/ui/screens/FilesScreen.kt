@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -66,6 +67,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
@@ -245,37 +250,43 @@ fun FilesScreen(
         }
     ) { padding ->
         val contentModifier = modifier.fillMaxSize().padding(padding)
+        val listState = rememberLazyListState()
+        val hideSearch by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
         val filteredItems = uiState.items.orEmpty().let { list ->
             if (searchQuery.isBlank()) list
             else list.filter { (it.name ?: "").contains(searchQuery, ignoreCase = true) }
         }
         // 统一用 Column 包裹，顶部放搜索/标题/面包屑，底部权重占满显示列表
         Column(modifier = contentModifier) {
-            DockedSearchBar(
-                query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                onSearch = { searchActive = false },
-                // 始终保持收起形态，避免显示空的“建议”面板
-                active = false,
-                onActiveChange = {},
-                placeholder = { Text("搜索文件和文件夹") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Filled.Close, contentDescription = "清除")
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {}
+            AnimatedVisibility(visible = !hideSearch, enter = fadeIn(), exit = fadeOut()) {
+                Column {
+                    DockedSearchBar(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        onSearch = { searchActive = false },
+                        // 始终保持收起形态，避免显示空的“建议”面板
+                        active = false,
+                        onActiveChange = {},
+                        placeholder = { Text("搜索文件和文件夹") },
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Filled.Close, contentDescription = "清除")
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {}
 
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
-                if (uiState.canGoBack) {
-                    IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
+                        if (uiState.canGoBack) {
+                            IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
+                            }
+                        }
                     }
                 }
             }
@@ -310,6 +321,7 @@ fun FilesScreen(
 
                 else -> {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         contentPadding = PaddingValues(bottom = 96.dp)
                     ) {
