@@ -95,23 +95,37 @@ fun MoveItemSheet(
                 uiState.isLoading -> {
                     Text("加载中…")
                 }
+
                 uiState.error != null -> {
                     Text(uiState.error ?: "错误", color = MaterialTheme.colorScheme.error)
                     TextButton(onClick = { viewModel.start(token) }) { Text("重试") }
                 }
+
                 uiState.items.isNullOrEmpty() -> {
                     Text("此处没有子文件夹")
                 }
+
                 else -> {
                     LazyColumn {
                         items(uiState.items.orEmpty()) { item ->
                             ListItem(
-                                leadingContent = { Icon(Icons.Outlined.Folder, contentDescription = null) },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Outlined.Folder,
+                                        contentDescription = null
+                                    )
+                                },
                                 headlineContent = { Text(item.name ?: item.id.orEmpty()) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable(enabled = (item.id != null)) {
-                                        item.id?.let { viewModel.navigateInto(it, token, item.name ?: it) }
+                                        item.id?.let {
+                                            viewModel.navigateInto(
+                                                it,
+                                                token,
+                                                item.name ?: it
+                                            )
+                                        }
                                     }
                             )
                         }
@@ -122,13 +136,16 @@ fun MoveItemSheet(
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) { Text("取消") }
-                Button(onClick = {
+                TextButton(onClick = {
                     onConfirm(viewModel.currentFolderId(), newName.ifBlank { null })
                     onDismiss()
                 }) { Text("移动") }
             }
             Spacer(Modifier.height(8.dp))
-            Text("提示：移动到根目录需要真实根ID，本选择器已自动使用根ID。", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "提示：移动到根目录需要真实根ID，本选择器已自动使用根ID。",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
@@ -139,13 +156,19 @@ private fun BreadcrumbBar(
     onNavigate: (index: Int) -> Unit
 ) {
     // 简版：横向文本+返回按钮已覆盖常用回退；这里用行列方式平铺
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    Column(Modifier
+        .fillMaxWidth()
+        .padding(vertical = 8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             path.forEachIndexed { index, crumb ->
                 Text(
                     text = (crumb.name.ifEmpty { crumb.id }),
                     color = if (index == path.lastIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.clickable(enabled = index != path.lastIndex) { onNavigate(index) }
+                    modifier = Modifier.clickable(enabled = index != path.lastIndex) {
+                        onNavigate(
+                            index
+                        )
+                    }
                 )
                 if (index != path.lastIndex) Text("/")
             }

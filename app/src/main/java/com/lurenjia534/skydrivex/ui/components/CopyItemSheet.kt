@@ -16,6 +16,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -100,7 +101,13 @@ fun CopyItemSheet(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickableSafe(enabled = (item.id != null)) {
-                                        item.id?.let { viewModel.navigateInto(it, token, item.name ?: it) }
+                                        item.id?.let {
+                                            viewModel.navigateInto(
+                                                it,
+                                                token,
+                                                item.name ?: it
+                                            )
+                                        }
                                     }
                             )
                         }
@@ -117,7 +124,9 @@ fun CopyItemSheet(
                 }) { Text("复制") }
             }
             Spacer(Modifier.height(8.dp))
-            Text("提示：复制为异步操作，完成后文件列表会自动刷新。")
+            Text("提示：复制为异步操作，完成后文件列表会自动刷新。",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
@@ -127,7 +136,9 @@ private fun BreadcrumbBar(
     path: List<Breadcrumb>,
     onNavigate: (index: Int) -> Unit
 ) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    Column(Modifier
+        .fillMaxWidth()
+        .padding(vertical = 8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             path.forEachIndexed { index, crumb ->
                 Text(
