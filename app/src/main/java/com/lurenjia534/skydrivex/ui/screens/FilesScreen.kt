@@ -52,7 +52,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.DockedSearchBar
@@ -60,7 +59,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -87,6 +85,7 @@ import com.eygraber.compose.placeholder.material3.shimmer
 import com.lurenjia534.skydrivex.ui.components.CopyItemSheet
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import com.lurenjia534.skydrivex.ui.components.MoveItemSheet
+import com.lurenjia534.skydrivex.ui.components.FabActionSheet
 import com.lurenjia534.skydrivex.ui.components.RenameItemDialog
 import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
@@ -215,7 +214,6 @@ fun FilesScreen(
     }
 
     // Bottom sheet for actions
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showSheet by remember { mutableStateOf(false) }
     var showNewFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
@@ -721,42 +719,20 @@ fun FilesScreen(
     }
 
     // Modal bottom sheet content
-    if (showSheet) {
-        ModalBottomSheet(onDismissRequest = { showSheet = false }, sheetState = sheetState) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = "选择操作", style = MaterialTheme.typography.titleMedium)
-                // Upload photo
-                ListItem(
-                    headlineContent = { Text("上传照片") },
-                    supportingContent = { Text("使用系统照片选择器") },
-                    modifier = Modifier.fillMaxWidth().clickable {
-                        showSheet = false
-                        pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }
-                )
-                // Upload files
-                ListItem(
-                    headlineContent = { Text("上传文件") },
-                    supportingContent = { Text("选择任意类型文件") },
-                    modifier = Modifier.fillMaxWidth().clickable {
-                        showSheet = false
-                        pickFilesLauncher.launch(arrayOf("*/*"))
-                    }
-                )
-                // New folder
-                ListItem(
-                    headlineContent = { Text("新建文件夹") },
-                    supportingContent = { Text("在当前目录创建") },
-                    modifier = Modifier.fillMaxWidth().clickable {
-                        showSheet = false
-                        newFolderName = ""
-                        showNewFolderDialog = true
-                    }
-                )
-                Spacer(Modifier.height(8.dp))
-            }
+    FabActionSheet(
+        visible = showSheet,
+        onDismiss = { showSheet = false },
+        onUploadPhoto = {
+            pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        },
+        onUploadFiles = {
+            pickFilesLauncher.launch(arrayOf("*/*"))
+        },
+        onNewFolder = {
+            newFolderName = ""
+            showNewFolderDialog = true
         }
-    }
+    )
 
     // New folder name dialog
     if (showNewFolderDialog) {
