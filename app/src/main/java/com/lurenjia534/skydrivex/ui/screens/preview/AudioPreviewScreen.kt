@@ -13,15 +13,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackParameters
 import com.lurenjia534.skydrivex.ui.viewmodel.AudioPlayerViewModel
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.util.UnstableApi
 import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
 import java.net.URLDecoder
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioPreviewScreen(
@@ -47,7 +51,20 @@ fun AudioPreviewScreen(
     }
 
     val player = audioVM.player()
-    LaunchedEffect(url) { url?.let { audioVM.setMedia(it) } }
+    LaunchedEffect(url) {
+        url?.let {
+            val lower = (title).lowercase()
+            val mime = when {
+                lower.endsWith(".flac") -> MimeTypes.AUDIO_FLAC
+                lower.endsWith(".m4a") -> MimeTypes.AUDIO_AAC
+                lower.endsWith(".wav") -> MimeTypes.AUDIO_WAV
+                lower.endsWith(".ogg") -> MimeTypes.AUDIO_OGG
+                lower.endsWith(".opus") -> MimeTypes.AUDIO_OPUS
+                else -> null
+            }
+            audioVM.setMedia(it, mime)
+        }
+    }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
