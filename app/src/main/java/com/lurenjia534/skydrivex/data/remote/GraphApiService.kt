@@ -21,6 +21,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.PATCH
+import com.lurenjia534.skydrivex.data.model.thumbnail.ThumbnailSetsResponse
 
 interface GraphApiService {
     @DELETE("me/drive/items/{itemId}")
@@ -47,6 +48,26 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Query("\$top") top: Int? = null,
         @Query("\$orderby") orderBy: String? = null
+    ): DriveItemsResponse
+
+    // Try expand thumbnails when listing (may not work for Business tenants)
+    @GET("me/drive/root/children")
+    suspend fun getRootChildrenExpanded(
+        @Header("Authorization") token: String,
+        @Query("\$top") top: Int? = null,
+        @Query("\$orderby") orderBy: String? = null,
+        @Query("\$expand") expand: String = "thumbnails",
+        @Query("\$select") select: String? = "id,name,size,parentReference,folder,file,thumbnails"
+    ): DriveItemsResponse
+
+    @GET("me/drive/items/{itemId}/children")
+    suspend fun getChildrenExpanded(
+        @Path("itemId") id: String,
+        @Header("Authorization") token: String,
+        @Query("\$top") top: Int? = null,
+        @Query("\$orderby") orderBy: String? = null,
+        @Query("\$expand") expand: String = "thumbnails",
+        @Query("\$select") select: String? = "id,name,size,parentReference,folder,file,thumbnails"
     ): DriveItemsResponse
 
     // Fetch pre-authenticated download URL for a file
@@ -210,4 +231,11 @@ interface GraphApiService {
         @Query("\$expand") expand: String? = null,
         @Query("\$skipToken") skipToken: String? = null
     ): DriveItemsResponse
+    // Additional endpoint to fetch thumbnails of a single item (fallback path)
+    @GET("me/drive/items/{itemId}/thumbnails")
+    suspend fun getThumbnails(
+        @Path("itemId") itemId: String,
+        @Header("Authorization") token: String,
+        @Query("\$select") select: String? = null
+    ): ThumbnailSetsResponse
 }
