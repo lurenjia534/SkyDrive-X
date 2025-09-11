@@ -403,6 +403,39 @@ fun SettingsScreen(
 
             // 应用设置
             item { SectionHeader("应用设置") }
+            // 深色模式（移动到 应用设置 开头）
+            item {
+                ListItem(
+                    headlineContent = { Text("深色模式") },
+                    supportingContent = { Text("管理是否开启暗色模式") },
+                    trailingContent = {
+                        Switch(
+                            checked = isDarkMode,
+                            onCheckedChange = viewModel::setDarkMode
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.setDarkMode(!isDarkMode) }
+                )
+            }
+            // 通知设置（移动到 应用设置 开头）
+            item {
+                ListItem(
+                    headlineContent = { Text("通知设置") },
+                    supportingContent = { Text("在系统设置中管理应用通知权限") },
+                    trailingContent = {
+                        Switch(
+                            checked = areNotificationsEnabled,
+                            onCheckedChange = null,
+                            enabled = false
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.openNotificationSettings() }
+                )
+            }
             // 下载位置
             item {
                 Text(
@@ -458,37 +491,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            item {
-                ListItem(
-                    headlineContent = { Text("深色模式") },
-                    supportingContent = { Text("管理是否开启暗色模式") },
-                    trailingContent = {
-                        Switch(
-                            checked = isDarkMode,
-                            onCheckedChange = viewModel::setDarkMode
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.setDarkMode(!isDarkMode) }
-                )
-            }
-            item {
-                ListItem(
-                    headlineContent = { Text("通知设置") },
-                    supportingContent = { Text("在系统设置中管理应用通知权限") },
-                    trailingContent = {
-                        Switch(
-                            checked = areNotificationsEnabled,
-                            onCheckedChange = null,
-                            enabled = false
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.openNotificationSettings() }
-                )
-            }
+            
 
             // 权限
             item { SectionHeader("权限") }
