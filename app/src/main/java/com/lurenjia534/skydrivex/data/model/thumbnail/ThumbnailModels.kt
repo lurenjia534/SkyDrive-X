@@ -20,7 +20,7 @@ data class ThumbnailSet(
     val mediumSquare: Thumbnail? = null,
     val largeSquare: Thumbnail? = null,
     // 常用自定义示例，可为空；解析不到时忽略
-    @Json(name = "c200x200_crop") val c200x200Crop: Thumbnail? = null
+    @param:Json(name = "c200x200_crop") val c200x200Crop: Thumbnail? = null
 )
 
 @JsonClass(generateAdapter = true)
