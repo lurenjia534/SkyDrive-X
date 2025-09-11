@@ -8,6 +8,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material3.*
+import coil3.compose.rememberAsyncImagePainter
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +53,8 @@ fun AudioPreviewScreen(
     }
 
     val player = audioVM.player()
+    val meta by audioVM.meta.collectAsState()
+    val decoder by audioVM.decoderName.collectAsState()
     LaunchedEffect(url) {
         url?.let {
             val lower = (title).lowercase()
@@ -77,16 +81,31 @@ fun AudioPreviewScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
         Column(
             Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .align(Alignment.TopCenter)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 简单的标题/占位
-            Text(text = title.ifEmpty { "音频" }, style = MaterialTheme.typography.titleLarge)
+            // 封面 + 元数据
+            val art = meta.artwork
+            if (art != null && art.isNotEmpty()) {
+                androidx.compose.foundation.Image(
+                    painter = rememberAsyncImagePainter(art),
+                    contentDescription = null,
+                    modifier = Modifier.size(220.dp)
+                )
+            }
+            val shownTitle = meta.title ?: title
+            if (shownTitle.isNotBlank()) {
+                Text(text = shownTitle, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            val subtitle = listOfNotNull(meta.artist, meta.album).joinToString(" · ").takeIf { it.isNotBlank() }
+            if (subtitle != null) {
+                Text(text = subtitle, style = MaterialTheme.typography.bodyMedium)
+            }
             if (url == null) {
                 CircularProgressIndicator()
                 return@Column
@@ -94,6 +113,22 @@ fun AudioPreviewScreen(
 
             // 进度与控制
             AudioControls(player = player)
+        }
+        // 右下角显示当前解码器
+        decoder?.let { name ->
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(8.dp),
+                tonalElevation = 2.dp,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
+            ) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
         }
     }
 }
