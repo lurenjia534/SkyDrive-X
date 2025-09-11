@@ -86,7 +86,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
@@ -111,6 +111,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import coil3.compose.rememberAsyncImagePainter
 
 /**
  * Screen that displays files and folders from the user's drive.
@@ -364,10 +365,37 @@ fun FilesScreen(
                         Box {
                             ListItem(
                                 leadingContent = {
-                                    Icon(
-                                        imageVector = if (isFolder) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
-                                        contentDescription = null,
-                                    )
+                                    if (isFolder) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Folder,
+                                            contentDescription = null,
+                                        )
+                                    } else {
+                                        val thumbUrl = try {
+                                            val sets = item.thumbnails
+                                            val first = sets?.firstOrNull()
+                                            first?.smallSquare?.url
+                                                ?: first?.small?.url
+                                                ?: first?.mediumSquare?.url
+                                                ?: first?.medium?.url
+                                                ?: first?.largeSquare?.url
+                                                ?: first?.large?.url
+                                        } catch (_: Exception) { null }
+                                        if (thumbUrl.isNullOrBlank()) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
+                                                contentDescription = null,
+                                            )
+                                        } else {
+                                            // 使用 Coil 显示缩略图
+                                            androidx.compose.foundation.Image(
+                                                painter = coil3.compose.rememberAsyncImagePainter(thumbUrl),
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(40.dp),
+                                            )
+                                        }
+                                    }
                                 },
                                 headlineContent = { Text(text = item.name ?: "") },
                                 supportingContent = {
