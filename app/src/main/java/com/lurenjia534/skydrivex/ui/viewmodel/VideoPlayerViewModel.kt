@@ -6,19 +6,27 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+@UnstableApi
 @HiltViewModel
 class VideoPlayerViewModel @Inject constructor(
     @ApplicationContext context: Context
 ) : ViewModel() {
 
     private val appContext = context.applicationContext
-    private val player: ExoPlayer = ExoPlayer.Builder(appContext).build()
+    private val player: ExoPlayer = ExoPlayer.Builder(
+        appContext,
+        DefaultRenderersFactory(appContext).setExtensionRendererMode(
+            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+        )
+    ).build()
 
     private val _aspectRatio = MutableStateFlow(16f / 9f)
     val aspectRatio: StateFlow<Float> = _aspectRatio

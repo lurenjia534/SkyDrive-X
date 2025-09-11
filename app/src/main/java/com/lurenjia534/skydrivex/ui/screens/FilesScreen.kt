@@ -581,17 +581,25 @@ fun FilesScreen(
                                                         )
                                                     }
                                                 }
-                                                // 预览音频（仅音频文件）
+                                                // 预览音频（包含 flac 等，按 MIME 或扩展名判断）
                                                 run {
                                                     val amime = item.file?.mimeType
-                                                    if (amime != null && amime.startsWith("audio/")) {
+                                                    val lower = (item.name ?: "").lowercase()
+                                                    val isAudioByExt = lower.endsWith(".mp3") || lower.endsWith(".m4a") ||
+                                                            lower.endsWith(".aac") || lower.endsWith(".flac") ||
+                                                            lower.endsWith(".wav") || lower.endsWith(".ogg") ||
+                                                            lower.endsWith(".opus")
+                                                    if ((amime != null && amime.startsWith("audio/")) || isAudioByExt) {
                                                         DropdownMenuItem(
                                                             text = { Text("预览音频", fontWeight = FontWeight.Bold) },
                                                             onClick = {
                                                                 val id = item.id
                                                                 if (id != null) {
                                                                     val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
-                                                                    navController.navigate("audio/${id}/${encodedName}")
+                                                                    val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity::class.java)
+                                                                    intent.putExtra(com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity.EXTRA_ITEM_ID, id)
+                                                                    intent.putExtra(com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity.EXTRA_NAME, encodedName)
+                                                                    context.startActivity(intent)
                                                                 } else {
                                                                     scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
                                                                 }
@@ -656,6 +664,10 @@ fun FilesScreen(
                                                 nameLower.endsWith(".webm") || nameLower.endsWith(".avi") ||
                                                 nameLower.endsWith(".mov") || nameLower.endsWith(".m4v") ||
                                                 nameLower.endsWith(".3gp") || nameLower.endsWith(".3gpp")
+                                        val isAudioByExt = nameLower.endsWith(".mp3") || nameLower.endsWith(".m4a") ||
+                                                nameLower.endsWith(".aac") || nameLower.endsWith(".flac") ||
+                                                nameLower.endsWith(".wav") || nameLower.endsWith(".ogg") ||
+                                                nameLower.endsWith(".opus")
                                         when {
                                             (mime != null && mime.startsWith("image/")) || isImageByExt -> {
                                                 val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity::class.java)
@@ -667,6 +679,12 @@ fun FilesScreen(
                                                 val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity::class.java)
                                                 intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_ITEM_ID, id)
                                                 intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_NAME, encodedName)
+                                                context.startActivity(intent)
+                                            }
+                                            (mime != null && mime.startsWith("audio/")) || isAudioByExt -> {
+                                                val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity::class.java)
+                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity.EXTRA_ITEM_ID, id)
+                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity.EXTRA_NAME, encodedName)
                                                 context.startActivity(intent)
                                             }
                                             else -> {
