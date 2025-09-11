@@ -658,13 +658,13 @@ fun FilesScreen(
                                                 nameLower.endsWith(".3gp") || nameLower.endsWith(".3gpp")
                                         when {
                                             (mime != null && mime.startsWith("image/")) || isImageByExt -> {
-                                                val intent = android.content.Intent(context, com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity::class.java)
+                                                val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity::class.java)
                                                 intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_ITEM_ID, id)
                                                 intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_NAME, encodedName)
                                                 context.startActivity(intent)
                                             }
                                             (mime != null && mime.startsWith("video/")) || isVideoByExt -> {
-                                                val intent = android.content.Intent(context, com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity::class.java)
+                                                val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity::class.java)
                                                 intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_ITEM_ID, id)
                                                 intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_NAME, encodedName)
                                                 context.startActivity(intent)
