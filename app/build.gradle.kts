@@ -77,4 +77,7 @@ dependencies {
     // Media3 for video playback (Compose UI)
     implementation("androidx.media3:media3-exoplayer:$media3_version")
     implementation("androidx.media3:media3-ui-compose:$media3_version")
+    // 额外音频解码（如 FLAC/ALAC/OPUS 等）- 方案1：使用 Jellyfin 预构建的 FFmpeg 扩展（与 Media3 1.8.0 匹配，GPLv3）
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1")
+
 }
