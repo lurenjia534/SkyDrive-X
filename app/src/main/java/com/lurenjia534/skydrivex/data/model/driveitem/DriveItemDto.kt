@@ -12,7 +12,9 @@ data class DriveItemDto(
     val file: FileFacet?,
     @param:Json(name = "parentReference") val parentReference: ItemReference?,
     val searchResult: SearchResultFacet? = null,
-    val remoteItem: RemoteItemFacet? = null
+    val remoteItem: RemoteItemFacet? = null,
+    // 可选的缩略图集合（当使用 $expand=thumbnails 或后续补充时）
+    val thumbnails: List<com.lurenjia534.skydrivex.data.model.thumbnail.ThumbnailSet>? = null
 )
 
 @JsonClass(generateAdapter = true)
