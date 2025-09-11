@@ -148,7 +148,7 @@ class FilesViewModel @Inject constructor(
         viewModelScope.launch {
             _filesState.value = _filesState.value.copy(isSearching = true, searchError = null)
             try {
-                val (items, _next) = filesRepository.searchInDrive(
+                val (items, _next) = filesRepository.searchInDriveWithThumbnails(
                     token = "Bearer $token",
                     query = query,
                     top = top
@@ -177,13 +177,13 @@ class FilesViewModel @Inject constructor(
             _filesState.value = _filesState.value.copy(isSearching = true, searchError = null)
             try {
                 val (items, _next) = if (folderId == "root") {
-                    filesRepository.searchInRoot(
+                    filesRepository.searchInDriveWithThumbnails(
                         token = "Bearer $token",
                         query = query,
                         top = top
                     )
                 } else {
-                    filesRepository.searchInFolder(
+                    filesRepository.searchInFolderWithThumbnails(
                         folderId = folderId,
                         token = "Bearer $token",
                         query = query,
