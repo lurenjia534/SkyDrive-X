@@ -21,6 +21,8 @@ import com.lurenjia534.skydrivex.data.model.driveitem.CopyItemBody
 import com.lurenjia534.skydrivex.data.model.driveitem.CopyParentReference
 import com.lurenjia534.skydrivex.data.model.driveitem.CopyMonitorStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -36,10 +38,55 @@ class FilesRepository @Inject constructor(
         graphApiService.getRootItem(token).id
 
     suspend fun getRootChildren(token: String): List<DriveItemDto> =
-        graphApiService.getRootChildren(token).value
+        fetchChildrenWithThumbnails(parentId = null, token = token)
 
     suspend fun getChildren(itemId: String, token: String): List<DriveItemDto> =
-        graphApiService.getChildren(itemId, token).value
+        fetchChildrenWithThumbnails(parentId = itemId, token = token)
+
+    private suspend fun fetchChildrenWithThumbnails(parentId: String?, token: String): List<DriveItemDto> {
+        // First try using $expand=thumbnails (works well on personal; may be ignored on Business)
+        val expanded = runCatching {
+            if (parentId == null || parentId == "root") {
+                graphApiService.getRootChildrenExpanded(token = token).value
+            } else {
+                graphApiService.getChildrenExpanded(id = parentId, token = token).value
+            }
+        }.getOrNull()
+
+        if (expanded != null) {
+            if (expanded.any { it.thumbnails?.isNotEmpty() == true }) {
+                return expanded
+            }
+            // Fallback enrich if expanded present but thumbnails missing (likely Business tenant)
+            return enrichWithThumbnails(expanded, token)
+        }
+
+        // If expanded request failed, fallback to basic listing then enrich
+        val basic = if (parentId == null || parentId == "root")
+            graphApiService.getRootChildren(token).value
+        else
+            graphApiService.getChildren(parentId, token).value
+        return enrichWithThumbnails(basic, token)
+    }
+
+    private suspend fun enrichWithThumbnails(items: List<DriveItemDto>, token: String): List<DriveItemDto> = coroutineScope {
+        // Only fetch for file items that don't already have thumbnails
+        val tasks = items.map { item ->
+            async(Dispatchers.IO) {
+                if (item.file == null || item.id.isNullOrEmpty()) return@async item
+                if (!item.thumbnails.isNullOrEmpty()) return@async item
+                val thumbs = runCatching {
+                    graphApiService.getThumbnails(
+                        itemId = item.id,
+                        token = token,
+                        select = "small,smallSquare,medium,mediumSquare"
+                    ).value
+                }.getOrNull()
+                if (thumbs.isNullOrEmpty()) item else item.copy(thumbnails = thumbs)
+            }
+        }
+        tasks.map { it.await() }
+    }
 
     suspend fun deleteFile(itemId: String, token: String) {
         graphApiService.deleteFile(id = itemId, token = token)
@@ -187,6 +234,41 @@ class FilesRepository @Inject constructor(
             skipToken = skipToken
         )
         return resp.value to resp.nextLink
+    }
+
+    // Convenience wrappers to provide thumbnails for search results as well (with fallback)
+    suspend fun searchInDriveWithThumbnails(
+        token: String,
+        query: String,
+        top: Int? = 50
+    ): Pair<List<DriveItemDto>, String?> {
+        val (items, next) = searchInDrive(
+            token = token,
+            query = query,
+            top = top,
+            select = "id,name,size,parentReference,folder,file,thumbnails",
+            expand = "thumbnails"
+        )
+        val haveAny = items.any { it.thumbnails?.isNotEmpty() == true }
+        return if (haveAny) items to next else enrichWithThumbnails(items, token) to next
+    }
+
+    suspend fun searchInFolderWithThumbnails(
+        folderId: String,
+        token: String,
+        query: String,
+        top: Int? = 50
+    ): Pair<List<DriveItemDto>, String?> {
+        val (items, next) = searchInFolder(
+            folderId = folderId,
+            token = token,
+            query = query,
+            top = top,
+            select = "id,name,size,parentReference,folder,file,thumbnails",
+            expand = "thumbnails"
+        )
+        val haveAny = items.any { it.thumbnails?.isNotEmpty() == true }
+        return if (haveAny) items to next else enrichWithThumbnails(items, token) to next
     }
 
     // Large file upload via Upload Session.
