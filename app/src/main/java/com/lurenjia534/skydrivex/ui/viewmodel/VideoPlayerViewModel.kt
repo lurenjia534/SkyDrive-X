@@ -11,6 +11,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.common.util.Log
+import androidx.media3.decoder.ffmpeg.FfmpegLibrary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -30,6 +33,8 @@ class VideoPlayerViewModel @Inject constructor(
 
     private val _aspectRatio = MutableStateFlow(16f / 9f)
     val aspectRatio: StateFlow<Float> = _aspectRatio
+    private val _decoderName = MutableStateFlow<String?>(null)
+    val decoderName: StateFlow<String?> = _decoderName
 
     init {
         // seed from current size
@@ -37,6 +42,17 @@ class VideoPlayerViewModel @Inject constructor(
         player.addListener(object : Player.Listener {
             override fun onVideoSizeChanged(videoSize: VideoSize) {
                 _aspectRatio.value = ratioOf(videoSize)
+            }
+        })
+        player.addAnalyticsListener(object : AnalyticsListener {
+            override fun onVideoDecoderInitialized(
+                eventTime: AnalyticsListener.EventTime,
+                decoderName: String,
+                initializedTimestampMs: Long,
+                initializationDurationMs: Long
+            ) {
+                Log.i("VideoPlayerVM", "Video decoder: $decoderName ffmpegAvailable=${FfmpegLibrary.isAvailable()}")
+                _decoderName.value = decoderName
             }
         })
     }

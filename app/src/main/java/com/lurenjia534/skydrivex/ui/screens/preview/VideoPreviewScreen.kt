@@ -26,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
@@ -96,6 +97,7 @@ fun VideoPreviewScreen(
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     var controlsVisible by remember(isLandscape) { mutableStateOf(!isLandscape) }
+    val decoder by playerViewModel.decoderName.collectAsState()
     Scaffold(
         topBar = {
             if (!isLandscape && controlsVisible) {
@@ -206,6 +208,25 @@ fun VideoPreviewScreen(
                         modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
                     ) {
                         Icon(Icons.Filled.ScreenRotation, contentDescription = "切换横竖屏")
+                    }
+                }
+
+                // 左下角显示当前解码器
+                decoder?.let { name ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(8.dp),
+                        tonalElevation = 2.dp,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
+                    ) {
+                        Text(
+                            text = name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
                     }
                 }
             }
