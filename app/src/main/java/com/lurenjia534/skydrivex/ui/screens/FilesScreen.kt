@@ -630,9 +630,35 @@ fun FilesScreen(
                                         }
                                     }
                                 },
-                                modifier = Modifier.clickable(enabled = isFolder && item.id != null) {
-                                    if (isFolder && item.id != null && token != null) {
-                                        viewModel.loadChildren(item.id, token, item.name ?: "")
+                                modifier = Modifier.clickable(enabled = item.id != null) {
+                                    val id = item.id
+                                    if (id == null) return@clickable
+                                    if (isFolder) {
+                                        if (token != null) {
+                                            viewModel.loadChildren(id, token, item.name ?: "")
+                                        }
+                                    } else {
+                                        // 非文件夹：图片/视频直接进入预览
+                                        val mime = item.file?.mimeType
+                                        val nameLower = (item.name ?: "").lowercase()
+                                        val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
+                                        val isImageByExt = nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg") ||
+                                                nameLower.endsWith(".png") || nameLower.endsWith(".gif") ||
+                                                nameLower.endsWith(".webp") || nameLower.endsWith(".bmp") ||
+                                                nameLower.endsWith(".heic") || nameLower.endsWith(".heif")
+                                        val isVideoByExt = nameLower.endsWith(".mp4") || nameLower.endsWith(".mkv") ||
+                                                nameLower.endsWith(".webm") || nameLower.endsWith(".avi") ||
+                                                nameLower.endsWith(".mov") || nameLower.endsWith(".m4v") ||
+                                                nameLower.endsWith(".3gp") || nameLower.endsWith(".3gpp")
+                                        when {
+                                            (mime != null && mime.startsWith("image/")) || isImageByExt ->
+                                                navController.navigate("preview/${id}/${encodedName}")
+                                            (mime != null && mime.startsWith("video/")) || isVideoByExt ->
+                                                navController.navigate("video/${id}/${encodedName}")
+                                            else -> {
+                                                // MIME 缺失或非图/视频：保持现状（不做跳转）。
+                                            }
+                                        }
                                     }
                                 },
                             )
