@@ -53,7 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.DockedSearchBar
+import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -76,6 +76,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.material3.DockedSearchBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
@@ -243,7 +244,22 @@ fun FilesScreen(
     }
 
     var searchQuery by remember { mutableStateOf("") }
-    var searchActive by remember { mutableStateOf(false) }
+
+    // Debounce server-side search based on query
+    LaunchedEffect(searchQuery, token) {
+        val t = token
+        if (t.isNullOrEmpty()) {
+            viewModel.clearSearch()
+        } else {
+            if (searchQuery.isBlank()) {
+                viewModel.clearSearch()
+            } else {
+                kotlinx.coroutines.delay(350)
+                // Default: search whole drive (includes shared items)
+                viewModel.searchInDrive(t, searchQuery)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {},
@@ -257,10 +273,10 @@ fun FilesScreen(
         val contentModifier = modifier.fillMaxSize().padding(padding)
         val listState = rememberLazyListState()
         val hideSearch by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
-        val filteredItems = uiState.items.orEmpty().let { list ->
-            if (searchQuery.isBlank()) list
-            else list.filter { (it.name ?: "").contains(searchQuery, ignoreCase = true) }
-        }
+        val itemsToShow = if (searchQuery.isBlank()) uiState.items else uiState.searchResults
+        val filteredItems = itemsToShow.orEmpty()
+        val isBusy = if (searchQuery.isBlank()) uiState.isLoading else uiState.isSearching
+        val errorNow = if (searchQuery.isBlank()) uiState.error else uiState.searchError
         // 统一用 Column 包裹，顶部放搜索/标题/面包屑，底部权重占满显示列表
         Column(modifier = contentModifier) {
             AnimatedVisibility(
@@ -280,10 +296,9 @@ fun FilesScreen(
                     DockedSearchBar(
                         query = searchQuery,
                         onQueryChange = { searchQuery = it },
-                        onSearch = { searchActive = false },
-                        // 始终保持收起形态，避免显示空的“建议”面板
+                        onSearch = { /* debounced search handled via LaunchedEffect */ },
                         active = false,
-                        onActiveChange = {},
+                        onActiveChange = { /* keep collapsed to avoid large empty panel */ },
                         placeholder = { Text("搜索文件和文件夹") },
                         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                         trailingIcon = {
@@ -296,7 +311,7 @@ fun FilesScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) {}
+                    ) { }
 
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
                         if (uiState.canGoBack) {
@@ -314,19 +329,19 @@ fun FilesScreen(
             )
 
             when {
-                uiState.isLoading -> {
+                isBusy -> {
                     FilesLoadingPlaceholder(modifier = Modifier.weight(1f).fillMaxWidth())
                 }
 
-                uiState.error != null -> {
+                errorNow != null -> {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(text = uiState.error ?: "加载失败")
+                        Text(text = errorNow)
                     }
                 }
 
-                uiState.items == null -> {
+                itemsToShow == null -> {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(text = "暂无文件")
+                        Text(text = if (searchQuery.isBlank()) "暂无文件" else "无搜索结果")
                     }
                 }
 
