@@ -142,7 +142,6 @@ fun VideoPreviewScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
-                .padding(padding)
                 .pointerInput(isLandscape) { detectTapGestures(onTap = { controlsVisible = !controlsVisible }) },
             contentAlignment = Alignment.Center
         ) {
@@ -153,11 +152,7 @@ fun VideoPreviewScreen(
                 LaunchedEffect(src) { playerViewModel.setMedia(src) }
                 val aspect by playerViewModel.aspectRatio.collectAsState()
 
-                val videoModifier = if (androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
-                    Modifier.fillMaxHeight().aspectRatio(aspect, matchHeightConstraintsFirst = true)
-                } else {
-                    Modifier.fillMaxWidth().aspectRatio(aspect)
-                }
+                val videoModifier = Modifier.fillMaxWidth().aspectRatio(aspect)
                 PlayerSurface(player = player, modifier = videoModifier.align(Alignment.Center))
 
                 // 自动隐藏控制（简单实现）：显示后3秒自动隐藏（横屏默认隐藏）
