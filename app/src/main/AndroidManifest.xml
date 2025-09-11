@@ -63,6 +63,16 @@
             android:exported="false"
             android:theme="@style/Theme.SkyDriveX" />
 
+        <activity
+            android:name=".ui.activity.ImagePreviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SkyDriveX" />
+
+        <activity
+            android:name=".ui.activity.VideoPreviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SkyDriveX" />
+
         <receiver
             android:name=".ui.notification.CancelDownloadReceiver"
             android:exported="false" />
