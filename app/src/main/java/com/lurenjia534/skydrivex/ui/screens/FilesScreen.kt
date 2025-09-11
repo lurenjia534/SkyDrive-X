@@ -542,11 +542,14 @@ fun FilesScreen(
                                                 if (mime != null && mime.startsWith("image/")) {
                                                     DropdownMenuItem(
                                                         text = { Text("预览", fontWeight = FontWeight.Bold) },
-                                                        onClick = {
+                                                onClick = {
                                                             val id = item.id
                                                             if (id != null) {
                                                                 val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
-                                                                navController.navigate("preview/${id}/${encodedName}")
+                                                                val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity::class.java)
+                                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_ITEM_ID, id)
+                                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_NAME, encodedName)
+                                                                context.startActivity(intent)
                                                             } else {
                                                                 scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
                                                             }
@@ -565,7 +568,10 @@ fun FilesScreen(
                                                                 val id = item.id
                                                                 if (id != null) {
                                                                     val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
-                                                                    navController.navigate("video/${id}/${encodedName}")
+                                                                    val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity::class.java)
+                                                                    intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_ITEM_ID, id)
+                                                                    intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_NAME, encodedName)
+                                                                    context.startActivity(intent)
                                                                 } else {
                                                                     scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
                                                                 }
@@ -651,10 +657,18 @@ fun FilesScreen(
                                                 nameLower.endsWith(".mov") || nameLower.endsWith(".m4v") ||
                                                 nameLower.endsWith(".3gp") || nameLower.endsWith(".3gpp")
                                         when {
-                                            (mime != null && mime.startsWith("image/")) || isImageByExt ->
-                                                navController.navigate("preview/${id}/${encodedName}")
-                                            (mime != null && mime.startsWith("video/")) || isVideoByExt ->
-                                                navController.navigate("video/${id}/${encodedName}")
+                                            (mime != null && mime.startsWith("image/")) || isImageByExt -> {
+                                                val intent = android.content.Intent(context, com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity::class.java)
+                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_ITEM_ID, id)
+                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_NAME, encodedName)
+                                                context.startActivity(intent)
+                                            }
+                                            (mime != null && mime.startsWith("video/")) || isVideoByExt -> {
+                                                val intent = android.content.Intent(context, com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity::class.java)
+                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_ITEM_ID, id)
+                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_NAME, encodedName)
+                                                context.startActivity(intent)
+                                            }
                                             else -> {
                                                 // MIME 缺失或非图/视频：保持现状（不做跳转）。
                                             }
