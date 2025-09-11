@@ -75,6 +75,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -982,57 +983,69 @@ private fun BreadcrumbBar(
 }
 
 @Composable
-private fun FilesLoadingPlaceholder(modifier: Modifier = Modifier) {
+private fun FilesLoadingPlaceholder(
+    modifier: Modifier = Modifier,
+    rows: Int = 12
+) {
+    val shimmer = PlaceholderHighlight.shimmer()
     LazyColumn(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        items(10) {
+        items(rows) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 图标占位
+                // 左侧缩略图/图标圆角方块（更贴近真实列表）
                 Box(
                     modifier = Modifier
-                        .padding(end = 16.dp)
-                        .size(24.dp)
+                        .size(40.dp)
                         .placeholder(
                             visible = true,
-                            highlight = PlaceholderHighlight.shimmer(),
-                            shape = MaterialTheme.shapes.small
+                            highlight = shimmer,
+                            shape = MaterialTheme.shapes.medium
                         )
                 )
-
+                Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    // 文件名占位
+                    // 文件名行
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.5f)
-                            .height(18.dp)
+                            .fillMaxWidth(0.65f)
+                            .height(16.dp)
                             .placeholder(
                                 visible = true,
-                                highlight = PlaceholderHighlight.shimmer(),
+                                highlight = shimmer,
                                 shape = MaterialTheme.shapes.small
                             )
                     )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // 次要信息占位（如大小/时间）
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // 次要信息行（大小/时间）
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.3f)
-                            .height(14.dp)
+                            .fillMaxWidth(0.35f)
+                            .height(12.dp)
                             .placeholder(
                                 visible = true,
-                                highlight = PlaceholderHighlight.shimmer(),
+                                highlight = shimmer,
                                 shape = MaterialTheme.shapes.small
                             )
                     )
                 }
+                Spacer(Modifier.width(12.dp))
+                // 右侧更多菜单占位
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .placeholder(
+                            visible = true,
+                            highlight = shimmer,
+                            shape = MaterialTheme.shapes.extraSmall
+                        )
+                )
             }
         }
     }
