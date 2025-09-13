@@ -175,10 +175,7 @@ private fun AboutScreen(
                             AssistChip(
                                 onClick = {},
                                 label = { Text("v1.0") },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
+                                colors = AssistChipDefaults.assistChipColors()
                             )
                         }
                     }
