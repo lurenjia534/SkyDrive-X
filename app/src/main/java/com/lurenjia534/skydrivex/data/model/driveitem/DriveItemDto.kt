@@ -14,7 +14,11 @@ data class DriveItemDto(
     val searchResult: SearchResultFacet? = null,
     val remoteItem: RemoteItemFacet? = null,
     // 可选的缩略图集合（当使用 $expand=thumbnails 或后续补充时）
-    val thumbnails: List<com.lurenjia534.skydrivex.data.model.thumbnail.ThumbnailSet>? = null
+    val thumbnails: List<com.lurenjia534.skydrivex.data.model.thumbnail.ThumbnailSet>? = null,
+    // 详情对话框需要的额外字段（可选，未选择时为 null）
+    val webUrl: String? = null,
+    val createdDateTime: String? = null,
+    val lastModifiedDateTime: String? = null
 )
 
 @JsonClass(generateAdapter = true)
