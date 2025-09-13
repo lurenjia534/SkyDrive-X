@@ -29,7 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.Launch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -562,11 +562,16 @@ fun SettingsScreen(
             item {
                 ListItem(
                     headlineContent = { Text("关于我们") },
-                    supportingContent = {
-
+                    supportingContent = { },
+                    trailingContent = {
+                        Icon(imageVector = Icons.Outlined.Launch, contentDescription = null)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable {
+                            val intent = Intent(activity, AboutActivity::class.java)
+                            activity.startActivity(intent)
+                        }
                 )
             }
         }
