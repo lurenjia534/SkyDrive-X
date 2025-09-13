@@ -79,6 +79,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.ui.Alignment
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -102,6 +103,7 @@ import com.lurenjia534.skydrivex.ui.components.FabActionSheet
 import com.lurenjia534.skydrivex.ui.components.RenameItemDialog
 import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 import com.lurenjia534.skydrivex.ui.components.PropertiesDialog
+import com.lurenjia534.skydrivex.ui.components.EmptyState
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.notification.replaceWithCompletion
@@ -349,8 +351,32 @@ fun FilesScreen(
                 }
 
                 filteredItems.isEmpty() -> {
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(text = if (searchQuery.isNotBlank()) "无匹配结果" else "暂无文件")
+                    if (searchQuery.isNotBlank()) {
+                        EmptyState(
+                            icon = Icons.Filled.Search,
+                            title = "未找到与\"$searchQuery\"匹配的内容",
+                            subtitle = "请尝试更换关键字或清除搜索",
+                            primaryText = "清除搜索",
+                            onPrimary = {
+                                searchQuery = ""
+                                viewModel.clearSearch()
+                            },
+                            modifier = Modifier.weight(1f).fillMaxWidth()
+                        )
+                    } else {
+                        EmptyState(
+                            icon = Icons.Outlined.Folder,
+                            title = "这里空空如也",
+                            subtitle = "上传文件或新建文件夹开始使用",
+                            primaryText = "上传文件",
+                            onPrimary = { pickFilesLauncher.launch(arrayOf("*/*")) },
+                            secondaryText = "新建文件夹",
+                            onSecondary = {
+                                newFolderName = ""
+                                showNewFolderDialog = true
+                            },
+                            modifier = Modifier.weight(1f).fillMaxWidth()
+                        )
                     }
                 }
 
