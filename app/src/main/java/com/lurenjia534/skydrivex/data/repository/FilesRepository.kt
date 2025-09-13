@@ -95,6 +95,9 @@ class FilesRepository @Inject constructor(
     suspend fun getDownloadUrl(itemId: String, token: String): String? =
         graphApiService.getDownloadUrl(id = itemId, token = token).downloadUrl
 
+    suspend fun getItemDetails(itemId: String, token: String): DriveItemDto =
+        graphApiService.getItemDetails(itemId = itemId, token = token)
+
     suspend fun createShareLink(
         itemId: String,
         token: String,
