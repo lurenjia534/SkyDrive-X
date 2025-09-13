@@ -29,7 +29,16 @@ fun startSystemDownloadWithNotification(
     val downloadId = dm.enqueue(request)
     val nid = (downloadId % Int.MAX_VALUE).toInt()
     createDownloadChannel(context)
-    showOrUpdateProgress(context, nid, fileName, null, null, true, withCancelAction = true)
+    showOrUpdateProgress(
+        context = context,
+        notificationId = nid,
+        title = fileName,
+        progress = null,
+        max = null,
+        indeterminate = true,
+        withCancelAction = true,
+        smallIconRes = android.R.drawable.stat_sys_download
+    )
     DownloadRegistry.registerDownloadManager(nid, downloadId)
 
     val appCtx = context.applicationContext
@@ -67,4 +76,3 @@ fun startSystemDownloadWithNotification(
         )
     } catch (_: Exception) { }
 }
-

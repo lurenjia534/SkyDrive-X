@@ -8,7 +8,16 @@ fun beginIndeterminateUpload(context: Context, title: String): Pair<Int, AtomicB
     createDownloadChannel(context)
     val id = nextNotificationId()
     val cancel = AtomicBoolean(false)
-    showOrUpdateProgress(context, id, title, null, null, true, withCancelAction = true)
+    showOrUpdateProgress(
+        context = context,
+        notificationId = id,
+        title = title,
+        progress = null,
+        max = null,
+        indeterminate = true,
+        withCancelAction = true,
+        smallIconRes = android.R.drawable.stat_sys_upload
+    )
     DownloadRegistry.registerCustom(id, cancel)
     return id to cancel
 }
@@ -17,14 +26,32 @@ fun beginProgressUpload(context: Context, title: String, initialPercent: Int = 0
     createDownloadChannel(context)
     val id = nextNotificationId()
     val cancel = AtomicBoolean(false)
-    showOrUpdateProgress(context, id, title, initialPercent, 100, false, withCancelAction = true)
+    showOrUpdateProgress(
+        context = context,
+        notificationId = id,
+        title = title,
+        progress = initialPercent,
+        max = 100,
+        indeterminate = false,
+        withCancelAction = true,
+        smallIconRes = android.R.drawable.stat_sys_upload
+    )
     DownloadRegistry.registerCustom(id, cancel)
     return id to cancel
 }
 
 fun updateUploadProgress(context: Context, id: Int, title: String, uploaded: Long, total: Long) {
     val pct = if (total > 0) ((uploaded * 100.0) / total).toInt().coerceIn(0, 100) else 0
-    showOrUpdateProgress(context, id, title, pct, 100, false, withCancelAction = true)
+    showOrUpdateProgress(
+        context = context,
+        notificationId = id,
+        title = title,
+        progress = pct,
+        max = 100,
+        indeterminate = false,
+        withCancelAction = true,
+        smallIconRes = android.R.drawable.stat_sys_upload
+    )
 }
 
 fun finishUpload(context: Context, id: Int, title: String, success: Boolean, message: String? = null) {
@@ -32,4 +59,3 @@ fun finishUpload(context: Context, id: Int, title: String, success: Boolean, mes
     replaceWithCompletion(context, id, title, success, msg)
     DownloadRegistry.cleanup(id)
 }
-

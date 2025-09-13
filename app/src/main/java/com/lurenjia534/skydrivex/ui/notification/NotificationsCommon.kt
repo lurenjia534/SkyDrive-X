@@ -31,10 +31,11 @@ fun showOrUpdateProgress(
     progress: Int?,
     max: Int?,
     indeterminate: Boolean,
-    withCancelAction: Boolean = false
+    withCancelAction: Boolean = false,
+    smallIconRes: Int = android.R.drawable.stat_sys_download
 ) {
     val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-        .setSmallIcon(android.R.drawable.stat_sys_download)
+        .setSmallIcon(smallIconRes)
         .setContentTitle(title)
         .setOngoing(true)
         .setOnlyAlertOnce(true)
@@ -119,4 +120,3 @@ private fun canPostNotifications(context: Context): Boolean {
 }
 
 internal fun nextNotificationId(): Int = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
-
