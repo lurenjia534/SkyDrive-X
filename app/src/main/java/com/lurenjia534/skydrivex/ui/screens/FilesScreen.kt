@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.rounded.Delete
@@ -97,6 +98,7 @@ import com.lurenjia534.skydrivex.ui.components.MoveItemSheet
 import com.lurenjia534.skydrivex.ui.components.FabActionSheet
 import com.lurenjia534.skydrivex.ui.components.RenameItemDialog
 import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
+import com.lurenjia534.skydrivex.ui.components.PropertiesDialog
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.notification.replaceWithCompletion
@@ -134,6 +136,9 @@ fun FilesScreen(
     val clipboard = LocalClipboard.current
     var shareTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // itemId to name
     var showShareDialog by remember { mutableStateOf(false) }
+    var propsTarget by remember { mutableStateOf<Pair<String, String?>?>(null) }
+    var showPropsDialog by remember { mutableStateOf(false) }
+    var propsDetails by remember { mutableStateOf<com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto?>(null) }
     var deleteTarget by remember { mutableStateOf<Triple<String, String?, Boolean>?>(null) } // id, name, isFolder
     var moveTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // id, currentName
     var showMoveSheet by remember { mutableStateOf(false) }
@@ -429,6 +434,29 @@ fun FilesScreen(
                                                         showRenameDialog = true
                                                     } else {
                                                         scope.launch { snackbarHostState.showSnackbar("无法重命名：缺少条目ID") }
+                                                    }
+                                                    expanded = false
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text("属性", fontWeight = FontWeight.Bold) },
+                                                leadingIcon = { Icon(Icons.Outlined.Info, contentDescription = null) },
+                                                onClick = {
+                                                    val id = item.id
+                                                    if (id != null) {
+                                                        propsTarget = id to item.name
+                                                        showPropsDialog = true
+                                                        // 触发加载详情
+                                                        if (token != null) {
+                                                            propsDetails = null
+                                                            scope.launch {
+                                                                try {
+                                                                    propsDetails = viewModel.getItemDetails(id, token)
+                                                                } catch (_: Exception) { }
+                                                            }
+                                                        }
+                                                    } else {
+                                                        scope.launch { snackbarHostState.showSnackbar("无法获取属性：缺少条目ID") }
                                                     }
                                                     expanded = false
                                                 }
@@ -889,6 +917,19 @@ fun FilesScreen(
                 }) { Text("创建") }
             },
             dismissButton = { TextButton(onClick = { showNewFolderDialog = false }) { Text("取消") } }
+        )
+    }
+
+    // 属性详情对话框
+    if (showPropsDialog) {
+        val target = propsTarget
+        PropertiesDialog(
+            name = target?.second,
+            details = propsDetails,
+            onDismiss = {
+                showPropsDialog = false
+                propsDetails = null
+            }
         )
     }
 }
