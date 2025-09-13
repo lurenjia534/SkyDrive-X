@@ -30,10 +30,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.SubcomposeAsyncImage
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.preview.ImagePreviewViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import java.net.URLDecoder
