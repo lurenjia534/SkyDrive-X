@@ -78,8 +78,16 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DockedSearchBar
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.ui.Alignment
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -122,7 +130,7 @@ import java.util.Locale
 /**
  * Screen that displays files and folders from the user's drive.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FilesScreen(
     token: String?,
@@ -282,13 +290,66 @@ fun FilesScreen(
     ) { padding ->
         val contentModifier = modifier.fillMaxSize().padding(padding)
         val listState = rememberLazyListState()
+        // Pull-to-refresh (downward) using nested scroll + M3 LoadingIndicator
+        val density = LocalDensity.current
+        var pullOffset by remember { mutableFloatStateOf(0f) }
+        var isPulling by remember { mutableStateOf(false) }
+        var refreshing by remember { mutableStateOf(false) }
+        val triggerPx = with(density) { 72.dp.toPx() }
+
+        val nested = remember(listState, token) {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    if (source == NestedScrollSource.Drag && available.y > 0f &&
+                        listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 &&
+                        !refreshing
+                    ) {
+                        // consume downward drag at top to reveal indicator
+                        val consumedY = available.y
+                        pullOffset = (pullOffset + consumedY).coerceAtMost(triggerPx * 1.5f)
+                        isPulling = true
+                        return Offset(0f, consumedY)
+                    }
+                    return Offset.Zero
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    if (isPulling) {
+                        val shouldRefresh = pullOffset >= triggerPx
+                        pullOffset = 0f
+                        isPulling = false
+                        if (shouldRefresh && token != null) {
+                            refreshing = true
+                            try {
+                                viewModel.refreshCurrent(token)
+                            } catch (_: Exception) {
+                            } finally {
+                                refreshing = false
+                            }
+                        }
+                    }
+                    return Velocity.Zero
+                }
+            }
+        }
         val hideSearch by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
         val itemsToShow = if (searchQuery.isBlank()) uiState.items else uiState.searchResults
         val filteredItems = itemsToShow.orEmpty()
         val isBusy = if (searchQuery.isBlank()) uiState.isLoading else uiState.isSearching
         val errorNow = if (searchQuery.isBlank()) uiState.error else uiState.searchError
         // 统一用 Column 包裹，顶部放搜索/标题/面包屑，底部权重占满显示列表
-        Column(modifier = contentModifier) {
+        Column(modifier = contentModifier.nestedScroll(nested)) {
+            // Pull-to-refresh indicator (M3 expressive)
+            AnimatedVisibility(visible = refreshing || isPulling) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator(modifier = Modifier.size(36.dp))
+                }
+            }
             AnimatedVisibility(
                 visible = !hideSearch,
                 enter =
