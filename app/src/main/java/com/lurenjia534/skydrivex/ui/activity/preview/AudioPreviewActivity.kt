@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.ui.activity
+package com.lurenjia534.skydrivex.ui.activity.preview
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -8,12 +8,12 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import dagger.hilt.android.AndroidEntryPoint
-import com.lurenjia534.skydrivex.ui.screens.preview.VideoPreviewScreen
+import com.lurenjia534.skydrivex.ui.screens.preview.AudioPreviewScreen
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 
 @AndroidEntryPoint
-class VideoPreviewActivity : ComponentActivity() {
+class AudioPreviewActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,7 +26,7 @@ class VideoPreviewActivity : ComponentActivity() {
         setContent {
             val isDark by mainViewModel.isDarkMode.collectAsState(initial = false)
             SkyDriveXTheme(darkTheme = isDark) {
-                VideoPreviewScreen(
+                AudioPreviewScreen(
                     itemId = itemId,
                     nameEncoded = nameEncoded,
                     onBack = { finish() }

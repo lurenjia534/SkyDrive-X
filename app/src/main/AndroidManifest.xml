@@ -69,17 +69,17 @@
             android:theme="@style/Theme.SkyDriveX" />
 
         <activity
-            android:name=".ui.activity.ImagePreviewActivity"
+            android:name=".ui.activity.preview.ImagePreviewActivity"
             android:exported="false"
             android:theme="@style/Theme.SkyDriveX" />
 
         <activity
-            android:name=".ui.activity.VideoPreviewActivity"
+            android:name=".ui.activity.preview.VideoPreviewActivity"
             android:exported="false"
             android:theme="@style/Theme.SkyDriveX" />
 
         <activity
-            android:name=".ui.activity.AudioPreviewActivity"
+            android:name=".ui.activity.preview.AudioPreviewActivity"
             android:exported="false"
             android:theme="@style/Theme.SkyDriveX" />
 

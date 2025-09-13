@@ -92,6 +92,9 @@ import androidx.navigation.NavHostController
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
+import com.lurenjia534.skydrivex.ui.activity.preview.AudioPreviewActivity
+import com.lurenjia534.skydrivex.ui.activity.preview.ImagePreviewActivity
+import com.lurenjia534.skydrivex.ui.activity.preview.VideoPreviewActivity
 import com.lurenjia534.skydrivex.ui.components.CopyItemSheet
 import com.lurenjia534.skydrivex.ui.components.DeleteConfirmDialog
 import com.lurenjia534.skydrivex.ui.components.MoveItemSheet
@@ -575,9 +578,9 @@ fun FilesScreen(
                                                             val id = item.id
                                                             if (id != null) {
                                                                 val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
-                                                                val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity::class.java)
-                                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_ITEM_ID, id)
-                                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_NAME, encodedName)
+                                                                val intent = Intent(context, ImagePreviewActivity::class.java)
+                                                                intent.putExtra(ImagePreviewActivity.EXTRA_ITEM_ID, id)
+                                                                intent.putExtra(ImagePreviewActivity.EXTRA_NAME, encodedName)
                                                                 context.startActivity(intent)
                                                             } else {
                                                                 scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
@@ -597,9 +600,11 @@ fun FilesScreen(
                                                                 val id = item.id
                                                                 if (id != null) {
                                                                     val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
-                                                                    val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity::class.java)
-                                                                    intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_ITEM_ID, id)
-                                                                    intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_NAME, encodedName)
+                                                                    val intent = Intent(context, VideoPreviewActivity::class.java)
+                                                                    intent.putExtra(
+                                                                        VideoPreviewActivity.EXTRA_ITEM_ID, id)
+                                                                    intent.putExtra(
+                                                                        VideoPreviewActivity.EXTRA_NAME, encodedName)
                                                                     context.startActivity(intent)
                                                                 } else {
                                                                     scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
@@ -625,9 +630,11 @@ fun FilesScreen(
                                                                 val id = item.id
                                                                 if (id != null) {
                                                                     val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
-                                                                    val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity::class.java)
-                                                                    intent.putExtra(com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity.EXTRA_ITEM_ID, id)
-                                                                    intent.putExtra(com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity.EXTRA_NAME, encodedName)
+                                                                    val intent = Intent(context, AudioPreviewActivity::class.java)
+                                                                    intent.putExtra(
+                                                                        AudioPreviewActivity.EXTRA_ITEM_ID, id)
+                                                                    intent.putExtra(
+                                                                        AudioPreviewActivity.EXTRA_NAME, encodedName)
                                                                     context.startActivity(intent)
                                                                 } else {
                                                                     scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
@@ -699,21 +706,21 @@ fun FilesScreen(
                                                 nameLower.endsWith(".opus")
                                         when {
                                             (mime != null && mime.startsWith("image/")) || isImageByExt -> {
-                                                val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity::class.java)
-                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_ITEM_ID, id)
-                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.ImagePreviewActivity.EXTRA_NAME, encodedName)
+                                                val intent = Intent(context, ImagePreviewActivity::class.java)
+                                                intent.putExtra(ImagePreviewActivity.EXTRA_ITEM_ID, id)
+                                                intent.putExtra(ImagePreviewActivity.EXTRA_NAME, encodedName)
                                                 context.startActivity(intent)
                                             }
                                             (mime != null && mime.startsWith("video/")) || isVideoByExt -> {
-                                                val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity::class.java)
-                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_ITEM_ID, id)
-                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.VideoPreviewActivity.EXTRA_NAME, encodedName)
+                                                val intent = Intent(context, VideoPreviewActivity::class.java)
+                                                intent.putExtra(VideoPreviewActivity.EXTRA_ITEM_ID, id)
+                                                intent.putExtra(VideoPreviewActivity.EXTRA_NAME, encodedName)
                                                 context.startActivity(intent)
                                             }
                                             (mime != null && mime.startsWith("audio/")) || isAudioByExt -> {
-                                                val intent = Intent(context, com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity::class.java)
-                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity.EXTRA_ITEM_ID, id)
-                                                intent.putExtra(com.lurenjia534.skydrivex.ui.activity.AudioPreviewActivity.EXTRA_NAME, encodedName)
+                                                val intent = Intent(context, AudioPreviewActivity::class.java)
+                                                intent.putExtra(AudioPreviewActivity.EXTRA_ITEM_ID, id)
+                                                intent.putExtra(AudioPreviewActivity.EXTRA_NAME, encodedName)
                                                 context.startActivity(intent)
                                             }
                                             else -> {
