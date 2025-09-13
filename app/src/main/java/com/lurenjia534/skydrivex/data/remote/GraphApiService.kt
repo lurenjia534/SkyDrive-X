@@ -184,6 +184,13 @@ interface GraphApiService {
         @Header("Authorization") token: String
     ): DriveItemDto
 
+    // Detailed fields for properties dialog
+    @GET("me/drive/items/{itemId}?\$select=id,name,size,webUrl,parentReference,createdDateTime,lastModifiedDateTime,folder,file")
+    suspend fun getItemDetails(
+        @Path("itemId") itemId: String,
+        @Header("Authorization") token: String
+    ): DriveItemDto
+
     // Copy item asynchronously
     @POST("me/drive/items/{itemId}/copy")
     suspend fun copyItem(
