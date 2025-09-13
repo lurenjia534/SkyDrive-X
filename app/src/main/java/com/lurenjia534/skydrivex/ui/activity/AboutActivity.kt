@@ -90,7 +90,7 @@ private fun AboutScreen(
     activity: ComponentActivity
 ) {
     // Internal constants to avoid adding strings.xml entries
-    val RELEASE_NOTES_URL = "https://example.com/releases"
+    val RELEASE_NOTES_URL = "https://github.com/lurenjia534/SkyDrive-X"
     val WEBSITE_URL = "https://example.com"
     val FEEDBACK_URL = "https://example.com/feedback"
     val LICENSE_URL = "https://example.com/license"

@@ -28,8 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.outlined.Launch
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Launch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -564,7 +564,7 @@ fun SettingsScreen(
                     headlineContent = { Text("关于我们") },
                     supportingContent = { },
                     trailingContent = {
-                        Icon(imageVector = Icons.Outlined.Launch, contentDescription = null)
+                        Icon(imageVector = Icons.AutoMirrored.Outlined.Launch, contentDescription = null)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
