@@ -281,6 +281,10 @@ class FilesViewModel @Inject constructor(
         return filesRepository.getDownloadUrl(itemId, "Bearer $token")
     }
 
+    suspend fun getItemDetails(itemId: String, token: String): com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto {
+        return filesRepository.getItemDetails(itemId, "Bearer $token")
+    }
+
     suspend fun createShareLink(
         itemId: String,
         token: String,
