@@ -337,19 +337,14 @@ fun FilesScreen(
             )
 
             when {
-                isBusy -> {
+                // 初始进入或搜索/加载中，或数据尚未到达（itemsToShow==null）时，统一显示骨架屏
+                isBusy || itemsToShow == null -> {
                     FilesLoadingPlaceholder(modifier = Modifier.weight(1f).fillMaxWidth())
                 }
 
                 errorNow != null -> {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text(text = errorNow)
-                    }
-                }
-
-                itemsToShow == null -> {
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(text = if (searchQuery.isBlank()) "暂无文件" else "无搜索结果")
                     }
                 }
 
