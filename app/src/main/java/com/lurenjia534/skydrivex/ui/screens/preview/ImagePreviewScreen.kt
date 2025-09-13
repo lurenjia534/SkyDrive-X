@@ -22,7 +22,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,7 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.SubcomposeAsyncImage
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import com.lurenjia534.skydrivex.ui.viewmodel.ImagePreviewViewModel
+import com.lurenjia534.skydrivex.ui.viewmodel.preview.ImagePreviewViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import java.net.URLDecoder
 

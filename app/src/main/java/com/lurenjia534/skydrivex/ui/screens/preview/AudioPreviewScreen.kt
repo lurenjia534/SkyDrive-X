@@ -19,7 +19,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackParameters
-import com.lurenjia534.skydrivex.ui.viewmodel.AudioPlayerViewModel
+import com.lurenjia534.skydrivex.ui.viewmodel.preview.AudioPlayerViewModel
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel

@@ -1,4 +1,4 @@
-package com.lurenjia534.skydrivex.ui.viewmodel
+package com.lurenjia534.skydrivex.ui.viewmodel.preview
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
