@@ -10,6 +10,8 @@ data class DriveItemDto(
     val size: Long?,
     val folder: FolderFacet?,
     val file: FileFacet?,
+    // 视频分面（包含分辨率、帧率、码率、时长、编码 fourCC 以及部分音频相关字段）
+    val video: VideoFacet? = null,
     @param:Json(name = "parentReference") val parentReference: ItemReference?,
     val searchResult: SearchResultFacet? = null,
     val remoteItem: RemoteItemFacet? = null,
@@ -29,6 +31,21 @@ data class FolderFacet(
 @JsonClass(generateAdapter = true)
 data class FileFacet(
     val mimeType: String?
+)
+
+@JsonClass(generateAdapter = true)
+data class VideoFacet(
+    val bitrate: Int? = null,                 // bps
+    val duration: Long? = null,               // 毫秒（Graph 文档）
+    val height: Int? = null,                  // 像素
+    val width: Int? = null,                   // 像素
+    val frameRate: Double? = null,            // fps
+    val fourCC: String? = null,               // 编码标识
+    // 下列字段在部分返回中存在（音频相关）
+    val audioBitsPerSample: Int? = null,
+    val audioChannels: Int? = null,
+    val audioFormat: String? = null,
+    val audioSamplesPerSecond: Int? = null
 )
 
 @JsonClass(generateAdapter = true)
