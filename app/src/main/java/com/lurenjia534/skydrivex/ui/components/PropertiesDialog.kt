@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -32,7 +34,8 @@ fun PropertiesDialog(
         confirmButton = { TextButton(onClick = onDismiss) { Text("确定") } },
         title = { Text(title) },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            val scroll = rememberScrollState()
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(scroll)) {
                 Text("基本", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold))
                 Spacer(Modifier.height(8.dp))
 
@@ -104,6 +107,95 @@ fun PropertiesDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+
+                // 媒体（视频）属性
+                details?.video?.let { v ->
+                    Spacer(Modifier.height(16.dp))
+                    Text("媒体", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold))
+                    Spacer(Modifier.height(8.dp))
+
+                    // 分辨率
+                    val res = if (v.width != null && v.height != null) "${v.width} × ${v.height} 像素" else null
+                    res?.let {
+                        OutlinedTextField(
+                            value = it,
+                            onValueChange = {},
+                            label = { Text("分辨率") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    // 帧率
+                    v.frameRate?.let { fr ->
+                        val frLabel = String.format(Locale.getDefault(), "%.2f fps", fr)
+                        OutlinedTextField(
+                            value = frLabel,
+                            onValueChange = {},
+                            label = { Text("帧率") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    // 码率（以 kbps 显示）
+                    v.bitrate?.let { br ->
+                        val kbps = if (br > 0) br / 1000 else br
+                        OutlinedTextField(
+                            value = "$kbps kbps",
+                            onValueChange = {},
+                            label = { Text("码率") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    // 时长（假定毫秒）
+                    v.duration?.let { durMs ->
+                        OutlinedTextField(
+                            value = formatDurationMs(durMs),
+                            onValueChange = {},
+                            label = { Text("时长") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    // 编码 FourCC
+                    v.fourCC?.takeIf { it.isNotBlank() }?.let { fourcc ->
+                        OutlinedTextField(
+                            value = fourcc,
+                            onValueChange = {},
+                            label = { Text("编码 FourCC") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    // 音频相关（如存在）
+                    val audioSummary = buildString {
+                        val parts = mutableListOf<String>()
+                        v.audioChannels?.let { parts.add("${it} 声道") }
+                        v.audioSamplesPerSecond?.let { parts.add("${it} Hz") }
+                        v.audioBitsPerSample?.let { parts.add("${it} bit") }
+                        v.audioFormat?.let { parts.add(it) }
+                        append(parts.joinToString(" · "))
+                    }.ifBlank { null }
+                    audioSummary?.let {
+                        OutlinedTextField(
+                            value = it,
+                            onValueChange = {},
+                            label = { Text("音频") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
     )
@@ -115,3 +207,12 @@ private fun formatIso(iso: String): String = try {
     instant.atZone(ZoneId.systemDefault()).format(formatter)
 } catch (_: Exception) { iso }
 
+private fun formatDurationMs(ms: Long): String {
+    if (ms <= 0) return "0:00"
+    val totalSeconds = ms / 1000
+    val s = (totalSeconds % 60).toInt()
+    val m = ((totalSeconds / 60) % 60).toInt()
+    val h = (totalSeconds / 3600).toInt()
+    return if (h > 0) String.format(Locale.getDefault(), "%d:%02d:%02d", h, m, s)
+    else String.format(Locale.getDefault(), "%d:%02d", m, s)
+}
