@@ -185,7 +185,7 @@ interface GraphApiService {
     ): DriveItemDto
 
     // Detailed fields for properties dialog
-    @GET("me/drive/items/{itemId}?\$select=id,name,size,webUrl,parentReference,createdDateTime,lastModifiedDateTime,folder,file")
+    @GET("me/drive/items/{itemId}?\$select=id,name,size,webUrl,parentReference,createdDateTime,lastModifiedDateTime,folder,file,video")
     suspend fun getItemDetails(
         @Path("itemId") itemId: String,
         @Header("Authorization") token: String
