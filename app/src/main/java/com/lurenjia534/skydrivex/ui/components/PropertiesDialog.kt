@@ -108,6 +108,84 @@ fun PropertiesDialog(
                     )
                 }
 
+                // 图片 / 照片（EXIF）属性
+                val img = details?.image
+                val exif = details?.photo
+                if (img != null || exif != null) {
+                    Spacer(Modifier.height(16.dp))
+                    Text("图片", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold))
+                    Spacer(Modifier.height(8.dp))
+
+                    img?.let { i ->
+                        val res = if (i.width != null && i.height != null) "${i.width} × ${i.height} 像素" else null
+                        res?.let {
+                            OutlinedTextField(
+                                value = it,
+                                onValueChange = {},
+                                label = { Text("分辨率") },
+                                readOnly = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                        }
+                    }
+
+                    exif?.takenDateTime?.let { t ->
+                        OutlinedTextField(
+                            value = formatIso(t),
+                            onValueChange = {},
+                            label = { Text("拍摄时间") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    val camera = buildString {
+                        val list = mutableListOf<String>()
+                        exif?.cameraMake?.takeIf { it.isNotBlank() }?.let { list.add(it) }
+                        exif?.cameraModel?.takeIf { it.isNotBlank() }?.let { list.add(it) }
+                        append(list.joinToString(" "))
+                    }.ifBlank { null }
+                    camera?.let {
+                        OutlinedTextField(
+                            value = it,
+                            onValueChange = {},
+                            label = { Text("相机") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+
+                    val exposure = run {
+                        val num = exif?.exposureNumerator
+                        val den = exif?.exposureDenominator
+                        if (num != null && den != null && den > 0) {
+                            // 传统摄影常用 1/den 表示
+                            if (num == 1.0) "1/${den.toInt()} s" else "${num}/${den} s"
+                        } else null
+                    }
+                    val optics = buildString {
+                        val parts = mutableListOf<String>()
+                        exif?.fNumber?.let { parts.add("f/${trimDouble(it)}") }
+                        exif?.focalLength?.let { parts.add("${trimDouble(it)} mm") }
+                        exif?.iso?.let { parts.add("ISO $it") }
+                        exposure?.let { parts.add(it) }
+                        append(parts.joinToString(" · "))
+                    }.ifBlank { null }
+                    optics?.let {
+                        OutlinedTextField(
+                            value = it,
+                            onValueChange = {},
+                            label = { Text("拍摄参数") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        // 无需额外间距，紧接着可能是视频区块
+                    }
+                }
+
                 // 媒体（视频）属性
                 details?.video?.let { v ->
                     Spacer(Modifier.height(16.dp))
@@ -215,4 +293,10 @@ private fun formatDurationMs(ms: Long): String {
     val h = (totalSeconds / 3600).toInt()
     return if (h > 0) String.format(Locale.getDefault(), "%d:%02d:%02d", h, m, s)
     else String.format(Locale.getDefault(), "%d:%02d", m, s)
+}
+
+private fun trimDouble(value: Double): String {
+    // 简洁化小数显示，如 2.0 -> 2, 2.50 -> 2.5
+    val s = String.format(Locale.getDefault(), "%.2f", value)
+    return s.trimEnd('0').trimEnd('.')
 }
