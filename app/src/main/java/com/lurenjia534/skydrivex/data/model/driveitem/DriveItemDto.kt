@@ -10,6 +10,10 @@ data class DriveItemDto(
     val size: Long?,
     val folder: FolderFacet?,
     val file: FileFacet?,
+    // 图片分面（位图宽高）
+    val image: ImageFacet? = null,
+    // 照片/EXIF 分面（相机/曝光/拍摄时间等）
+    val photo: PhotoFacet? = null,
     // 视频分面（包含分辨率、帧率、码率、时长、编码 fourCC 以及部分音频相关字段）
     val video: VideoFacet? = null,
     @param:Json(name = "parentReference") val parentReference: ItemReference?,
@@ -31,6 +35,25 @@ data class FolderFacet(
 @JsonClass(generateAdapter = true)
 data class FileFacet(
     val mimeType: String?
+)
+
+@JsonClass(generateAdapter = true)
+data class ImageFacet(
+    val width: Int? = null,
+    val height: Int? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class PhotoFacet(
+    val cameraMake: String? = null,
+    val cameraModel: String? = null,
+    val fNumber: Double? = null,
+    val focalLength: Double? = null,
+    val iso: Int? = null,
+    val exposureNumerator: Double? = null,
+    val exposureDenominator: Double? = null,
+    val orientation: Int? = null,
+    val takenDateTime: String? = null
 )
 
 @JsonClass(generateAdapter = true)
