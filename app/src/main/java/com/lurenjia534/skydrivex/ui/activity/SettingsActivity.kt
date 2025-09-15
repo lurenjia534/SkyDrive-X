@@ -195,7 +195,7 @@ fun SettingsScreen(
                         )
                     }
                 }
-                item { Spacer(Modifier.height(8.dp)) }
+                item { Spacer(Modifier.height(1.dp)) }
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                         ListItem(
@@ -223,7 +223,7 @@ fun SettingsScreen(
                         )
                     }
                 }
-                item { Spacer(Modifier.height(8.dp)) }
+                item { Spacer(Modifier.height(1.dp)) }
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                         ListItem(
@@ -586,7 +586,6 @@ fun SettingsScreen(
 
             // 应用设置
             item { SectionHeader("应用设置") }
-            // 深色模式（移动到 应用设置 开头）
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                     ListItem(
@@ -604,7 +603,8 @@ fun SettingsScreen(
                     )
                 }
             }
-            // 通知设置（移动到 应用设置 开头）
+            item { Spacer(Modifier.height(1.dp)) }
+            // 通知设置
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                     ListItem(
@@ -649,6 +649,7 @@ fun SettingsScreen(
                     )
                 }
             }
+            item { Spacer(Modifier.height(1.dp)) }
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                     ListItem(
