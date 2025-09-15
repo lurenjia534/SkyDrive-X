@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,16 +25,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.outlined.Launch
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +47,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,13 +57,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.lurenjia534.skydrivex.ui.settings.components.CopyableCustomItem
 import com.lurenjia534.skydrivex.ui.settings.components.CopyableListItem
 import com.lurenjia534.skydrivex.ui.settings.components.SectionHeader
@@ -108,7 +111,6 @@ fun SettingsScreen(
     val account by viewModel.account.collectAsState()
     val token by viewModel.token.collectAsState()
     val scope = rememberCoroutineScope()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
     val downloadPref by viewModel.downloadPreference.collectAsState()
@@ -143,19 +145,8 @@ fun SettingsScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = {
-            LargeTopAppBar(
-                title = { Text("设置") },
-                navigationIcon = {
-                    IconButton(onClick = onBackPressed) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
+        containerColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainer,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         // 统一通过 LaunchedEffect 展示 Snack，避免在 Composition 期间直接 launch
         LaunchedEffect(pendingSnack) {
@@ -176,28 +167,53 @@ fun SettingsScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
         ) {
+            // Header (back button + large title)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                ) {
+                    Surface(tonalElevation = 0.dp, shadowElevation = 0.dp) {
+                        IconButton(onClick = onBackPressed) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        }
+                    }
+                }
+                Text(
+                    text = "设置",
+                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
             // 账户分组
             item { SectionHeader("账户") }
             if (account == null) {
                 item {
-                    ListItem(
-                        leadingContent = { Icon(imageVector = Icons.Outlined.AccountCircle, contentDescription = null) },
-                        headlineContent = { Text("您尚未登录") },
-                        supportingContent = { Text("登录以使用完整功能") }
-                    )
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                        ListItem(
+                            leadingContent = { Icon(imageVector = Icons.Outlined.AccountCircle, contentDescription = null) },
+                            headlineContent = { Text("您尚未登录") },
+                            supportingContent = { Text("登录以使用完整功能") }
+                        )
+                    }
                 }
+                item { Spacer(Modifier.height(8.dp)) }
                 item {
-                    ListItem(
-                        leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.Login, contentDescription = null) },
-                        headlineContent = { Text("登录") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.signIn(activity) }
-                    )
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                        ListItem(
+                            leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.Login, contentDescription = null) },
+                            headlineContent = { Text("登录") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.signIn(activity) }
+                        )
+                    }
                 }
             } else {
                 item {
-                    ListItem(
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                        ListItem(
                         leadingContent = { Icon(imageVector = Icons.Outlined.AccountCircle, contentDescription = null) },
                         headlineContent = { Text("当前账户") },
                         supportingContent = {
@@ -207,10 +223,13 @@ fun SettingsScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    )
+                        )
+                    }
                 }
+                item { Spacer(Modifier.height(8.dp)) }
                 item {
-                    ListItem(
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                        ListItem(
                         leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
                         headlineContent = {
                             Text(
@@ -222,7 +241,8 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { viewModel.signOut() }
-                    )
+                        )
+                    }
                 }
             }
 
@@ -231,12 +251,18 @@ fun SettingsScreen(
                 item { SectionHeader("OneDrive 信息") }
                 when {
                     driveState.isLoading -> {
-                        item { com.lurenjia534.skydrivex.ui.settings.components.DriveInfoPlaceholder(modifier = Modifier.fillMaxWidth()) }
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                com.lurenjia534.skydrivex.ui.settings.components.DriveInfoPlaceholder(modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
                     }
                     driveState.data != null -> {
                         // 访问令牌
                         item {
                             val clipboard = LocalClipboard.current
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                             CopyableListItem(
                                 headline = "访问令牌",
                                 supporting = if (token != null) "点击复制到剪贴板" else "当前无令牌",
@@ -255,26 +281,32 @@ fun SettingsScreen(
                                     }
                                 }
                             )
+                            }
                         }
+                        item { Spacer(Modifier.height(8.dp)) }
                         // 类型
                         driveState.data!!.driveType?.let { type ->
                             val typeText = if (type == "personal") "个人版" else "企业版"
                             item {
-                                CopyableListItem(
+                                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                    CopyableListItem(
                                     headline = "OneDrive 类型",
                                     supporting = typeText,
                                     onCopy = { value ->
                                         pendingCopy = value
                                         pendingSnack = "已复制：$value"
-                                    }
-                                )
+                                        }
+                                    )
+                                }
                             }
+                            item { Spacer(Modifier.height(8.dp)) }
                         }
                         // 存储
                         driveState.data!!.quota?.let { quota ->
                             if (quota.total != null && quota.used != null) {
                                 item {
                                     val usedText = "${formatBytes(quota.used)} / ${formatBytes(quota.total)}"
+                                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                                     CopyableCustomItem(
                                         headline = "存储空间",
                                         copyText = usedText,
@@ -292,55 +324,69 @@ fun SettingsScreen(
                                             )
                                         }
                                     }
+                                    }
                                 }
+                                item { Spacer(Modifier.height(8.dp)) }
                             }
                             quota.remaining?.let { r ->
                                 item {
-                                    CopyableListItem(
+                                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                        CopyableListItem(
                                         headline = "剩余",
                                         supporting = formatBytes(r),
                                         onCopy = { value ->
                                             pendingCopy = value
                                             pendingSnack = "已复制：$value"
                                         }
-                                    )
+                                        )
+                                    }
                                 }
+                                item { Spacer(Modifier.height(8.dp)) }
                             }
                             quota.deleted?.let { d ->
                                 item {
-                                    CopyableListItem(
+                                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                        CopyableListItem(
                                         headline = "已删除",
                                         supporting = formatBytes(d),
                                         onCopy = { value ->
                                             pendingCopy = value
                                             pendingSnack = "已复制：$value"
                                         }
-                                    )
+                                        )
+                                    }
                                 }
+                                item { Spacer(Modifier.height(8.dp)) }
                             }
                             quota.state?.let { s ->
                                 item {
-                                    CopyableListItem(
+                                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                        CopyableListItem(
                                         headline = "状态",
                                         supporting = s,
                                         onCopy = { value ->
                                             pendingCopy = value
                                             pendingSnack = "已复制：$value"
                                         }
-                                    )
+                                        )
+                                    }
                                 }
+                                item { Spacer(Modifier.height(8.dp)) }
                             }
                             quota.storagePlanInformation?.upgradeAvailable?.let { up ->
                                 item {
-                                    CopyableListItem(
+                                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                        CopyableListItem(
                                         headline = "可升级",
                                         supporting = if (up) "是" else "否",
                                         onCopy = { value ->
                                             pendingCopy = value
                                             pendingSnack = "已复制：$value"
                                         }
-                                    )
+                                        )
+                                    }
                                 }
+                                item { Spacer(Modifier.height(8.dp)) }
                             }
                         }
                     }
@@ -352,7 +398,12 @@ fun SettingsScreen(
                 item { SectionHeader("个人信息") }
                 when {
                     userState.isLoading -> {
-                        item { com.lurenjia534.skydrivex.ui.settings.components.UserInfoPlaceholder(modifier = Modifier.fillMaxWidth()) }
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                com.lurenjia534.skydrivex.ui.settings.components.UserInfoPlaceholder(modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
                     }
                     userState.data != null -> {
                         val u = userState.data!!
@@ -372,13 +423,13 @@ fun SettingsScreen(
                 // 依次加入字段（用可空判断）
                 if (userState.data != null) {
                     val u = userState.data!!
-                    fun addCopyRow(label: String, value: String?) {
-                        if (!value.isNullOrBlank()) {
-                            val v = value
-                            item {
+
+                    if (!u.displayName.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                                 CopyableListItem(
-                                    headline = label,
-                                    supporting = v,
+                                    headline = "显示名称",
+                                    supporting = u.displayName,
                                     onCopy = { copied ->
                                         pendingCopy = copied
                                         pendingSnack = "已复制：$copied"
@@ -386,18 +437,153 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                        item { Spacer(Modifier.height(8.dp)) }
                     }
-                    addCopyRow("显示名称", u.displayName)
-                    addCopyRow("用户主体名称", u.userPrincipalName)
-                    addCopyRow("名", u.givenName)
-                    addCopyRow("姓", u.surname)
-                    addCopyRow("职位", u.jobTitle)
-                    addCopyRow("邮箱", u.mail)
-                    addCopyRow("手机", u.mobilePhone)
-                    addCopyRow("办公地点", u.officeLocation)
-                    addCopyRow("首选语言", u.preferredLanguage)
+
+                    if (!u.userPrincipalName.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "用户主体名称",
+                                    supporting = u.userPrincipalName,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+
+                    if (!u.givenName.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "名",
+                                    supporting = u.givenName,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+
+                    if (!u.surname.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "姓",
+                                    supporting = u.surname,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+
+                    if (!u.jobTitle.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "职位",
+                                    supporting = u.jobTitle,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+
+                    if (!u.mail.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "邮箱",
+                                    supporting = u.mail,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+
+                    if (!u.mobilePhone.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "手机",
+                                    supporting = u.mobilePhone,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+
+                    if (!u.officeLocation.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "办公地点",
+                                    supporting = u.officeLocation,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+
+                    if (!u.preferredLanguage.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "首选语言",
+                                    supporting = u.preferredLanguage,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
+
                     val phones = u.businessPhones?.filter { it.isNotBlank() }?.joinToString()
-                    addCopyRow("商务电话", phones)
+                    if (!phones.isNullOrBlank()) {
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                CopyableListItem(
+                                    headline = "商务电话",
+                                    supporting = phones,
+                                    onCopy = { copied ->
+                                        pendingCopy = copied
+                                        pendingSnack = "已复制：$copied"
+                                    }
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(8.dp)) }
+                    }
                 }
             }
 
@@ -405,7 +591,8 @@ fun SettingsScreen(
             item { SectionHeader("应用设置") }
             // 深色模式（移动到 应用设置 开头）
             item {
-                ListItem(
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
                     headlineContent = { Text("深色模式") },
                     supportingContent = { Text("管理是否开启暗色模式") },
                     trailingContent = {
@@ -417,11 +604,13 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { viewModel.setDarkMode(!isDarkMode) }
-                )
+                    )
+                }
             }
             // 通知设置（移动到 应用设置 开头）
             item {
-                ListItem(
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
                     headlineContent = { Text("通知设置") },
                     supportingContent = { Text("在系统设置中管理应用通知权限") },
                     trailingContent = {
@@ -434,7 +623,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { viewModel.openNotificationSettings() }
-                )
+                    )
+                }
             }
             // 下载位置
             item {
@@ -446,7 +636,8 @@ fun SettingsScreen(
                 )
             }
             item {
-                ListItem(
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
                     headlineContent = { Text("系统下载目录") },
                     supportingContent = { Text("使用系统公共下载目录") },
                     trailingContent = {
@@ -458,10 +649,12 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { viewModel.setDownloadToSystem() }
-                )
+                    )
+                }
             }
             item {
-                ListItem(
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
                     headlineContent = { Text("自定义目录") },
                     supportingContent = { Text("使用你选择的目录保存下载内容") },
                     trailingContent = {
@@ -473,11 +666,13 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { viewModel.setDownloadModeCustom() }
-                )
+                    )
+                }
             }
             if (downloadPref.mode.name == "CUSTOM_TREE") {
                 item {
-                    ListItem(
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                        ListItem(
                         headlineContent = { Text("选择文件夹") },
                         supportingContent = { Text("当前：" + formatTreeUri(downloadPref.treeUri)) },
                         trailingContent = {
@@ -488,7 +683,8 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { pickFolderLauncher.launch(null) }
-                    )
+                        )
+                    }
                 }
             }
             
@@ -532,6 +728,7 @@ fun SettingsScreen(
                         else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
                     }
 
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                     ListItem(
                         headlineContent = { Text("媒体访问权限") },
                         supportingContent = { Text(statusText) },
@@ -555,12 +752,14 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .clickable { mediaPermissionLauncher.launch(requestPerms) }
                     )
+                    }
                 }
             }
             // 其他
             item { SectionHeader("其他") }
             item {
-                ListItem(
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
                     headlineContent = { Text("关于我们") },
                     supportingContent = { },
                     trailingContent = {
@@ -572,7 +771,8 @@ fun SettingsScreen(
                             val intent = Intent(activity, AboutActivity::class.java)
                             activity.startActivity(intent)
                         }
-                )
+                    )
+                }
             }
         }
     }
