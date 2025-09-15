@@ -256,7 +256,7 @@ fun SettingsScreen(
                                 com.lurenjia534.skydrivex.ui.settings.components.DriveInfoPlaceholder(modifier = Modifier.fillMaxWidth())
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
                     driveState.data != null -> {
                         // 访问令牌
@@ -283,7 +283,7 @@ fun SettingsScreen(
                             )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                         // 类型
                         driveState.data!!.driveType?.let { type ->
                             val typeText = if (type == "personal") "个人版" else "企业版"
@@ -299,7 +299,7 @@ fun SettingsScreen(
                                     )
                                 }
                             }
-                            item { Spacer(Modifier.height(8.dp)) }
+                            item { Spacer(Modifier.height(1.dp)) }
                         }
                         // 存储
                         driveState.data!!.quota?.let { quota ->
@@ -326,7 +326,7 @@ fun SettingsScreen(
                                     }
                                     }
                                 }
-                                item { Spacer(Modifier.height(8.dp)) }
+                                item { Spacer(Modifier.height(1.dp)) }
                             }
                             quota.remaining?.let { r ->
                                 item {
@@ -341,7 +341,7 @@ fun SettingsScreen(
                                         )
                                     }
                                 }
-                                item { Spacer(Modifier.height(8.dp)) }
+                                item { Spacer(Modifier.height(1.dp)) }
                             }
                             quota.deleted?.let { d ->
                                 item {
@@ -356,7 +356,7 @@ fun SettingsScreen(
                                         )
                                     }
                                 }
-                                item { Spacer(Modifier.height(8.dp)) }
+                                item { Spacer(Modifier.height(1.dp)) }
                             }
                             quota.state?.let { s ->
                                 item {
@@ -371,7 +371,7 @@ fun SettingsScreen(
                                         )
                                     }
                                 }
-                                item { Spacer(Modifier.height(8.dp)) }
+                                item { Spacer(Modifier.height(1.dp)) }
                             }
                             quota.storagePlanInformation?.upgradeAvailable?.let { up ->
                                 item {
@@ -386,7 +386,7 @@ fun SettingsScreen(
                                         )
                                     }
                                 }
-                                item { Spacer(Modifier.height(8.dp)) }
+                                item { Spacer(Modifier.height(1.dp)) }
                             }
                         }
                     }
