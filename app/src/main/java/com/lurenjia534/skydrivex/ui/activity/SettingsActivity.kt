@@ -390,7 +390,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 个人信息（合并原 ProfileScreen 信息到设置页风格）
+            // 个人信息
             if (account != null) {
                 item { SectionHeader("个人信息") }
                 when {
@@ -400,7 +400,7 @@ fun SettingsScreen(
                                 com.lurenjia534.skydrivex.ui.settings.components.UserInfoPlaceholder(modifier = Modifier.fillMaxWidth())
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
                     userState.data != null -> {
                         val u = userState.data!!
@@ -434,7 +434,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     if (!u.userPrincipalName.isNullOrBlank()) {
@@ -450,7 +450,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     if (!u.givenName.isNullOrBlank()) {
@@ -466,7 +466,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     if (!u.surname.isNullOrBlank()) {
@@ -482,7 +482,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     if (!u.jobTitle.isNullOrBlank()) {
@@ -498,7 +498,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     if (!u.mail.isNullOrBlank()) {
@@ -514,7 +514,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     if (!u.mobilePhone.isNullOrBlank()) {
@@ -530,7 +530,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     if (!u.officeLocation.isNullOrBlank()) {
@@ -546,7 +546,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     if (!u.preferredLanguage.isNullOrBlank()) {
@@ -562,7 +562,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
 
                     val phones = u.businessPhones?.filter { it.isNotBlank() }?.joinToString()
@@ -579,7 +579,7 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier.height(8.dp)) }
+                        item { Spacer(Modifier.height(1.dp)) }
                     }
                 }
             }
