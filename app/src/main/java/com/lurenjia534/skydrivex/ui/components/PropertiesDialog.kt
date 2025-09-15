@@ -182,7 +182,30 @@ fun PropertiesDialog(
                             readOnly = true,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        // 无需额外间距，紧接着可能是视频区块
+                        // 无需额外间距，紧接着可能是提示或视频区块
+                    }
+
+                    // 提示：部分字段仅在 OneDrive 个人版可用
+                    val isImageType = (details.file?.mimeType?.startsWith("image/") == true)
+                    val exifSparse = (
+                        exif == null || (
+                            exif.cameraMake == null &&
+                            exif.cameraModel == null &&
+                            exif.fNumber == null &&
+                            exif.focalLength == null &&
+                            exif.iso == null &&
+                            exif.exposureNumerator == null &&
+                            exif.exposureDenominator == null &&
+                            exif.orientation == null
+                        )
+                    )
+                    if (isImageType && exifSparse) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = "提示：部分图片元数据仅在 OneDrive 个人版可用；企业版通常仅返回拍摄时间，且 image 宽高可能缺失。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
