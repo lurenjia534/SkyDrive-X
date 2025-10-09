@@ -8,7 +8,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,8 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.CallMade
@@ -50,11 +49,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import com.lurenjia534.skydrivex.R
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
@@ -155,21 +158,26 @@ private fun AboutScreen(
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        androidx.compose.foundation.layout.Box(
+                        val context = LocalContext.current
+                        val appIconBitmap = remember(context) {
+                            val drawable = context.packageManager.getApplicationIcon(context.packageName)
+                            val size = when {
+                                drawable.intrinsicWidth > 0 -> drawable.intrinsicWidth
+                                drawable.intrinsicHeight > 0 -> drawable.intrinsicHeight
+                                else -> 192
+                            }
+                            drawable
+                                .toBitmap(width = size, height = size)
+                                .asImageBitmap()
+                        }
+                        Image(
+                            bitmap = appIconBitmap,
+                            contentDescription = null,
                             modifier = Modifier
                                 .size(56.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                contentDescription = null,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
