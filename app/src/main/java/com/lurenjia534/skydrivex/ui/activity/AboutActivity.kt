@@ -197,7 +197,7 @@ private fun AboutScreen(
                             Spacer(modifier = Modifier.height(6.dp))
                             AssistChip(
                                 onClick = {},
-                                label = { Text("v1.0") },
+                                label = { Text("v${stringResource(id = R.string.app_version_name)}") },
                                 colors = AssistChipDefaults.assistChipColors()
                             )
                         }

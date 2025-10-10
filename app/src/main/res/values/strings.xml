@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SkyDrive X</string>
+    <string name="app_version_name">1.0</string>
 </resources>
