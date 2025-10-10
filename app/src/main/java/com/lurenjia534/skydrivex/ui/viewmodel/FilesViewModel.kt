@@ -7,9 +7,13 @@ import com.lurenjia534.skydrivex.data.repository.FilesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.lurenjia534.skydrivex.ui.state.FilesUiState
 import com.lurenjia534.skydrivex.ui.state.Breadcrumb
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,13 +30,55 @@ class FilesViewModel @Inject constructor(
     private val cache = mutableMapOf<String, List<DriveItemDto>>()
     private val stack = mutableListOf<Breadcrumb>()
 
+    private fun visibleItemIds(): Set<String> {
+        val state = _filesState.value
+        val source = state.searchResults ?: state.items
+        return source.orEmpty().mapNotNull { it.id }.toSet()
+    }
+
+    fun enterSelectionMode(initial: String? = null) {
+        _filesState.value = _filesState.value.copy(
+            selectionMode = true,
+            selectedIds = buildSet {
+                if (!initial.isNullOrEmpty()) add(initial)
+            }
+        )
+    }
+
+    fun exitSelectionMode() {
+        val state = _filesState.value
+        if (!state.selectionMode && state.selectedIds.isEmpty()) return
+        _filesState.value = state.copy(selectionMode = false, selectedIds = emptySet())
+    }
+
+    fun toggleSelect(id: String) {
+        _filesState.value = _filesState.value.let { state ->
+            val newSet = if (state.selectedIds.contains(id)) state.selectedIds - id else state.selectedIds + id
+            state.copy(selectedIds = newSet, selectionMode = true)
+        }
+    }
+
+    fun selectAllCurrent() {
+        val all = visibleItemIds()
+        _filesState.value = _filesState.value.copy(selectionMode = all.isNotEmpty(), selectedIds = all)
+    }
+
+    fun invertSelection() {
+        val all = visibleItemIds()
+        val current = _filesState.value.selectedIds
+        val inverted = all - current
+        _filesState.value = _filesState.value.copy(selectionMode = all.isNotEmpty(), selectedIds = inverted)
+    }
+
     fun loadRoot(token: String) {
+        exitSelectionMode()
         stack.clear()
         stack.add(Breadcrumb(id = "root", name = "根目录"))
         load("root") { filesRepository.getRootChildren("Bearer $token") }
     }
 
     fun loadChildren(itemId: String, token: String, name: String) {
+        exitSelectionMode()
         stack.add(Breadcrumb(id = itemId, name = name.ifEmpty { itemId }))
         load(itemId) { filesRepository.getChildren(itemId, "Bearer $token") }
     }
@@ -83,6 +129,7 @@ class FilesViewModel @Inject constructor(
     }
 
     fun goBack(token: String) {
+        exitSelectionMode()
         if (stack.size <= 1) return
         // 弹出当前层级（避免使用 API 35 的 List#removeLast）
         stack.removeAt(stack.lastIndex)
@@ -133,6 +180,7 @@ class FilesViewModel @Inject constructor(
 
     // --- Search API (server-side) ---
     fun clearSearch() {
+        exitSelectionMode()
         _filesState.value = _filesState.value.copy(
             searchResults = null,
             isSearching = false,
@@ -205,6 +253,7 @@ class FilesViewModel @Inject constructor(
     }
 
     fun navigateTo(index: Int, token: String) {
+        exitSelectionMode()
         if (index < 0 || index >= stack.size) return
         if (index == stack.lastIndex) return
         val target = stack[index]
@@ -271,6 +320,30 @@ class FilesViewModel @Inject constructor(
                 }
                 cache[currentKey] = items
                 _filesState.value = _filesState.value.copy(items = items)
+            } catch (e: Exception) {
+                _filesState.value = _filesState.value.copy(error = e.message)
+            }
+        }
+    }
+
+    fun deleteSelected(token: String) {
+        val ids = _filesState.value.selectedIds.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                if (ids.size <= 4) {
+                    coroutineScope {
+                        ids.map { id ->
+                            async(Dispatchers.IO) {
+                                filesRepository.deleteFile(id, "Bearer $token")
+                            }
+                        }.awaitAll()
+                    }
+                } else {
+                    filesRepository.deleteFilesBatch(ids, "Bearer $token")
+                }
+                exitSelectionMode()
+                refreshCurrent(token)
             } catch (e: Exception) {
                 _filesState.value = _filesState.value.copy(error = e.message)
             }
