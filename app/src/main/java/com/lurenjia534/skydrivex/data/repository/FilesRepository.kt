@@ -27,6 +27,8 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.lurenjia534.skydrivex.data.model.batch.BatchRequest
+import com.lurenjia534.skydrivex.data.model.batch.BatchSubRequest
 
 @Singleton
 class FilesRepository @Inject constructor(
@@ -90,6 +92,42 @@ class FilesRepository @Inject constructor(
 
     suspend fun deleteFile(itemId: String, token: String) {
         graphApiService.deleteFile(id = itemId, token = token)
+    }
+
+    suspend fun deleteFilesBatch(itemIds: List<String>, token: String): Map<String, Int> {
+        if (itemIds.isEmpty()) return emptyMap()
+        val result = mutableMapOf<String, Int>()
+        var counter = 1
+        itemIds.chunked(20).forEach { chunk ->
+            val idMapping = mutableMapOf<String, String>()
+            val requests = chunk.map { itemId ->
+                val requestId = (counter++).toString()
+                idMapping[requestId] = itemId
+                BatchSubRequest(
+                    id = requestId,
+                    method = "DELETE",
+                    url = "/me/drive/items/$itemId"
+                )
+            }
+            val response = graphApiService.batch(
+                token = token,
+                body = BatchRequest(requests)
+            )
+            val errors = mutableListOf<Pair<String, Int>>()
+            response.responses.forEach { sub ->
+                val originalId = idMapping[sub.id] ?: return@forEach
+                result[originalId] = sub.status
+                val ok = sub.status in 200..299 || sub.status == 404
+                if (!ok) {
+                    errors += originalId to sub.status
+                }
+            }
+            if (errors.isNotEmpty()) {
+                val summary = errors.joinToString { (id, status) -> "$id:$status" }
+                throw IllegalStateException("批量删除失败: $summary")
+            }
+        }
+        return result
     }
 
     suspend fun getDownloadUrl(itemId: String, token: String): String? =
