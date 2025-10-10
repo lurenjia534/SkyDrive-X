@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.ksp)    // ← 用 alias
 }
 
+val appVersionName = "1.0"
+
 android {
     namespace = "com.lurenjia534.skydrivex"
     compileSdk = 36
@@ -15,7 +17,7 @@ android {
         minSdk = 31
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
