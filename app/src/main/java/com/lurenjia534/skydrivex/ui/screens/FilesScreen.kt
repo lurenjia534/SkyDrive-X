@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +52,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -153,6 +156,7 @@ fun FilesScreen(
     var showPropsDialog by remember { mutableStateOf(false) }
     var propsDetails by remember { mutableStateOf<com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto?>(null) }
     var deleteTarget by remember { mutableStateOf<Triple<String, String?, Boolean>?>(null) } // id, name, isFolder
+    var showBulkDeleteDialog by remember { mutableStateOf(false) }
     var moveTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // id, currentName
     var showMoveSheet by remember { mutableStateOf(false) }
 
@@ -283,8 +287,10 @@ fun FilesScreen(
         topBar = {},
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showSheet = true }) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = "添加")
+            if (!uiState.selectionMode) {
+                FloatingActionButton(onClick = { showSheet = true }) {
+                    Icon(imageVector = Icons.Filled.Add, contentDescription = "添加")
+                }
             }
         }
     ) { padding ->
@@ -333,6 +339,8 @@ fun FilesScreen(
             }
         }
         val hideSearch by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
+        val selectionMode = uiState.selectionMode
+        val selectedCount = uiState.selectedIds.size
         val itemsToShow = if (searchQuery.isBlank()) uiState.items else uiState.searchResults
         val filteredItems = itemsToShow.orEmpty()
         val isBusy = if (searchQuery.isBlank()) uiState.isLoading else uiState.isSearching
@@ -350,49 +358,85 @@ fun FilesScreen(
                     LoadingIndicator(modifier = Modifier.size(36.dp))
                 }
             }
-            AnimatedVisibility(
-                visible = !hideSearch,
-                enter =
-                    slideInVertically(
-                        initialOffsetY = { -it / 2 },
-                        animationSpec = tween(durationMillis = 150, easing = LinearOutSlowInEasing)
-                    ) + fadeIn(animationSpec = tween(150, easing = LinearOutSlowInEasing)),
-                exit =
-                    slideOutVertically(
-                        targetOffsetY = { -it / 2 },
-                        animationSpec = tween(durationMillis = 100, easing = FastOutLinearInEasing)
-                    ) + fadeOut(animationSpec = tween(90, easing = FastOutLinearInEasing))
-            ) {
-                Column {
-                    DockedSearchBar(
-                        query = searchQuery,
-                        onQueryChange = { searchQuery = it },
-                        onSearch = { /* debounced search handled via LaunchedEffect */ },
-                        active = false,
-                        onActiveChange = { /* keep collapsed to avoid large empty panel */ },
-                        placeholder = { Text("搜索文件和文件夹") },
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "清除")
+            if (selectionMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { viewModel.exitSelectionMode() }) {
+                        Icon(Icons.Filled.Close, contentDescription = "退出选择")
+                    }
+                    Text(
+                        text = "已选 $selectedCount 项",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    TextButton(onClick = { viewModel.selectAllCurrent() }) {
+                        Text("全选")
+                    }
+                    TextButton(onClick = { viewModel.invertSelection() }) {
+                        Text("反选")
+                    }
+                    IconButton(
+                        onClick = { showBulkDeleteDialog = true },
+                        enabled = selectedCount > 0
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Delete,
+                            contentDescription = "删除所选",
+                            tint = if (selectedCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                AnimatedVisibility(
+                    visible = !hideSearch,
+                    enter =
+                        slideInVertically(
+                            initialOffsetY = { -it / 2 },
+                            animationSpec = tween(durationMillis = 150, easing = LinearOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(150, easing = LinearOutSlowInEasing)),
+                    exit =
+                        slideOutVertically(
+                            targetOffsetY = { -it / 2 },
+                            animationSpec = tween(durationMillis = 100, easing = FastOutLinearInEasing)
+                        ) + fadeOut(animationSpec = tween(90, easing = FastOutLinearInEasing))
+                ) {
+                    Column {
+                        DockedSearchBar(
+                            query = searchQuery,
+                            onQueryChange = { searchQuery = it },
+                            onSearch = { /* debounced search handled via LaunchedEffect */ },
+                            active = false,
+                            onActiveChange = { /* keep collapsed to avoid large empty panel */ },
+                            placeholder = { Text("搜索文件和文件夹") },
+                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Filled.Close, contentDescription = "清除")
+                                    }
                                 }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    ) { }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) { }
 
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
-                        if (uiState.canGoBack) {
-                            IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
+                            if (uiState.canGoBack) {
+                                IconButton(onClick = { token?.let { viewModel.goBack(it) } }, enabled = token != null) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回上一级")
+                                }
                             }
                         }
                     }
                 }
             }
+            
 
             BreadcrumbBar(
                 path = uiState.path,
@@ -448,13 +492,23 @@ fun FilesScreen(
                         contentPadding = PaddingValues(bottom = 96.dp)
                     ) {
                         items(filteredItems) { item ->
+                            val itemId = item.id
                             val isFolder = item.folder != null
                             var expanded by remember { mutableStateOf(false) }
+                            val selected = itemId != null && selectionMode && uiState.selectedIds.contains(itemId)
+                            if (selectionMode && expanded) {
+                                expanded = false
+                            }
 
-                        Box {
-                            ListItem(
-                                leadingContent = {
-                                    if (isFolder) {
+                            Box {
+                                ListItem(
+                                    leadingContent = {
+                                    if (selectionMode && itemId != null) {
+                                        Checkbox(
+                                            checked = selected,
+                                            onCheckedChange = { viewModel.toggleSelect(itemId) }
+                                        )
+                                    } else if (isFolder) {
                                         Icon(
                                             imageVector = Icons.Outlined.Folder,
                                             contentDescription = null,
@@ -497,18 +551,19 @@ fun FilesScreen(
                                     }
                                 },
                                 trailingContent = {
-                                    Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
-                                        IconButton(onClick = { expanded = true }) {
-                                            Icon(
-                                                imageVector = Icons.Default.MoreVert,
-                                                contentDescription = "更多操作"
-                                            )
-                                        }
-                                        DropdownMenu(
-                                            expanded = expanded,
-                                            onDismissRequest = { expanded = false },
-                                            offset = DpOffset(x = 0.dp, y = 0.dp) // 如需可微调
-                                        ) {
+                                    if (!selectionMode) {
+                                        Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
+                                            IconButton(onClick = { expanded = true }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.MoreVert,
+                                                    contentDescription = "更多操作"
+                                                )
+                                            }
+                                            DropdownMenu(
+                                                expanded = expanded,
+                                                onDismissRequest = { expanded = false },
+                                                offset = DpOffset(x = 0.dp, y = 0.dp) // 如需可微调
+                                            ) {
                                             DropdownMenuItem(
                                                 text = { Text("重命名", fontWeight = FontWeight.Bold) },
                                                 leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
@@ -761,59 +816,82 @@ fun FilesScreen(
                                             )
                                         }
                                     }
-                                },
-                                modifier = Modifier.clickable(enabled = item.id != null) {
-                                    val id = item.id
-                                    if (id == null) return@clickable
-                                    if (isFolder) {
-                                        if (token != null) {
-                                            viewModel.loadChildren(id, token, item.name ?: "")
+                                }},
+                                modifier = Modifier
+                                    .combinedClickable(
+                                        enabled = itemId != null,
+                                        onClick = {
+                                            val id = itemId ?: return@combinedClickable
+                                            if (selectionMode) {
+                                                viewModel.toggleSelect(id)
+                                                return@combinedClickable
+                                            }
+                                            if (isFolder) {
+                                                if (token != null) {
+                                                    viewModel.loadChildren(id, token, item.name ?: "")
+                                                }
+                                            } else {
+                                                // 非文件夹：图片/视频直接进入预览
+                                                val mime = item.file?.mimeType
+                                                val nameLower = (item.name ?: "").lowercase()
+                                                val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
+                                                val isImageByExt = nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg") ||
+                                                        nameLower.endsWith(".png") || nameLower.endsWith(".gif") ||
+                                                        nameLower.endsWith(".webp") || nameLower.endsWith(".bmp") ||
+                                                        nameLower.endsWith(".heic") || nameLower.endsWith(".heif")
+                                                val isVideoByExt = nameLower.endsWith(".mp4") || nameLower.endsWith(".mkv") ||
+                                                        nameLower.endsWith(".webm") || nameLower.endsWith(".avi") ||
+                                                        nameLower.endsWith(".mov") || nameLower.endsWith(".m4v") ||
+                                                        nameLower.endsWith(".3gp") || nameLower.endsWith(".3gpp")
+                                                val isAudioByExt = nameLower.endsWith(".mp3") || nameLower.endsWith(".m4a") ||
+                                                        nameLower.endsWith(".aac") || nameLower.endsWith(".flac") ||
+                                                        nameLower.endsWith(".wav") || nameLower.endsWith(".ogg") ||
+                                                        nameLower.endsWith(".opus")
+                                                when {
+                                                    (mime != null && mime.startsWith("image/")) || isImageByExt -> {
+                                                        val intent = Intent(context, ImagePreviewActivity::class.java)
+                                                        intent.putExtra(ImagePreviewActivity.EXTRA_ITEM_ID, id)
+                                                        intent.putExtra(ImagePreviewActivity.EXTRA_NAME, encodedName)
+                                                        context.startActivity(intent)
+                                                    }
+                                                    (mime != null && mime.startsWith("video/")) || isVideoByExt -> {
+                                                        val intent = Intent(context, VideoPreviewActivity::class.java)
+                                                        intent.putExtra(VideoPreviewActivity.EXTRA_ITEM_ID, id)
+                                                        intent.putExtra(VideoPreviewActivity.EXTRA_NAME, encodedName)
+                                                        context.startActivity(intent)
+                                                    }
+                                                    (mime != null && mime.startsWith("audio/")) || isAudioByExt -> {
+                                                        val intent = Intent(context, AudioPreviewActivity::class.java)
+                                                        intent.putExtra(AudioPreviewActivity.EXTRA_ITEM_ID, id)
+                                                        intent.putExtra(AudioPreviewActivity.EXTRA_NAME, encodedName)
+                                                        context.startActivity(intent)
+                                                    }
+                                                    else -> {
+                                                        // MIME 缺失或非图/视频：保持现状（不做跳转）。
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onLongClick = {
+                                            val id = itemId ?: return@combinedClickable
+                                            if (!selectionMode) {
+                                                viewModel.enterSelectionMode(id)
+                                            } else {
+                                                viewModel.toggleSelect(id)
+                                            }
                                         }
-                                    } else {
-                                        // 非文件夹：图片/视频直接进入预览
-                                        val mime = item.file?.mimeType
-                                        val nameLower = (item.name ?: "").lowercase()
-                                        val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
-                                        val isImageByExt = nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg") ||
-                                                nameLower.endsWith(".png") || nameLower.endsWith(".gif") ||
-                                                nameLower.endsWith(".webp") || nameLower.endsWith(".bmp") ||
-                                                nameLower.endsWith(".heic") || nameLower.endsWith(".heif")
-                                        val isVideoByExt = nameLower.endsWith(".mp4") || nameLower.endsWith(".mkv") ||
-                                                nameLower.endsWith(".webm") || nameLower.endsWith(".avi") ||
-                                                nameLower.endsWith(".mov") || nameLower.endsWith(".m4v") ||
-                                                nameLower.endsWith(".3gp") || nameLower.endsWith(".3gpp")
-                                        val isAudioByExt = nameLower.endsWith(".mp3") || nameLower.endsWith(".m4a") ||
-                                                nameLower.endsWith(".aac") || nameLower.endsWith(".flac") ||
-                                                nameLower.endsWith(".wav") || nameLower.endsWith(".ogg") ||
-                                                nameLower.endsWith(".opus")
-                                        when {
-                                            (mime != null && mime.startsWith("image/")) || isImageByExt -> {
-                                                val intent = Intent(context, ImagePreviewActivity::class.java)
-                                                intent.putExtra(ImagePreviewActivity.EXTRA_ITEM_ID, id)
-                                                intent.putExtra(ImagePreviewActivity.EXTRA_NAME, encodedName)
-                                                context.startActivity(intent)
-                                            }
-                                            (mime != null && mime.startsWith("video/")) || isVideoByExt -> {
-                                                val intent = Intent(context, VideoPreviewActivity::class.java)
-                                                intent.putExtra(VideoPreviewActivity.EXTRA_ITEM_ID, id)
-                                                intent.putExtra(VideoPreviewActivity.EXTRA_NAME, encodedName)
-                                                context.startActivity(intent)
-                                            }
-                                            (mime != null && mime.startsWith("audio/")) || isAudioByExt -> {
-                                                val intent = Intent(context, AudioPreviewActivity::class.java)
-                                                intent.putExtra(AudioPreviewActivity.EXTRA_ITEM_ID, id)
-                                                intent.putExtra(AudioPreviewActivity.EXTRA_NAME, encodedName)
-                                                context.startActivity(intent)
-                                            }
-                                            else -> {
-                                                // MIME 缺失或非图/视频：保持现状（不做跳转）。
-                                            }
-                                        }
-                                    }
-                                },
+                                    ),
+                                colors = if (selected) {
+                                    ListItemDefaults.colors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        headlineColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        supportingColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                } else {
+                                    ListItemDefaults.colors()
+                                }
                             )
                         }
-                    }
                     }
                 }
             }
@@ -889,6 +967,48 @@ fun FilesScreen(
                             snackbarHostState.showSnackbar("删除失败")
                         }
                     }
+                }
+            }
+        )
+    }
+
+    if (showBulkDeleteDialog) {
+        val selected = uiState.selectedIds.size
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showBulkDeleteDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text("批量删除") },
+            text = {
+                Text(
+                    if (selected > 0) "确认将 $selected 项移到回收站？" else "没有选中任何项目。"
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showBulkDeleteDialog = false
+                        val t = token
+                        if (t == null) {
+                            scope.launch { snackbarHostState.showSnackbar("未登录，无法删除") }
+                        } else if (selected > 0) {
+                            viewModel.deleteSelected(t)
+                            scope.launch { snackbarHostState.showSnackbar("正在删除 $selected 项") }
+                        }
+                    },
+                    enabled = selected > 0
+                ) {
+                    Text("删除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBulkDeleteDialog = false }) {
+                    Text("取消")
                 }
             }
         )
@@ -1021,6 +1141,7 @@ fun FilesScreen(
             }
         )
     }
+}
 }
 
 private fun startUploadSmallService(
