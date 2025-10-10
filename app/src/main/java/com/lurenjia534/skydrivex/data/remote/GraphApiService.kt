@@ -22,8 +22,16 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.PATCH
 import com.lurenjia534.skydrivex.data.model.thumbnail.ThumbnailSetsResponse
+import com.lurenjia534.skydrivex.data.model.batch.BatchRequest
+import com.lurenjia534.skydrivex.data.model.batch.BatchResponse
 
 interface GraphApiService {
+    @POST("\$batch")
+    suspend fun batch(
+        @Header("Authorization") token: String,
+        @Body body: BatchRequest
+    ): BatchResponse
+
     @DELETE("me/drive/items/{itemId}")
     suspend fun deleteFile(
         @Path("itemId") id: String,
