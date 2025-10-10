@@ -65,9 +65,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.lurenjia534.skydrivex.ui.settings.components.CopyableCustomItem
 import com.lurenjia534.skydrivex.ui.settings.components.CopyableListItem
+import com.lurenjia534.skydrivex.ui.settings.components.CopyableCustomItem
 import com.lurenjia534.skydrivex.ui.settings.components.SectionHeader
+import com.lurenjia534.skydrivex.ui.settings.components.SettingsSkeletonListItem
+import com.lurenjia534.skydrivex.ui.settings.components.SettingsSkeletonStorage
 import com.lurenjia534.skydrivex.ui.settings.components.formatBytes
 import com.lurenjia534.skydrivex.ui.settings.components.formatTreeUri
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
@@ -246,12 +248,50 @@ fun SettingsScreen(
                 item { SectionHeader("OneDrive 信息") }
                 when {
                     driveState.isLoading -> {
+                        val detailHeadlineRatios = listOf(0.45f, 0.32f, 0.36f, 0.28f)
+
                         item {
                             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
-                                com.lurenjia534.skydrivex.ui.settings.components.DriveInfoPlaceholder(modifier = Modifier.fillMaxWidth())
+                                SettingsSkeletonListItem(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    headlineRatio = 0.4f,
+                                    supportingRatios = listOf(0.65f),
+                                    showTrailing = true
+                                )
                             }
                         }
                         item { Spacer(Modifier.height(1.dp)) }
+
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                SettingsSkeletonListItem(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    headlineRatio = 0.48f,
+                                    supportingRatios = listOf(0.52f)
+                                )
+                            }
+                        }
+                        item { Spacer(Modifier.height(1.dp)) }
+
+                        item {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                SettingsSkeletonStorage(modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                        item { Spacer(Modifier.height(1.dp)) }
+
+                        detailHeadlineRatios.forEach { ratio ->
+                            item {
+                                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                    SettingsSkeletonListItem(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        headlineRatio = ratio,
+                                        supportingRatios = listOf(0.5f)
+                                    )
+                                }
+                            }
+                            item { Spacer(Modifier.height(1.dp)) }
+                        }
                     }
                     driveState.data != null -> {
                         // 访问令牌
@@ -393,12 +433,19 @@ fun SettingsScreen(
                 item { SectionHeader("个人信息") }
                 when {
                     userState.isLoading -> {
-                        item {
-                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
-                                com.lurenjia534.skydrivex.ui.settings.components.UserInfoPlaceholder(modifier = Modifier.fillMaxWidth())
+                        val userHeadlineRatios = listOf(0.28f, 0.34f, 0.3f, 0.26f, 0.32f, 0.24f)
+                        userHeadlineRatios.forEach { ratio ->
+                            item {
+                                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                                    SettingsSkeletonListItem(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        headlineRatio = ratio,
+                                        supportingRatios = listOf(0.9f)
+                                    )
+                                }
                             }
+                            item { Spacer(Modifier.height(1.dp)) }
                         }
-                        item { Spacer(Modifier.height(1.dp)) }
                     }
                     userState.data != null -> {
                         val u = userState.data!!
