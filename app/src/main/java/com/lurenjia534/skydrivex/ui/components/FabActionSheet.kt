@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -66,7 +66,7 @@ fun FabActionSheet(
             )
             // 上传文件
             ListItem(
-                leadingContent = { Icon(Icons.AutoMirrored.Outlined.InsertDriveFile, contentDescription = null) },
+                leadingContent = { Icon(Icons.Outlined.UploadFile, contentDescription = null) },
                 headlineContent = { Text("上传文件") },
                 supportingContent = { Text("选择任意类型文件") },
                 modifier = Modifier
