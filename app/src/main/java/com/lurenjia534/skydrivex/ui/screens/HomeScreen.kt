@@ -22,7 +22,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -44,12 +44,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
-import com.lurenjia534.skydrivex.ui.notification.DownloadTracker
+import com.lurenjia534.skydrivex.ui.notification.TransferTracker
 
 @Composable
 fun HomeScreen() {
     val context = LocalContext.current
-    val entries by DownloadTracker.entries.collectAsState()
+    val entries by TransferTracker.entries.collectAsState()
     val sorted = remember(entries) {
         entries.sortedByDescending { it.startedAt }
     }
@@ -61,11 +61,11 @@ fun HomeScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "下载管理器", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(text = "传输管理器", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.weight(1f))
-            val hasFinished = sorted.any { it.status != DownloadTracker.Status.RUNNING }
+            val hasFinished = sorted.any { it.status != TransferTracker.Status.RUNNING }
             if (hasFinished) {
-                TextButton(onClick = { DownloadTracker.clearFinished() }) {
+                TextButton(onClick = { TransferTracker.clearFinished() }) {
                     Icon(Icons.Outlined.Delete, contentDescription = "清除完成")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("清除完成")
@@ -78,7 +78,7 @@ fun HomeScreen() {
                     .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "暂无下载任务", style = MaterialTheme.typography.bodyLarge)
+                Text(text = "暂无传输任务", style = MaterialTheme.typography.bodyLarge)
             }
         } else {
             LazyColumn(
@@ -86,7 +86,7 @@ fun HomeScreen() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(sorted, key = { it.notificationId }) { entry ->
-                    DownloadItemCard(entry = entry, context = context)
+                    TransferItemCard(entry = entry, context = context)
                 }
             }
         }
@@ -94,19 +94,33 @@ fun HomeScreen() {
 }
 
 @Composable
-private fun DownloadItemCard(entry: DownloadTracker.Entry, context: Context) {
+private fun TransferItemCard(entry: TransferTracker.Entry, context: Context) {
     val typeLabel = when (entry.type) {
-        DownloadTracker.Type.SYSTEM -> "系统下载"
-        DownloadTracker.Type.CUSTOM -> "自定义目录"
+        TransferTracker.TransferType.DOWNLOAD_SYSTEM -> "系统下载"
+        TransferTracker.TransferType.DOWNLOAD_CUSTOM -> "自定义目录"
+        TransferTracker.TransferType.UPLOAD -> "上传"
     }
     val (statusText, statusColor, statusIcon) = when (entry.status) {
-        DownloadTracker.Status.RUNNING -> {
-            val text = if (entry.indeterminate || entry.progress == null) "下载中…" else "下载中 ${entry.progress}%"
-            Triple(text, MaterialTheme.colorScheme.primary, if (entry.type == DownloadTracker.Type.SYSTEM) Icons.Outlined.Download else Icons.Outlined.FileDownload)
+        TransferTracker.Status.RUNNING -> {
+            val baseText = when (entry.type) {
+                TransferTracker.TransferType.UPLOAD -> if (entry.indeterminate || entry.progress == null) "上传中…" else "上传中 ${entry.progress}%"
+                else -> if (entry.indeterminate || entry.progress == null) "下载中…" else "下载中 ${entry.progress}%"
+            }
+            val icon = when (entry.type) {
+                TransferTracker.TransferType.UPLOAD -> Icons.Outlined.FileUpload
+                else -> Icons.Outlined.Download
+            }
+            Triple(baseText, MaterialTheme.colorScheme.primary, icon)
         }
-        DownloadTracker.Status.SUCCESS -> Triple("下载成功", MaterialTheme.colorScheme.secondary, Icons.Outlined.CheckCircle)
-        DownloadTracker.Status.FAILED -> Triple("下载失败", MaterialTheme.colorScheme.error, Icons.Outlined.ErrorOutline)
-        DownloadTracker.Status.CANCELLED -> Triple("已取消", MaterialTheme.colorScheme.tertiary, Icons.Outlined.Close)
+        TransferTracker.Status.SUCCESS -> {
+            val successText = if (entry.type == TransferTracker.TransferType.UPLOAD) "上传成功" else "下载成功"
+            Triple(successText, MaterialTheme.colorScheme.secondary, Icons.Outlined.CheckCircle)
+        }
+        TransferTracker.Status.FAILED -> {
+            val failedText = if (entry.type == TransferTracker.TransferType.UPLOAD) "上传失败" else "下载失败"
+            Triple(failedText, MaterialTheme.colorScheme.error, Icons.Outlined.ErrorOutline)
+        }
+        TransferTracker.Status.CANCELLED -> Triple("已取消", MaterialTheme.colorScheme.tertiary, Icons.Outlined.Close)
     }
 
     Card(
@@ -126,7 +140,7 @@ private fun DownloadItemCard(entry: DownloadTracker.Entry, context: Context) {
                 Icon(
                     imageVector = statusIcon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = statusColor
                 )
                 Column(
                     modifier = Modifier.weight(1f),
@@ -149,7 +163,7 @@ private fun DownloadItemCard(entry: DownloadTracker.Entry, context: Context) {
                             color = MaterialTheme.colorScheme.outline
                         )
                     }
-                    if (!entry.message.isNullOrBlank() && entry.status != DownloadTracker.Status.RUNNING) {
+                    if (!entry.message.isNullOrBlank() && entry.status != TransferTracker.Status.RUNNING) {
                         Text(
                             text = entry.message ?: "",
                             style = MaterialTheme.typography.bodySmall,
@@ -160,7 +174,7 @@ private fun DownloadItemCard(entry: DownloadTracker.Entry, context: Context) {
                     }
                 }
             }
-            if (entry.status == DownloadTracker.Status.RUNNING) {
+            if (entry.status == TransferTracker.Status.RUNNING) {
                 val progressFraction = entry.progress?.coerceIn(0, 100)?.div(100f)
                 if (progressFraction != null) {
                     LinearProgressIndicator(progress = progressFraction, modifier = Modifier.fillMaxWidth())
@@ -174,31 +188,31 @@ private fun DownloadItemCard(entry: DownloadTracker.Entry, context: Context) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 when (entry.status) {
-                    DownloadTracker.Status.RUNNING -> {
+                    TransferTracker.Status.RUNNING -> {
                         if (entry.allowCancel) {
                             TextButton(onClick = { DownloadRegistry.cancel(context, entry.notificationId) }) {
-                                Icon(Icons.Outlined.Close, contentDescription = "取消下载")
+                                Icon(Icons.Outlined.Close, contentDescription = "取消传输")
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("取消")
                             }
                         }
                     }
-                    DownloadTracker.Status.SUCCESS -> {
-                        TextButton(onClick = { DownloadTracker.remove(entry.notificationId) }) {
+                    TransferTracker.Status.SUCCESS -> {
+                        TextButton(onClick = { TransferTracker.remove(entry.notificationId) }) {
                             Icon(Icons.Outlined.CheckCircle, contentDescription = "完成")
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("完成")
                         }
                     }
-                    DownloadTracker.Status.FAILED -> {
-                        TextButton(onClick = { DownloadTracker.remove(entry.notificationId) }) {
+                    TransferTracker.Status.FAILED -> {
+                        TextButton(onClick = { TransferTracker.remove(entry.notificationId) }) {
                             Icon(Icons.Outlined.Delete, contentDescription = "移除记录")
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("移除")
                         }
                     }
-                    DownloadTracker.Status.CANCELLED -> {
-                        TextButton(onClick = { DownloadTracker.remove(entry.notificationId) }) {
+                    TransferTracker.Status.CANCELLED -> {
+                        TextButton(onClick = { TransferTracker.remove(entry.notificationId) }) {
                             Icon(Icons.Outlined.Delete, contentDescription = "移除记录")
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("移除")
