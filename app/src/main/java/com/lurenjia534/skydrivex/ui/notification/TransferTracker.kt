@@ -1,12 +1,17 @@
 package com.lurenjia534.skydrivex.ui.notification
 
+import com.lurenjia534.skydrivex.data.local.db.TransferRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 /**
- * 内存态传输任务跟踪器，统一收集下载/上传进度供 UI 展示。
+ * TransferTracker persists transfer states via Room while exposing a simple API.
  */
 object TransferTracker {
 
@@ -27,8 +32,26 @@ object TransferTracker {
         val completedAt: Long? = null
     )
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _entries = MutableStateFlow<List<Entry>>(emptyList())
     val entries: StateFlow<List<Entry>> = _entries.asStateFlow()
+
+    private lateinit var repository: TransferRepository
+
+    fun initialize(repo: TransferRepository) {
+        if (::repository.isInitialized) return
+        repository = repo
+        scope.launch {
+            repository.observeTransfers().collectLatest { list ->
+                _entries.value = list
+            }
+        }
+    }
+
+    private fun ensureRepo(): TransferRepository {
+        check(::repository.isInitialized) { "TransferTracker.initialize must be called before use" }
+        return repository
+    }
 
     fun start(
         notificationId: Int,
@@ -37,67 +60,72 @@ object TransferTracker {
         allowCancel: Boolean,
         indeterminate: Boolean
     ) {
-        _entries.update { current ->
-            val filtered = current.filterNot { it.notificationId == notificationId }
-            filtered + Entry(
-                notificationId = notificationId,
-                title = title,
-                type = type,
-                status = Status.RUNNING,
-                progress = null,
-                indeterminate = indeterminate,
-                allowCancel = allowCancel
+        val repo = ensureRepo()
+        scope.launch {
+            repo.upsert(
+                Entry(
+                    notificationId = notificationId,
+                    title = title,
+                    type = type,
+                    status = Status.RUNNING,
+                    progress = null,
+                    indeterminate = indeterminate,
+                    allowCancel = allowCancel,
+                    message = null,
+                    startedAt = System.currentTimeMillis(),
+                    completedAt = null
+                )
             )
         }
     }
 
     fun updateProgress(notificationId: Int, progress: Int?, indeterminate: Boolean) {
-        _entries.update { list ->
-            list.map { entry ->
-                if (entry.notificationId != notificationId) return@map entry
-                entry.copy(
-                    progress = progress,
-                    indeterminate = indeterminate
-                )
-            }
+        val repo = ensureRepo()
+        scope.launch {
+            repo.updateStatus(
+                notificationId = notificationId,
+                status = Status.RUNNING,
+                progress = progress,
+                indeterminate = indeterminate,
+                message = null,
+                completedAt = null
+            )
         }
     }
 
     fun markSuccess(notificationId: Int, message: String? = null) {
-        updateStatus(notificationId, Status.SUCCESS, message)
+        markStatus(notificationId, Status.SUCCESS, message)
     }
 
     fun markFailed(notificationId: Int, message: String? = null) {
-        updateStatus(notificationId, Status.FAILED, message)
+        markStatus(notificationId, Status.FAILED, message)
     }
 
     fun markCancelled(notificationId: Int, message: String? = null) {
-        updateStatus(notificationId, Status.CANCELLED, message)
+        markStatus(notificationId, Status.CANCELLED, message)
     }
 
     fun remove(notificationId: Int) {
-        _entries.update { list ->
-            list.filterNot { it.notificationId == notificationId }
-        }
+        val repo = ensureRepo()
+        scope.launch { repo.remove(notificationId) }
     }
 
     fun clearFinished() {
-        _entries.update { list ->
-            list.filter { it.status == Status.RUNNING }
-        }
+        val repo = ensureRepo()
+        scope.launch { repo.clearFinished() }
     }
 
-    private fun updateStatus(notificationId: Int, status: Status, message: String?) {
-        val completedAt = System.currentTimeMillis()
-        _entries.update { list ->
-            list.map { entry ->
-                if (entry.notificationId != notificationId) return@map entry
-                entry.copy(
-                    status = status,
-                    completedAt = completedAt,
-                    message = message
-                )
-            }
+    private fun markStatus(notificationId: Int, status: Status, message: String?) {
+        val repo = ensureRepo()
+        scope.launch {
+            repo.updateStatus(
+                notificationId = notificationId,
+                status = status,
+                progress = if (status == Status.SUCCESS) 100 else null,
+                indeterminate = false,
+                message = message,
+                completedAt = System.currentTimeMillis()
+            )
         }
     }
 }
