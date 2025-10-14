@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * 轮询系统 DownloadManager 以获取下载进度，并同步到 DownloadTracker。
+ * 轮询系统 DownloadManager 以获取下载进度，并同步到 TransferTracker。
  * 注意：DownloadManager 没有实时回调，只能定时查询。
  */
 object DownloadProgressMonitor {
@@ -43,15 +43,15 @@ object DownloadProgressMonitor {
                     val total = if (totalIdx >= 0) it.getLong(totalIdx) else -1L
                     if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
                         if (total > 0) {
-                            DownloadTracker.updateProgress(notificationId, 100, indeterminate = false)
+                            TransferTracker.updateProgress(notificationId, 100, indeterminate = false)
                         }
                         return@launch
                     } else {
                         if (total > 0L && downloaded >= 0L) {
                             val percent = ((downloaded * 100) / total).toInt().coerceIn(0, 100)
-                            DownloadTracker.updateProgress(notificationId, percent, indeterminate = false)
+                            TransferTracker.updateProgress(notificationId, percent, indeterminate = false)
                         } else {
-                            DownloadTracker.updateProgress(notificationId, null, indeterminate = true)
+                            TransferTracker.updateProgress(notificationId, null, indeterminate = true)
                         }
                     }
                 }
