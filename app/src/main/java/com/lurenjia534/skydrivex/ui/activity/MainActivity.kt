@@ -20,14 +20,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.lurenjia534.skydrivex.ui.components.BottomNavBar
 import com.lurenjia534.skydrivex.ui.navigation.NavGraph
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -49,15 +50,20 @@ class MainActivity : ComponentActivity() {
         viewModel.acquireTokenSilent()
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.account.collect { account ->
-                    if (account == null) {
-                        if (!hasPromptedLogin) {
-                            hasPromptedLogin = true
-                            startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+                combine(
+                    viewModel.isAccountInitialized,
+                    viewModel.account
+                ) { initialized, account -> initialized to account }
+                    .collect { (initialized, account) ->
+                        if (!initialized) return@collect
+                        if (account == null) {
+                            if (!hasPromptedLogin) {
+                                hasPromptedLogin = true
+                                startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+                            }
+                        } else {
+                            hasPromptedLogin = false
                         }
-                    } else {
-                        hasPromptedLogin = false
-                    }
                 }
             }
         }
