@@ -116,7 +116,7 @@ import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 import com.lurenjia534.skydrivex.ui.components.PropertiesDialog
 import com.lurenjia534.skydrivex.ui.components.EmptyState
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
-import com.lurenjia534.skydrivex.ui.notification.DownloadTracker
+import com.lurenjia534.skydrivex.ui.notification.TransferTracker
 import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.notification.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.notification.showOrUpdateProgress
@@ -655,20 +655,20 @@ fun FilesScreen(
                                                                                 val notificationId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
                                                                                 val cancelFlag = java.util.concurrent.atomic.AtomicBoolean(false)
                                                                                 DownloadRegistry.registerCustom(notificationId, cancelFlag)
-                                                                                DownloadTracker.start(
+                                                                                TransferTracker.start(
                                                                                     notificationId = notificationId,
                                                                                     title = fileName,
-                                                                                    type = DownloadTracker.Type.CUSTOM,
+                                                                                    type = TransferTracker.TransferType.DOWNLOAD_CUSTOM,
                                                                                     allowCancel = true,
                                                                                     indeterminate = totalBytes == null
                                                                                 )
                                                                                 createDownloadChannel(context)
                                                                                 if (totalBytes == null) {
                                                                                     showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
-                                                                                    DownloadTracker.updateProgress(notificationId, progress = null, indeterminate = true)
+                                                                                    TransferTracker.updateProgress(notificationId, progress = null, indeterminate = true)
                                                                                 } else {
                                                                                     showOrUpdateProgress(context, notificationId, fileName, 0, 100, false, withCancelAction = true)
-                                                                                    DownloadTracker.updateProgress(notificationId, progress = 0, indeterminate = false)
+                                                                                    TransferTracker.updateProgress(notificationId, progress = 0, indeterminate = false)
                                                                                 }
                                                                                 // immediate user feedback without blocking
                                                                                 scope.launch { snackbarHostState.showSnackbar("已开始下载：$fileName") }
@@ -688,10 +688,10 @@ fun FilesScreen(
                                                                                                 } else null
                                                                                                 if (percent != null) {
                                                                                                     showOrUpdateProgress(context, notificationId, fileName, percent, 100, false, withCancelAction = true)
-                                                                                                    DownloadTracker.updateProgress(notificationId, percent, indeterminate = false)
+                                                                                                    TransferTracker.updateProgress(notificationId, percent, indeterminate = false)
                                                                                                 } else {
                                                                                                     showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
-                                                                                                    DownloadTracker.updateProgress(notificationId, null, indeterminate = true)
+                                                                                                    TransferTracker.updateProgress(notificationId, null, indeterminate = true)
                                                                                                 }
                                                                                             },
                                                                                             cancelFlag
@@ -705,15 +705,15 @@ fun FilesScreen(
                                                                                 replaceWithCompletion(context, notificationId, fileName, success)
                                                                                 when {
                                                                                     success -> {
-                                                                                        DownloadTracker.markSuccess(notificationId)
+                                                                                        TransferTracker.markSuccess(notificationId)
                                                                                         snackbarHostState.showSnackbar("已保存到自定义目录：$fileName")
                                                                                     }
                                                                                     cancelled -> {
-                                                                                        DownloadTracker.markCancelled(notificationId, "已取消")
+                                                                                        TransferTracker.markCancelled(notificationId, "已取消")
                                                                                         snackbarHostState.showSnackbar("已取消")
                                                                                     }
                                                                                     else -> {
-                                                                                        DownloadTracker.markFailed(notificationId, failureMessage)
+                                                                                        TransferTracker.markFailed(notificationId, failureMessage)
                                                                                         snackbarHostState.showSnackbar(failureMessage ?: "下载失败")
                                                                                     }
                                                                                 }
