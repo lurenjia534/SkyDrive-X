@@ -17,6 +17,7 @@ import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.notification.finishUpload
 import com.lurenjia534.skydrivex.ui.notification.updateUploadProgress
 import com.lurenjia534.skydrivex.ui.notification.CancelDownloadReceiver
+import com.lurenjia534.skydrivex.ui.notification.TransferTracker
 import com.lurenjia534.skydrivex.data.repository.FilesRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -76,10 +77,17 @@ class TransferService : LifecycleService() {
                     mimeType = mime,
                     bytes = bytes
                 )
+                TransferTracker.updateProgress(nid, 100, indeterminate = false)
+                TransferTracker.markSuccess(nid)
                 finishUpload(this@TransferService, nid, fileName, success = true)
                 sendUploadCompletedBroadcast(parentId)
             } catch (e: Exception) {
                 val cancelled = cancelFlag.get() || e is CancellationException
+                if (cancelled) {
+                    TransferTracker.markCancelled(nid, "已取消")
+                } else {
+                    TransferTracker.markFailed(nid, e.message)
+                }
                 finishUpload(this@TransferService, nid, fileName, success = false, message = if (cancelled) "已取消" else e.message)
                 Log.e(TAG, "Small upload failed: $fileName", e)
             } finally {
@@ -110,6 +118,8 @@ class TransferService : LifecycleService() {
                         mimeType = guessMime(fileName),
                         bytes = bytes
                     )
+                    TransferTracker.updateProgress(nid, 100, indeterminate = false)
+                    TransferTracker.markSuccess(nid)
                     finishUpload(this@TransferService, nid, fileName, success = true)
                     sendUploadCompletedBroadcast(parentId)
                 } else {
@@ -138,11 +148,18 @@ class TransferService : LifecycleService() {
                             updateUploadProgress(this@TransferService, nid, fileName, uploaded, total)
                         }
                     )
+                    TransferTracker.updateProgress(nid, 100, indeterminate = false)
+                    TransferTracker.markSuccess(nid)
                     finishUpload(this@TransferService, nid, item.name ?: fileName, success = true)
                     sendUploadCompletedBroadcast(parentId)
                 }
             } catch (e: Exception) {
                 val cancelled = cancelFlag.get() || e is CancellationException
+                if (cancelled) {
+                    TransferTracker.markCancelled(nid, "已取消")
+                } else {
+                    TransferTracker.markFailed(nid, e.message)
+                }
                 finishUpload(this@TransferService, nid, fileName, success = false, message = if (cancelled) "已取消" else e.message)
                 Log.e(TAG, "Large upload failed: $fileName", e)
             } finally {
@@ -194,6 +211,13 @@ class TransferService : LifecycleService() {
         val notification: Notification = builder.build()
         // Register cancel flag so CancelDownloadReceiver can cancel upload
         DownloadRegistry.registerCustom(notificationId, cancelFlag)
+        TransferTracker.start(
+            notificationId = notificationId,
+            title = title,
+            type = TransferTracker.TransferType.UPLOAD,
+            allowCancel = true,
+            indeterminate = true
+        )
         // Start foreground with typed API on Android 14+; older versions use 2-arg
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(notificationId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
