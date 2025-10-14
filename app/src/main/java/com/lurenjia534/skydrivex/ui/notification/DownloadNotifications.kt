@@ -28,18 +28,15 @@ fun startSystemDownloadWithNotification(
 
     val downloadId = dm.enqueue(request)
     val nid = (downloadId % Int.MAX_VALUE).toInt()
-    createDownloadChannel(context)
-    showOrUpdateProgress(
-        context = context,
+    DownloadTracker.start(
         notificationId = nid,
         title = fileName,
-        progress = null,
-        max = null,
-        indeterminate = true,
-        withCancelAction = true,
-        smallIconRes = android.R.drawable.stat_sys_download
+        type = DownloadTracker.Type.SYSTEM,
+        allowCancel = true,
+        indeterminate = true
     )
     DownloadRegistry.registerDownloadManager(nid, downloadId)
+    DownloadProgressMonitor.start(context, nid, downloadId)
 
     val appCtx = context.applicationContext
     val receiver = object : android.content.BroadcastReceiver() {
@@ -53,13 +50,23 @@ fun startSystemDownloadWithNotification(
                             val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
                             val status = if (statusIdx >= 0) cursor.getInt(statusIdx) else -1
                             val success = status == DownloadManager.STATUS_SUCCESSFUL
-                            replaceWithCompletion(appCtx, nid, fileName, success)
+                            DownloadProgressMonitor.stop(nid)
+                            if (success) {
+                                DownloadTracker.updateProgress(nid, 100, indeterminate = false)
+                            }
+                            if (success) {
+                                DownloadTracker.markSuccess(nid)
+                            } else {
+                                DownloadTracker.markFailed(nid)
+                            }
                         } else {
-                            replaceWithCompletion(appCtx, nid, fileName, false)
+                            DownloadProgressMonitor.stop(nid)
+                            DownloadTracker.markFailed(nid)
                         }
                     }
                 } catch (_: Exception) {
-                    replaceWithCompletion(appCtx, nid, fileName, false)
+                    DownloadProgressMonitor.stop(nid)
+                    DownloadTracker.markFailed(nid)
                 } finally {
                     try { appCtx.unregisterReceiver(this) } catch (_: Exception) {}
                     DownloadRegistry.cleanup(nid)
