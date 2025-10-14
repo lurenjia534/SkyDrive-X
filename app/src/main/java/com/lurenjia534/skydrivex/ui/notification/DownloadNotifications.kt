@@ -28,10 +28,10 @@ fun startSystemDownloadWithNotification(
 
     val downloadId = dm.enqueue(request)
     val nid = (downloadId % Int.MAX_VALUE).toInt()
-    DownloadTracker.start(
+    TransferTracker.start(
         notificationId = nid,
         title = fileName,
-        type = DownloadTracker.Type.SYSTEM,
+        type = TransferTracker.TransferType.DOWNLOAD_SYSTEM,
         allowCancel = true,
         indeterminate = true
     )
@@ -52,21 +52,21 @@ fun startSystemDownloadWithNotification(
                             val success = status == DownloadManager.STATUS_SUCCESSFUL
                             DownloadProgressMonitor.stop(nid)
                             if (success) {
-                                DownloadTracker.updateProgress(nid, 100, indeterminate = false)
+                                TransferTracker.updateProgress(nid, 100, indeterminate = false)
                             }
                             if (success) {
-                                DownloadTracker.markSuccess(nid)
+                                TransferTracker.markSuccess(nid)
                             } else {
-                                DownloadTracker.markFailed(nid)
+                                TransferTracker.markFailed(nid)
                             }
                         } else {
                             DownloadProgressMonitor.stop(nid)
-                            DownloadTracker.markFailed(nid)
+                            TransferTracker.markFailed(nid)
                         }
                     }
                 } catch (_: Exception) {
                     DownloadProgressMonitor.stop(nid)
-                    DownloadTracker.markFailed(nid)
+                    TransferTracker.markFailed(nid)
                 } finally {
                     try { appCtx.unregisterReceiver(this) } catch (_: Exception) {}
                     DownloadRegistry.cleanup(nid)
