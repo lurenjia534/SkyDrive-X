@@ -47,6 +47,9 @@ class MainViewModel @Inject constructor(
     private val _account = MutableStateFlow<IAccount?>(null)
     val account: StateFlow<IAccount?> = _account.asStateFlow()
 
+    private val _isAccountInitialized = MutableStateFlow(false)
+    val isAccountInitialized: StateFlow<Boolean> = _isAccountInitialized.asStateFlow()
+
     private val _userState = MutableStateFlow(UserUiState(data = null, isLoading = false, error = null))
     val userState: StateFlow<UserUiState> = _userState.asStateFlow()
 
@@ -83,6 +86,7 @@ class MainViewModel @Inject constructor(
                         if (activeAccount != null) {
                             acquireTokenSilent()
                         }
+                        _isAccountInitialized.value = true
                     }
 
                     override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
@@ -93,15 +97,18 @@ class MainViewModel @Inject constructor(
                             _userState.value = UserUiState(data = null, isLoading = false, error = null)
                             _driveState.value = DriveUiState(data = null, isLoading = false, error = null)
                         }
+                        _isAccountInitialized.value = true
                     }
 
                     override fun onError(exception: MsalException) {
                         Log.e("MainViewModel", "Load account error", exception)
+                        _isAccountInitialized.value = true
                     }
                 })
             } else {
                 _userState.value = UserUiState(data = null, isLoading = false, error = "MSAL initialization failed")
                 _driveState.value = DriveUiState(data = null, isLoading = false, error = "MSAL initialization failed")
+                _isAccountInitialized.value = true
             }
         }
     }
