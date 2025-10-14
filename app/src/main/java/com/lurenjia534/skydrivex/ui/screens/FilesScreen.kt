@@ -116,6 +116,7 @@ import com.lurenjia534.skydrivex.ui.components.ShareLinkDialog
 import com.lurenjia534.skydrivex.ui.components.PropertiesDialog
 import com.lurenjia534.skydrivex.ui.components.EmptyState
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
+import com.lurenjia534.skydrivex.ui.notification.DownloadTracker
 import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.notification.replaceWithCompletion
 import com.lurenjia534.skydrivex.ui.notification.showOrUpdateProgress
@@ -652,45 +653,68 @@ fun FilesScreen(
                                                                                 snackbarHostState.showSnackbar("未选择自定义下载目录")
                                                                             } else {
                                                                                 val notificationId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+                                                                                val cancelFlag = java.util.concurrent.atomic.AtomicBoolean(false)
+                                                                                DownloadRegistry.registerCustom(notificationId, cancelFlag)
+                                                                                DownloadTracker.start(
+                                                                                    notificationId = notificationId,
+                                                                                    title = fileName,
+                                                                                    type = DownloadTracker.Type.CUSTOM,
+                                                                                    allowCancel = true,
+                                                                                    indeterminate = totalBytes == null
+                                                                                )
                                                                                 createDownloadChannel(context)
                                                                                 if (totalBytes == null) {
                                                                                     showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
+                                                                                    DownloadTracker.updateProgress(notificationId, progress = null, indeterminate = true)
                                                                                 } else {
                                                                                     showOrUpdateProgress(context, notificationId, fileName, 0, 100, false, withCancelAction = true)
+                                                                                    DownloadTracker.updateProgress(notificationId, progress = 0, indeterminate = false)
                                                                                 }
-                                                                                val cancelFlag = java.util.concurrent.atomic.AtomicBoolean(false)
-                                                                                DownloadRegistry.registerCustom(notificationId, cancelFlag)
                                                                                 // immediate user feedback without blocking
                                                                                 scope.launch { snackbarHostState.showSnackbar("已开始下载：$fileName") }
-                                                                                val saved = withContext(Dispatchers.IO) {
-                                                                                    saveToTree(
-                                                                                        context,
-                                                                                        tree,
-                                                                                        fileName,
-                                                                                        url,
-                                                                                        totalBytes,
-                                                                                        { downloaded, total ->
-                                                                                            val max = 100
-                                                                                            val progress = if (total > 0L) {
-                                                                                                ((downloaded * 100) / total).toInt().coerceIn(0, 100)
-                                                                                            } else null
-                                                                                            if (progress != null) {
-                                                                                                showOrUpdateProgress(context, notificationId, fileName, progress, max, false, withCancelAction = true)
-                                                                                            } else {
-                                                                                                showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
-                                                                                            }
-                                                                                        },
-                                                                                        cancelFlag
-                                                                                    )
+                                                                                var saved = false
+                                                                                var failureMessage: String? = null
+                                                                                try {
+                                                                                    saved = withContext(Dispatchers.IO) {
+                                                                                        saveToTree(
+                                                                                            context,
+                                                                                            tree,
+                                                                                            fileName,
+                                                                                            url,
+                                                                                            totalBytes,
+                                                                                            { downloaded, total ->
+                                                                                                val percent = if (total > 0L) {
+                                                                                                    ((downloaded * 100) / total).toInt().coerceIn(0, 100)
+                                                                                                } else null
+                                                                                                if (percent != null) {
+                                                                                                    showOrUpdateProgress(context, notificationId, fileName, percent, 100, false, withCancelAction = true)
+                                                                                                    DownloadTracker.updateProgress(notificationId, percent, indeterminate = false)
+                                                                                                } else {
+                                                                                                    showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
+                                                                                                    DownloadTracker.updateProgress(notificationId, null, indeterminate = true)
+                                                                                                }
+                                                                                            },
+                                                                                            cancelFlag
+                                                                                        )
+                                                                                    }
+                                                                                } catch (e: Exception) {
+                                                                                    failureMessage = e.message
                                                                                 }
-                                                                                replaceWithCompletion(context, notificationId, fileName, saved)
-                                                                                if (saved) {
-                                                                                    snackbarHostState.showSnackbar("已保存到自定义目录：$fileName")
-                                                                                } else {
-                                                                                    if (cancelFlag.get()) {
+                                                                                val cancelled = cancelFlag.get()
+                                                                                val success = saved && !cancelled
+                                                                                replaceWithCompletion(context, notificationId, fileName, success)
+                                                                                when {
+                                                                                    success -> {
+                                                                                        DownloadTracker.markSuccess(notificationId)
+                                                                                        snackbarHostState.showSnackbar("已保存到自定义目录：$fileName")
+                                                                                    }
+                                                                                    cancelled -> {
+                                                                                        DownloadTracker.markCancelled(notificationId, "已取消")
                                                                                         snackbarHostState.showSnackbar("已取消")
-                                                                                    } else {
-                                                                                        snackbarHostState.showSnackbar("下载失败")
+                                                                                    }
+                                                                                    else -> {
+                                                                                        DownloadTracker.markFailed(notificationId, failureMessage)
+                                                                                        snackbarHostState.showSnackbar(failureMessage ?: "下载失败")
                                                                                     }
                                                                                 }
                                                                                 DownloadRegistry.cleanup(notificationId)
