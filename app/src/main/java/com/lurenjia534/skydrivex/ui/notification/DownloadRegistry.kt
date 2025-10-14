@@ -27,10 +27,14 @@ object DownloadRegistry {
             val dm = context.getSystemService(DownloadManager::class.java)
             try { dm?.remove(id) } catch (_: Exception) {}
         }
+        DownloadProgressMonitor.stop(notificationId)
+        DownloadTracker.markCancelled(notificationId, "已取消")
+        cleanup(notificationId)
     }
 
     fun cleanup(notificationId: Int) {
         customCancelFlags.remove(notificationId)
         dmIds.remove(notificationId)
+        DownloadProgressMonitor.stop(notificationId)
     }
 }
