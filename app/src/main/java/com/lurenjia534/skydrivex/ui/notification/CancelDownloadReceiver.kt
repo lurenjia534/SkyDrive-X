@@ -11,7 +11,6 @@ class CancelDownloadReceiver : BroadcastReceiver() {
             DownloadRegistry.cancel(context, nid)
             // Replace progress with a fresh 'cancelled' notification to avoid stuck-progress UI
             replaceWithCompletion(context, nid, intent.getStringExtra(EXTRA_TITLE) ?: "下载", success = false, message = "已取消")
-            DownloadRegistry.cleanup(nid)
         }
     }
 
