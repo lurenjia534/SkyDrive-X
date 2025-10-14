@@ -19,6 +19,13 @@ fun beginIndeterminateUpload(context: Context, title: String): Pair<Int, AtomicB
         smallIconRes = android.R.drawable.stat_sys_upload
     )
     DownloadRegistry.registerCustom(id, cancel)
+    TransferTracker.start(
+        notificationId = id,
+        title = title,
+        type = TransferTracker.TransferType.UPLOAD,
+        allowCancel = true,
+        indeterminate = true
+    )
     return id to cancel
 }
 
@@ -37,6 +44,14 @@ fun beginProgressUpload(context: Context, title: String, initialPercent: Int = 0
         smallIconRes = android.R.drawable.stat_sys_upload
     )
     DownloadRegistry.registerCustom(id, cancel)
+    TransferTracker.start(
+        notificationId = id,
+        title = title,
+        type = TransferTracker.TransferType.UPLOAD,
+        allowCancel = true,
+        indeterminate = false
+    )
+    TransferTracker.updateProgress(id, initialPercent, indeterminate = false)
     return id to cancel
 }
 
@@ -52,6 +67,7 @@ fun updateUploadProgress(context: Context, id: Int, title: String, uploaded: Lon
         withCancelAction = true,
         smallIconRes = android.R.drawable.stat_sys_upload
     )
+    TransferTracker.updateProgress(id, pct, indeterminate = false)
 }
 
 fun finishUpload(context: Context, id: Int, title: String, success: Boolean, message: String? = null) {
