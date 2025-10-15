@@ -2,7 +2,6 @@ package com.lurenjia534.skydrivex.ui.notification
 
 import android.app.DownloadManager
 import android.content.Context
-import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap
 object DownloadProgressMonitor {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val jobs = ConcurrentHashMap<Int, kotlinx.coroutines.Job>()
-    private const val TAG = "TransferDebug"
 
     fun start(context: Context, notificationId: Int, downloadId: Long) {
         stop(notificationId)
@@ -44,18 +42,12 @@ object DownloadProgressMonitor {
                         val status = if (statusIdx >= 0) it.getInt(statusIdx) else -1
                         val downloaded = if (downloadedIdx >= 0) it.getLong(downloadedIdx) else -1L
                         val total = if (totalIdx >= 0) it.getLong(totalIdx) else -1L
-                        Log.d(
-                            TAG,
-                            "DM poll nid=$notificationId status=$status downloaded=$downloaded total=$total"
-                        )
                         when (status) {
                             DownloadManager.STATUS_SUCCESSFUL -> {
-                                Log.d(TAG, "DM success nid=$notificationId total=$total")
                                 TransferTracker.markSuccess(notificationId)
                                 return@launch
                             }
                             DownloadManager.STATUS_FAILED -> {
-                                Log.d(TAG, "DM failed nid=$notificationId")
                                 TransferTracker.markFailed(notificationId)
                                 return@launch
                             }
@@ -72,7 +64,6 @@ object DownloadProgressMonitor {
                     delay(1_000)
                 }
             } finally {
-                Log.d(TAG, "DM job finished nid=$notificationId")
                 jobs.remove(notificationId)
             }
         }
