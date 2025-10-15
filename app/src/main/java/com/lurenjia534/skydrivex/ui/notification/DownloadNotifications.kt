@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Environment
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 
@@ -41,6 +42,7 @@ fun startSystemDownloadWithNotification(
     val appCtx = context.applicationContext
     val receiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) {
+            Log.d("TransferDebug", "Broadcast onReceive downloadId=$downloadId intentId=${intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)}")
             val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
             if (id == downloadId) {
                 try {
@@ -50,21 +52,23 @@ fun startSystemDownloadWithNotification(
                             val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
                             val status = if (statusIdx >= 0) cursor.getInt(statusIdx) else -1
                             val success = status == DownloadManager.STATUS_SUCCESSFUL
+                            Log.d("TransferDebug", "Broadcast status nid=$nid status=$status success=$success")
                             DownloadProgressMonitor.stop(nid)
                             if (success) {
-                                TransferTracker.updateProgress(nid, 100, indeterminate = false)
-                            }
-                            if (success) {
                                 TransferTracker.markSuccess(nid)
+                                Log.d("TransferDebug", "Broadcast markSuccess nid=$nid")
                             } else {
                                 TransferTracker.markFailed(nid)
+                                Log.d("TransferDebug", "Broadcast markFailed nid=$nid")
                             }
                         } else {
+                            Log.d("TransferDebug", "Broadcast cursor empty nid=$nid")
                             DownloadProgressMonitor.stop(nid)
                             TransferTracker.markFailed(nid)
                         }
                     }
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.d("TransferDebug", "Broadcast exception nid=$nid", e)
                     DownloadProgressMonitor.stop(nid)
                     TransferTracker.markFailed(nid)
                 } finally {
