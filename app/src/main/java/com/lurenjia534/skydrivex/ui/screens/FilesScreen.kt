@@ -104,6 +104,9 @@ import androidx.navigation.NavHostController
 import com.eygraber.compose.placeholder.PlaceholderHighlight
 import com.eygraber.compose.placeholder.material3.placeholder
 import com.eygraber.compose.placeholder.material3.shimmer
+import com.lurenjia534.skydrivex.data.local.DownloadLocationMode
+import com.lurenjia534.skydrivex.data.local.DownloadLocationPreference
+import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 import com.lurenjia534.skydrivex.ui.activity.preview.AudioPreviewActivity
 import com.lurenjia534.skydrivex.ui.activity.preview.ImagePreviewActivity
 import com.lurenjia534.skydrivex.ui.activity.preview.VideoPreviewActivity
@@ -126,6 +129,7 @@ import com.lurenjia534.skydrivex.ui.state.Breadcrumb
 import com.lurenjia534.skydrivex.ui.util.saveToTree
 import com.lurenjia534.skydrivex.ui.viewmodel.FilesViewModel
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -155,7 +159,7 @@ fun FilesScreen(
     var showShareDialog by remember { mutableStateOf(false) }
     var propsTarget by remember { mutableStateOf<Pair<String, String?>?>(null) }
     var showPropsDialog by remember { mutableStateOf(false) }
-    var propsDetails by remember { mutableStateOf<com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto?>(null) }
+    var propsDetails by remember { mutableStateOf<DriveItemDto?>(null) }
     var deleteTarget by remember { mutableStateOf<Triple<String, String?, Boolean>?>(null) } // id, name, isFolder
     var showBulkDeleteDialog by remember { mutableStateOf(false) }
     var moveTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // id, currentName
@@ -342,6 +346,24 @@ fun FilesScreen(
         val hideSearch by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
         val selectionMode = uiState.selectionMode
         val selectedCount = uiState.selectedIds.size
+        val selectedItems = remember(uiState.selectedIds, uiState.items, uiState.searchResults) {
+            if (uiState.selectedIds.isEmpty()) emptyList<DriveItemDto>() else {
+                val pool = mutableMapOf<String, DriveItemDto>()
+                uiState.items.orEmpty().forEach { item ->
+                    item.id?.let { pool[it] = item }
+                }
+                uiState.searchResults.orEmpty().forEach { item ->
+                    item.id?.let { pool[it] = item }
+                }
+                uiState.selectedIds.mapNotNull { pool[it] }
+            }
+        }
+        val downloadableSelection = remember(selectedItems) {
+            selectedItems.filter { !it.id.isNullOrEmpty() && it.file != null }
+        }
+        val hasNonDownloadables = remember(selectedItems) {
+            selectedItems.any { it.file == null || it.id.isNullOrEmpty() }
+        }
         val itemsToShow = if (searchQuery.isBlank()) uiState.items else uiState.searchResults
         val filteredItems = itemsToShow.orEmpty()
         val isBusy = if (searchQuery.isBlank()) uiState.isLoading else uiState.isSearching
@@ -380,6 +402,45 @@ fun FilesScreen(
                     }
                     TextButton(onClick = { viewModel.invertSelection() }) {
                         Text("反选")
+                    }
+                    IconButton(
+                        onClick = {
+                            if (token == null) {
+                                scope.launch { snackbarHostState.showSnackbar("未登录，无法下载") }
+                                return@IconButton
+                            }
+                            if (downloadPref.mode == DownloadLocationMode.CUSTOM_TREE && downloadPref.treeUri.isNullOrEmpty()) {
+                                scope.launch { snackbarHostState.showSnackbar("未选择自定义下载目录") }
+                                return@IconButton
+                            }
+                            val items = downloadableSelection
+                            if (items.isEmpty()) {
+                                scope.launch { snackbarHostState.showSnackbar("所选项目无法下载") }
+                                return@IconButton
+                            }
+                            scope.launch {
+                                if (hasNonDownloadables) {
+                                    launch { snackbarHostState.showSnackbar("已跳过部分不可下载项目") }
+                                }
+                                for (entry in items) {
+                                    startDownloadForItem(
+                                        context = context,
+                                        viewModel = viewModel,
+                                        scope = this,
+                                        snackbarHostState = snackbarHostState,
+                                        downloadPref = downloadPref,
+                                        token = token,
+                                        item = entry
+                                    )
+                                }
+                            }
+                        },
+                        enabled = downloadableSelection.isNotEmpty() && token != null
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Download,
+                            contentDescription = "下载所选"
+                        )
                     }
                     IconButton(
                         onClick = { showBulkDeleteDialog = true },
@@ -634,97 +695,20 @@ fun FilesScreen(
                                                 DropdownMenuItem(
                                                     text = { Text("下载", fontWeight = FontWeight.Bold) },
                                                     onClick = {
-                                                        val itemId = item.id
-                                                        val fileName = item.name ?: "download"
-                                                        val totalBytes = item.size
-                                                        if (itemId != null && token != null) {
+                                                        if (token != null) {
                                                             scope.launch {
-                                                                try {
-                                                                    val url = viewModel.getDownloadUrl(itemId, token)
-                                                                    if (url.isNullOrEmpty()) {
-                                                                        snackbarHostState.showSnackbar("无法获取下载链接")
-                                                                    } else {
-                                                                        if (downloadPref.mode.name == "SYSTEM_DOWNLOADS") {
-                                                                            startSystemDownloadWithNotification(context, url, fileName)
-                                                                            scope.launch { snackbarHostState.showSnackbar("已开始下载：$fileName") }
-                                                                        } else {
-                                                                            val tree = downloadPref.treeUri
-                                                                            if (tree.isNullOrEmpty()) {
-                                                                                snackbarHostState.showSnackbar("未选择自定义下载目录")
-                                                                            } else {
-                                                                                val notificationId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
-                                                                                val cancelFlag = java.util.concurrent.atomic.AtomicBoolean(false)
-                                                                                DownloadRegistry.registerCustom(notificationId, cancelFlag)
-                                                                                TransferTracker.start(
-                                                                                    notificationId = notificationId,
-                                                                                    title = fileName,
-                                                                                    type = TransferTracker.TransferType.DOWNLOAD_CUSTOM,
-                                                                                    allowCancel = true,
-                                                                                    indeterminate = totalBytes == null
-                                                                                )
-                                                                                createDownloadChannel(context)
-                                                                                if (totalBytes == null) {
-                                                                                    showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
-                                                                                    TransferTracker.updateProgress(notificationId, progress = null, indeterminate = true)
-                                                                                } else {
-                                                                                    showOrUpdateProgress(context, notificationId, fileName, 0, 100, false, withCancelAction = true)
-                                                                                    TransferTracker.updateProgress(notificationId, progress = 0, indeterminate = false)
-                                                                                }
-                                                                                // immediate user feedback without blocking
-                                                                                scope.launch { snackbarHostState.showSnackbar("已开始下载：$fileName") }
-                                                                                var saved = false
-                                                                                var failureMessage: String? = null
-                                                                                try {
-                                                                                    saved = withContext(Dispatchers.IO) {
-                                                                                        saveToTree(
-                                                                                            context,
-                                                                                            tree,
-                                                                                            fileName,
-                                                                                            url,
-                                                                                            totalBytes,
-                                                                                            { downloaded, total ->
-                                                                                                val percent = if (total > 0L) {
-                                                                                                    ((downloaded * 100) / total).toInt().coerceIn(0, 100)
-                                                                                                } else null
-                                                                                                if (percent != null) {
-                                                                                                    showOrUpdateProgress(context, notificationId, fileName, percent, 100, false, withCancelAction = true)
-                                                                                                    TransferTracker.updateProgress(notificationId, percent, indeterminate = false)
-                                                                                                } else {
-                                                                                                    showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
-                                                                                                    TransferTracker.updateProgress(notificationId, null, indeterminate = true)
-                                                                                                }
-                                                                                            },
-                                                                                            cancelFlag
-                                                                                        )
-                                                                                    }
-                                                                                } catch (e: Exception) {
-                                                                                    failureMessage = e.message
-                                                                                }
-                                                                                val cancelled = cancelFlag.get()
-                                                                                val success = saved && !cancelled
-                                                                                replaceWithCompletion(context, notificationId, fileName, success)
-                                                                                when {
-                                                                                    success -> {
-                                                                                        TransferTracker.markSuccess(notificationId)
-                                                                                        snackbarHostState.showSnackbar("已保存到自定义目录：$fileName")
-                                                                                    }
-                                                                                    cancelled -> {
-                                                                                        TransferTracker.markCancelled(notificationId, "已取消")
-                                                                                        snackbarHostState.showSnackbar("已取消")
-                                                                                    }
-                                                                                    else -> {
-                                                                                        TransferTracker.markFailed(notificationId, failureMessage)
-                                                                                        snackbarHostState.showSnackbar(failureMessage ?: "下载失败")
-                                                                                    }
-                                                                                }
-                                                                                DownloadRegistry.cleanup(notificationId)
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                } catch (e: Exception) {
-                                                                    snackbarHostState.showSnackbar(e.message ?: "下载出错")
-                                                                }
+                                                                startDownloadForItem(
+                                                                    context = context,
+                                                                    viewModel = viewModel,
+                                                                    scope = this,
+                                                                    snackbarHostState = snackbarHostState,
+                                                                    downloadPref = downloadPref,
+                                                                    token = token,
+                                                                    item = item
+                                                                )
                                                             }
+                                                        } else {
+                                                            scope.launch { snackbarHostState.showSnackbar("未登录，无法下载") }
                                                         }
                                                         expanded = false
                                                     },
@@ -735,7 +719,7 @@ fun FilesScreen(
                                                 if (mime != null && mime.startsWith("image/")) {
                                                     DropdownMenuItem(
                                                         text = { Text("预览", fontWeight = FontWeight.Bold) },
-                                                onClick = {
+                                                        onClick = {
                                                             val id = item.id
                                                             if (id != null) {
                                                                 val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
@@ -1327,3 +1311,113 @@ private fun FilesLoadingPlaceholder(
 }
 
 // 文件保存工具已提取至 ui.util.FileSave.saveToTree
+
+private suspend fun startDownloadForItem(
+    context: Context,
+    viewModel: FilesViewModel,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    downloadPref: DownloadLocationPreference,
+    token: String,
+    item: DriveItemDto
+) {
+    if (item.file == null) {
+        scope.launch { snackbarHostState.showSnackbar("无法下载：所选项目不是文件") }
+        return
+    }
+    val itemId = item.id
+    if (itemId.isNullOrEmpty()) {
+        scope.launch { snackbarHostState.showSnackbar("无法下载：缺少条目ID") }
+        return
+    }
+    val fileName = item.name ?: "download"
+    val totalBytes = item.size
+    val url = try {
+        viewModel.getDownloadUrl(itemId, token)
+    } catch (e: Exception) {
+        scope.launch { snackbarHostState.showSnackbar(e.message ?: "下载失败") }
+        null
+    }
+    if (url.isNullOrEmpty()) {
+        scope.launch { snackbarHostState.showSnackbar("无法获取下载链接") }
+        return
+    }
+    when (downloadPref.mode) {
+        DownloadLocationMode.SYSTEM_DOWNLOADS -> {
+            startSystemDownloadWithNotification(context, url, fileName)
+            scope.launch { snackbarHostState.showSnackbar("已开始下载：$fileName") }
+        }
+        DownloadLocationMode.CUSTOM_TREE -> {
+            val tree = downloadPref.treeUri
+            if (tree.isNullOrEmpty()) {
+                scope.launch { snackbarHostState.showSnackbar("未选择自定义下载目录") }
+                return
+            }
+            val notificationId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+            val cancelFlag = java.util.concurrent.atomic.AtomicBoolean(false)
+            DownloadRegistry.registerCustom(notificationId, cancelFlag)
+            TransferTracker.start(
+                notificationId = notificationId,
+                title = fileName,
+                type = TransferTracker.TransferType.DOWNLOAD_CUSTOM,
+                allowCancel = true,
+                indeterminate = totalBytes == null
+            )
+            createDownloadChannel(context)
+            if (totalBytes == null) {
+                showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
+                TransferTracker.updateProgress(notificationId, progress = null, indeterminate = true)
+            } else {
+                showOrUpdateProgress(context, notificationId, fileName, 0, 100, false, withCancelAction = true)
+                TransferTracker.updateProgress(notificationId, progress = 0, indeterminate = false)
+            }
+            scope.launch { snackbarHostState.showSnackbar("已开始下载：$fileName") }
+            var saved = false
+            var failureMessage: String? = null
+            try {
+                saved = withContext(Dispatchers.IO) {
+                    saveToTree(
+                        context = context,
+                        treeUriString = tree,
+                        fileName = fileName,
+                        downloadUrl = url,
+                        totalBytes = totalBytes,
+                        onProgress = { downloaded, total ->
+                            val percent = if (total > 0L) {
+                                ((downloaded * 100) / total).toInt().coerceIn(0, 100)
+                            } else null
+                            if (percent != null) {
+                                showOrUpdateProgress(context, notificationId, fileName, percent, 100, false, withCancelAction = true)
+                                TransferTracker.updateProgress(notificationId, percent, indeterminate = false)
+                            } else {
+                                showOrUpdateProgress(context, notificationId, fileName, null, null, true, withCancelAction = true)
+                                TransferTracker.updateProgress(notificationId, null, indeterminate = true)
+                            }
+                        },
+                        cancelFlag = cancelFlag
+                    )
+                }
+            } catch (e: Exception) {
+                failureMessage = e.message
+            }
+            val cancelled = cancelFlag.get()
+            val success = saved && !cancelled
+            replaceWithCompletion(context, notificationId, fileName, success)
+            when {
+                success -> {
+                    TransferTracker.markSuccess(notificationId)
+                    scope.launch { snackbarHostState.showSnackbar("已保存到自定义目录：$fileName") }
+                }
+                cancelled -> {
+                    TransferTracker.markCancelled(notificationId, "已取消")
+                    scope.launch { snackbarHostState.showSnackbar("已取消") }
+                }
+                else -> {
+                    TransferTracker.markFailed(notificationId, failureMessage)
+                    scope.launch { snackbarHostState.showSnackbar(failureMessage ?: "下载失败") }
+                }
+            }
+            DownloadRegistry.cleanup(notificationId)
+        }
+    }
+}
