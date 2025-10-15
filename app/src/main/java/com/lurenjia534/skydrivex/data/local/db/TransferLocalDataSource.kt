@@ -1,6 +1,5 @@
 package com.lurenjia534.skydrivex.data.local.db
 
-import android.util.Log
 import com.lurenjia534.skydrivex.data.local.db.dao.TransferDao
 import com.lurenjia534.skydrivex.data.local.db.mapper.toTransferStatus
 import com.lurenjia534.skydrivex.data.local.db.model.TransferStatus
@@ -17,8 +16,6 @@ class TransferLocalDataSource @Inject constructor(
     private val dao: TransferDao,
     private val ioDispatcher: CoroutineDispatcher
 ) {
-    private val tag = "TransferDebug"
-
     fun observeTransfers(): Flow<List<TransferEntity>> =
         dao.observeTransfers()
 
@@ -66,11 +63,6 @@ class TransferLocalDataSource @Inject constructor(
             else -> completedAt ?: base.completedAt ?: System.currentTimeMillis()
         }
 
-        Log.d(
-            tag,
-            "updateStatus nid=$notificationId status=$status progress=$progress indeterminate=$indeterminate existing=${existing?.status} allowCancel(base)=${base.allowCancel}"
-        )
-
         val updated = base.copy(
             status = resolvedStatus,
             progress = resolvedProgress,
@@ -78,10 +70,6 @@ class TransferLocalDataSource @Inject constructor(
             message = resolvedMessage,
             allowCancel = if (status == TransferTracker.Status.RUNNING) base.allowCancel else false,
             completedAt = resolvedCompletedAt
-        )
-        Log.d(
-            tag,
-            "updateStatus apply nid=$notificationId storedStatus=${updated.status} storedProgress=${updated.progress} storedAllowCancel=${updated.allowCancel} message=${updated.message}"
         )
         dao.upsert(updated)
     }
