@@ -24,7 +24,8 @@ data class DriveItemDto(
     // 详情对话框需要的额外字段（可选，未选择时为 null）
     val webUrl: String? = null,
     val createdDateTime: String? = null,
-    val lastModifiedDateTime: String? = null
+    val lastModifiedDateTime: String? = null,
+    val deleted: DeletedFacet? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -88,3 +89,6 @@ data class RemoteItemFacet(
     val id: String?,
     @param:Json(name = "parentReference") val parentReference: ItemReference?
 )
+
+@JsonClass(generateAdapter = true)
+class DeletedFacet
