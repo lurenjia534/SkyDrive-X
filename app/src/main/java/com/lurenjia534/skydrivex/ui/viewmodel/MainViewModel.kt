@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.lurenjia534.skydrivex.auth.MsalScopes
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -39,10 +40,6 @@ class MainViewModel @Inject constructor(
     private val downloadPreferenceRepository: DownloadPreferenceRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
-
-    companion object {
-        private val SCOPES = arrayOf("User.Read", "Files.ReadWrite")
-    }
 
     private val _account = MutableStateFlow<IAccount?>(null)
     val account: StateFlow<IAccount?> = _account.asStateFlow()
@@ -114,7 +111,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun signIn(activity: Activity) {
-        authManager.signIn(activity, SCOPES, object : AuthenticationCallback {
+        authManager.signIn(activity, MsalScopes.DEFAULT, object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
                 _account.value = authenticationResult.account
                 loadData(authenticationResult.accessToken)
@@ -131,7 +128,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun acquireToken(activity: Activity) {
-        authManager.acquireToken(activity, SCOPES, object : AuthenticationCallback {
+        authManager.acquireToken(activity, MsalScopes.DEFAULT, object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
                 _account.value = authenticationResult.account
                 loadData(authenticationResult.accessToken)
@@ -164,7 +161,7 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch {
             if (authManager.awaitInitialization()) {
-                authManager.acquireTokenSilent(account, SCOPES, object : SilentAuthenticationCallback {
+                authManager.acquireTokenSilent(account, MsalScopes.DEFAULT, object : SilentAuthenticationCallback {
                     override fun onSuccess(authenticationResult: IAuthenticationResult) {
                         _account.value = authenticationResult.account
                         loadData(authenticationResult.accessToken)
