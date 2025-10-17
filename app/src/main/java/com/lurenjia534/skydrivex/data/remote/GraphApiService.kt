@@ -21,9 +21,11 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.PATCH
+import retrofit2.http.Url
 import com.lurenjia534.skydrivex.data.model.thumbnail.ThumbnailSetsResponse
 import com.lurenjia534.skydrivex.data.model.batch.BatchRequest
 import com.lurenjia534.skydrivex.data.model.batch.BatchResponse
+import com.lurenjia534.skydrivex.data.model.driveitem.DriveDeltaResponse
 
 interface GraphApiService {
     @POST("\$batch")
@@ -253,4 +255,17 @@ interface GraphApiService {
         @Header("Authorization") token: String,
         @Query("\$select") select: String? = null
     ): ThumbnailSetsResponse
+
+    // Delta query for incremental sync of drive items
+    @GET("me/drive/root/delta")
+    suspend fun getRootDelta(
+        @Header("Authorization") token: String,
+        @Query("token") latestToken: String? = null
+    ): DriveDeltaResponse
+
+    @GET
+    suspend fun followDeltaLink(
+        @Url nextLink: String,
+        @Header("Authorization") token: String
+    ): DriveDeltaResponse
 }
