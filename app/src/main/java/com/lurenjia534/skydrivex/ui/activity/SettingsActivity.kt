@@ -65,6 +65,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.lurenjia534.skydrivex.ui.settings.components.CopyableListItem
 import com.lurenjia534.skydrivex.ui.settings.components.CopyableCustomItem
 import com.lurenjia534.skydrivex.ui.settings.components.SectionHeader
@@ -72,6 +73,8 @@ import com.lurenjia534.skydrivex.ui.settings.components.SettingsSkeletonListItem
 import com.lurenjia534.skydrivex.ui.settings.components.SettingsSkeletonStorage
 import com.lurenjia534.skydrivex.ui.settings.components.formatBytes
 import com.lurenjia534.skydrivex.ui.settings.components.formatTreeUri
+import com.lurenjia534.skydrivex.ui.settings.LocalIndexSettingsViewModel
+import com.lurenjia534.skydrivex.ui.settings.components.LocalIndexSection
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -117,6 +120,8 @@ fun SettingsScreen(
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
     val downloadPref by viewModel.downloadPreference.collectAsState()
+    val indexSettingsViewModel: LocalIndexSettingsViewModel = hiltViewModel()
+    val indexState by indexSettingsViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboard = LocalClipboard.current
     var pendingSnack by remember { mutableStateOf<String?>(null) }
@@ -729,6 +734,19 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+
+            item { SectionHeader("本地索引（预览）") }
+            item {
+                LocalIndexSection(
+                    state = indexState,
+                    onEnabledChange = indexSettingsViewModel::setEnabled,
+                    onWifiOnlyChange = indexSettingsViewModel::setWifiOnly,
+                    onChargeOnlyChange = indexSettingsViewModel::setChargeOnly,
+                    onClearClicked = indexSettingsViewModel::clearIndex,
+                    onRebuildNow = indexSettingsViewModel::rebuildNow,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             
 
