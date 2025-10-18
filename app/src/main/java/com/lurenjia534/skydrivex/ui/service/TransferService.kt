@@ -9,12 +9,14 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.notification.createDownloadChannel
 import com.lurenjia534.skydrivex.ui.notification.finishUpload
+import com.lurenjia534.skydrivex.ui.notification.TransferTracker.Status
 import com.lurenjia534.skydrivex.ui.notification.updateUploadProgress
 import com.lurenjia534.skydrivex.ui.notification.CancelDownloadReceiver
 import com.lurenjia534.skydrivex.ui.notification.TransferTracker
@@ -23,9 +25,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.InputStream
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 
 /**
@@ -36,6 +41,8 @@ import javax.inject.Inject
 class TransferService : LifecycleService() {
 
     @Inject lateinit var filesRepository: FilesRepository
+    private val activeUploads = AtomicInteger(0)
+    private val uploadMutex = Mutex()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -64,34 +71,37 @@ class TransferService : LifecycleService() {
         val mime = intent.getStringExtra(EXTRA_MIME) ?: "application/octet-stream"
         val uri: Uri = IntentCompat.getParcelableExtra(intent, EXTRA_URI, Uri::class.java) ?: return stopSelf(startId)
 
-        val (nid, cancelFlag) = startAsForeground("正在上传: $fileName")
+        val (nid, cancelFlag) = beginUploadTask("正在上传: $fileName")
+        Log.i(TAG, "Small upload scheduled nid=$nid name=$fileName parent=${parentId ?: "root"} mime=$mime")
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                if (cancelFlag.get()) throw CancellationException("Cancelled")
-                val bytes = contentResolver.openInputStream(uri)?.use(InputStream::readBytes) ?: ByteArray(0)
-                if (bytes.isEmpty()) error("读取文件失败")
-                filesRepository.uploadSmallFile(
-                    parentId = parentId,
-                    token = "Bearer $token",
-                    fileName = fileName,
-                    mimeType = mime,
-                    bytes = bytes
-                )
-                TransferTracker.updateProgress(nid, 100, indeterminate = false)
-                TransferTracker.markSuccess(nid)
-                finishUpload(this@TransferService, nid, fileName, success = true)
-                sendUploadCompletedBroadcast(parentId)
+                uploadMutex.withLock {
+                    if (cancelFlag.get()) throw CancellationException("Cancelled")
+                    val bytes = contentResolver.openInputStream(uri)?.use(InputStream::readBytes) ?: ByteArray(0)
+                    if (bytes.isEmpty()) error("读取文件失败")
+                    Log.d(TAG, "Small upload reading bytes name=$fileName size=${bytes.size}")
+                    filesRepository.uploadSmallFile(
+                        parentId = parentId,
+                        token = "Bearer $token",
+                        fileName = fileName,
+                        mimeType = mime,
+                        bytes = bytes
+                    )
+                        Log.i(TAG, "Small upload success nid=$nid name=$fileName")
+                    finishUpload(this@TransferService, nid, fileName, status = Status.SUCCESS)
+                    sendUploadCompletedBroadcast(parentId)
+                }
             } catch (e: Exception) {
                 val cancelled = cancelFlag.get() || e is CancellationException
+                Log.w(TAG, "Small upload result nid=$nid name=$fileName cancelled=$cancelled", e.takeUnless { cancelled })
                 if (cancelled) {
-                    TransferTracker.markCancelled(nid, "已取消")
+                    finishUpload(this@TransferService, nid, fileName, status = Status.CANCELLED, message = "已取消")
                 } else {
-                    TransferTracker.markFailed(nid, e.message)
+                    finishUpload(this@TransferService, nid, fileName, status = Status.FAILED, message = e.message)
                 }
-                finishUpload(this@TransferService, nid, fileName, success = false, message = if (cancelled) "已取消" else e.message)
                 Log.e(TAG, "Small upload failed: $fileName", e)
             } finally {
-                stopSelf(startId)
+                onUploadFinished()
             }
         }
     }
@@ -104,66 +114,70 @@ class TransferService : LifecycleService() {
         val uri: Uri = IntentCompat.getParcelableExtra(intent, EXTRA_URI, Uri::class.java)
             ?: return stopSelf(startId)
 
-        val (nid, cancelFlag) = startAsForeground("正在上传: $fileName")
+        val (nid, cancelFlag) = beginUploadTask("正在上传: $fileName")
+        Log.i(
+            TAG,
+            "Large upload scheduled nid=$nid name=$fileName parent=${parentId ?: "root"} totalBytes=$totalBytes"
+        )
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                if (totalBytes <= 0) {
-                    // fallback to small upload path if size unknown
-                    val bytes = contentResolver.openInputStream(uri)?.use(InputStream::readBytes) ?: ByteArray(0)
-                    if (bytes.isEmpty()) error("读取文件失败")
-                    filesRepository.uploadSmallFile(
-                        parentId = parentId,
-                        token = "Bearer $token",
-                        fileName = fileName,
-                        mimeType = guessMime(fileName),
-                        bytes = bytes
-                    )
-                    TransferTracker.updateProgress(nid, 100, indeterminate = false)
-                    TransferTracker.markSuccess(nid)
-                    finishUpload(this@TransferService, nid, fileName, success = true)
-                    sendUploadCompletedBroadcast(parentId)
-                } else {
-                    val item = filesRepository.uploadLargeFile(
-                        parentId = parentId,
-                        token = "Bearer $token",
-                        fileName = fileName,
-                        totalBytes = totalBytes,
-                        bytesProvider = { offset, wantSize ->
-                            withContext(Dispatchers.IO) {
-                                contentResolver.openInputStream(uri)?.use { ins ->
-                                    skipTo(ins, offset)
-                                    val buf = ByteArray(wantSize)
-                                    var readTotal = 0
-                                    while (readTotal < wantSize) {
-                                        val r = ins.read(buf, readTotal, wantSize - readTotal)
-                                        if (r <= 0) break
-                                        readTotal += r
-                                    }
-                                    if (readTotal == wantSize) buf else buf.copyOf(readTotal)
-                                } ?: ByteArray(0)
+                uploadMutex.withLock {
+                    if (totalBytes <= 0) {
+                        // fallback to small upload path if size unknown
+                        val bytes = contentResolver.openInputStream(uri)?.use(InputStream::readBytes) ?: ByteArray(0)
+                        if (bytes.isEmpty()) error("读取文件失败")
+                        Log.w(TAG, "Large upload fallback to small path nid=$nid name=$fileName size=${bytes.size}")
+                        filesRepository.uploadSmallFile(
+                            parentId = parentId,
+                            token = "Bearer $token",
+                            fileName = fileName,
+                            mimeType = guessMime(fileName),
+                            bytes = bytes
+                        )
+                                finishUpload(this@TransferService, nid, fileName, status = Status.SUCCESS)
+                        sendUploadCompletedBroadcast(parentId)
+                    } else {
+                        val item = filesRepository.uploadLargeFile(
+                            parentId = parentId,
+                            token = "Bearer $token",
+                            fileName = fileName,
+                            totalBytes = totalBytes,
+                            bytesProvider = { offset, wantSize ->
+                                withContext(Dispatchers.IO) {
+                                    contentResolver.openInputStream(uri)?.use { ins ->
+                                        skipTo(ins, offset)
+                                        val buf = ByteArray(wantSize)
+                                        var readTotal = 0
+                                        while (readTotal < wantSize) {
+                                            val r = ins.read(buf, readTotal, wantSize - readTotal)
+                                            if (r <= 0) break
+                                            readTotal += r
+                                        }
+                                        if (readTotal == wantSize) buf else buf.copyOf(readTotal)
+                                    } ?: ByteArray(0)
+                                }
+                            },
+                            cancelFlag = cancelFlag,
+                            onProgress = { uploaded, total ->
+                                updateUploadProgress(this@TransferService, nid, fileName, uploaded, total)
                             }
-                        },
-                        cancelFlag = cancelFlag,
-                        onProgress = { uploaded, total ->
-                            updateUploadProgress(this@TransferService, nid, fileName, uploaded, total)
-                        }
-                    )
-                    TransferTracker.updateProgress(nid, 100, indeterminate = false)
-                    TransferTracker.markSuccess(nid)
-                    finishUpload(this@TransferService, nid, item.name ?: fileName, success = true)
-                    sendUploadCompletedBroadcast(parentId)
+                        )
+                                finishUpload(this@TransferService, nid, item.name ?: fileName, status = Status.SUCCESS)
+                        sendUploadCompletedBroadcast(parentId)
+                        Log.i(
+                            TAG,
+                            "Large upload success nid=$nid name=$fileName uploaded=$totalBytes itemId=${item.id}"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 val cancelled = cancelFlag.get() || e is CancellationException
-                if (cancelled) {
-                    TransferTracker.markCancelled(nid, "已取消")
-                } else {
-                    TransferTracker.markFailed(nid, e.message)
-                }
-                finishUpload(this@TransferService, nid, fileName, success = false, message = if (cancelled) "已取消" else e.message)
+                Log.w(TAG, "Large upload result nid=$nid name=$fileName cancelled=$cancelled", e.takeUnless { cancelled })
+                val status = if (cancelled) Status.CANCELLED else Status.FAILED
+                finishUpload(this@TransferService, nid, fileName, status = status, message = if (cancelled) "已取消" else e.message)
                 Log.e(TAG, "Large upload failed: $fileName", e)
             } finally {
-                stopSelf(startId)
+                onUploadFinished()
             }
         }
     }
@@ -184,10 +198,14 @@ class TransferService : LifecycleService() {
         else -> "application/octet-stream"
     }
 
-    private fun startAsForeground(title: String): Pair<Int, AtomicBoolean> {
+    private fun beginUploadTask(title: String): Pair<Int, AtomicBoolean> {
         createDownloadChannel(this)
+        val active = activeUploads.incrementAndGet()
+        updateServiceForeground(active)
+
         val notificationId = ((System.currentTimeMillis() % Int.MAX_VALUE)).toInt()
         val cancelFlag = AtomicBoolean(false)
+        Log.d(TAG, "beginUploadTask title=$title nid=$notificationId active=$active")
         val builder = NotificationCompat.Builder(this, "downloads")
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle(title)
@@ -195,21 +213,21 @@ class TransferService : LifecycleService() {
             .setOnlyAlertOnce(true)
             .setProgress(0, 0, true)
 
-            val cancelIntent = Intent(this, CancelDownloadReceiver::class.java).apply {
-                action = CancelDownloadReceiver.ACTION_CANCEL
-                putExtra(CancelDownloadReceiver.EXTRA_NOTIFICATION_ID, notificationId)
-                putExtra(CancelDownloadReceiver.EXTRA_TITLE, title)
-            }
-            val pi = PendingIntent.getBroadcast(
-                this,
-                notificationId,
-                cancelIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            builder.addAction(0, "取消", pi)
+        val cancelIntent = Intent(this, CancelDownloadReceiver::class.java).apply {
+            action = CancelDownloadReceiver.ACTION_CANCEL
+            putExtra(CancelDownloadReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(CancelDownloadReceiver.EXTRA_TITLE, title)
+        }
+        val pi = PendingIntent.getBroadcast(
+            this,
+            notificationId,
+            cancelIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        builder.addAction(0, "取消", pi)
 
         val notification: Notification = builder.build()
-        // Register cancel flag so CancelDownloadReceiver can cancel upload
+        NotificationManagerCompat.from(this).notify(notificationId, notification)
         DownloadRegistry.registerCustom(notificationId, cancelFlag)
         TransferTracker.start(
             notificationId = notificationId,
@@ -218,19 +236,41 @@ class TransferService : LifecycleService() {
             allowCancel = true,
             indeterminate = true
         )
-        // Start foreground with typed API on Android 14+; older versions use 2-arg
-        if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(notificationId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            startForeground(notificationId, notification)
-        }
         return notificationId to cancelFlag
+    }
+
+    private fun updateServiceForeground(active: Int) {
+        val serviceTitle = if (active > 1) "正在上传 $active 个文件" else "正在上传文件"
+        val notification = NotificationCompat.Builder(this, "downloads")
+            .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setOnlyAlertOnce(true)
+            .setOngoing(true)
+            .setContentTitle(serviceTitle)
+            .build()
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(SERVICE_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(SERVICE_NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun onUploadFinished() {
+        val remaining = activeUploads.decrementAndGet().coerceAtLeast(0)
+        Log.d(TAG, "onUploadFinished remaining=$remaining")
+        if (remaining <= 0) {
+            activeUploads.set(0)
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        } else {
+            updateServiceForeground(remaining)
+        }
     }
 
     override fun onBind(intent: Intent): IBinder? = super.onBind(intent)
 
     companion object {
         private const val TAG = "TransferService"
+        private const val SERVICE_NOTIFICATION_ID = 42
         const val ACTION_UPLOAD_SMALL = "com.lurenjia534.skydrivex.action.UPLOAD_SMALL"
         const val ACTION_UPLOAD_LARGE = "com.lurenjia534.skydrivex.action.UPLOAD_LARGE"
         const val ACTION_UPLOAD_COMPLETED = "com.lurenjia534.skydrivex.action.UPLOAD_COMPLETED"
