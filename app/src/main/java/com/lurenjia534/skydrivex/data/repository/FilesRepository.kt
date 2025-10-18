@@ -165,10 +165,6 @@ class FilesRepository @Inject constructor(
     ): DriveItemDto {
         val ct = (mimeType ?: "application/octet-stream")
         val body: RequestBody = bytes.toRequestBody(ct.toMediaTypeOrNull())
-        Log.i(
-            TAG_UPLOAD_SESSION,
-            "uploadSmallFile start name=$fileName parent=${parentId ?: "root"} size=${bytes.size}"
-        )
         return if (parentId == null || parentId == "root") {
             graphApiService.uploadSmallFileToRoot(
                 fileName = fileName,
@@ -185,10 +181,6 @@ class FilesRepository @Inject constructor(
                 body = body
             )
         }.also {
-            Log.i(
-                TAG_UPLOAD_SESSION,
-                "uploadSmallFile success name=$fileName id=${it.id}"
-            )
         }
     }
 
@@ -370,11 +362,6 @@ class FilesRepository @Inject constructor(
             Log.e("UploadSession", msg, e)
             error(msg)
         }
-
-        Log.i(
-            TAG_UPLOAD_SESSION,
-            "createUploadSession success name=$fileName parent=${parentId ?: "root"} totalBytes=$totalBytes"
-        )
         val uploadUrl = session.uploadUrl
         val chunkSize = 5 * 1024 * 1024 // 5 MiB (multiple of 320 KiB)
         var uploaded = 0L
@@ -403,20 +390,12 @@ class FilesRepository @Inject constructor(
                         // safe to update primitive from IO context; read back on caller
                         uploaded += actual
                         onProgress?.invoke(uploaded, totalBytes)
-                        Log.v(
-                            TAG_UPLOAD_SESSION,
-                            "chunk uploaded name=$fileName range=${uploaded - actual}-${uploaded - 1}/$totalBytes"
-                        )
                     } else if (resp.code == 201 || resp.code == 200) {
                         val adapter = moshi.adapter(DriveItemDto::class.java)
                         val bodyStr = resp.body.string()
                         val item = adapter.fromJson(bodyStr)
                             ?: throw IllegalStateException("Empty item response")
                         completedItem = item
-                        Log.i(
-                            TAG_UPLOAD_SESSION,
-                            "uploadLargeFile completed name=$fileName uploaded=$totalBytes"
-                        )
                     } else {
                         val errBody = try { resp.body.string() } catch (_: Exception) { null }
                         // Query session status (IO thread) for nextExpectedRanges

@@ -72,14 +72,12 @@ class TransferService : LifecycleService() {
         val uri: Uri = IntentCompat.getParcelableExtra(intent, EXTRA_URI, Uri::class.java) ?: return stopSelf(startId)
 
         val (nid, cancelFlag) = beginUploadTask("正在上传: $fileName")
-        Log.i(TAG, "Small upload scheduled nid=$nid name=$fileName parent=${parentId ?: "root"} mime=$mime")
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 uploadMutex.withLock {
                     if (cancelFlag.get()) throw CancellationException("Cancelled")
                     val bytes = contentResolver.openInputStream(uri)?.use(InputStream::readBytes) ?: ByteArray(0)
                     if (bytes.isEmpty()) error("读取文件失败")
-                    Log.d(TAG, "Small upload reading bytes name=$fileName size=${bytes.size}")
                     filesRepository.uploadSmallFile(
                         parentId = parentId,
                         token = "Bearer $token",
@@ -87,13 +85,11 @@ class TransferService : LifecycleService() {
                         mimeType = mime,
                         bytes = bytes
                     )
-                        Log.i(TAG, "Small upload success nid=$nid name=$fileName")
                     finishUpload(this@TransferService, nid, fileName, status = Status.SUCCESS)
                     sendUploadCompletedBroadcast(parentId)
                 }
             } catch (e: Exception) {
                 val cancelled = cancelFlag.get() || e is CancellationException
-                Log.w(TAG, "Small upload result nid=$nid name=$fileName cancelled=$cancelled", e.takeUnless { cancelled })
                 if (cancelled) {
                     finishUpload(this@TransferService, nid, fileName, status = Status.CANCELLED, message = "已取消")
                 } else {
@@ -115,10 +111,6 @@ class TransferService : LifecycleService() {
             ?: return stopSelf(startId)
 
         val (nid, cancelFlag) = beginUploadTask("正在上传: $fileName")
-        Log.i(
-            TAG,
-            "Large upload scheduled nid=$nid name=$fileName parent=${parentId ?: "root"} totalBytes=$totalBytes"
-        )
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 uploadMutex.withLock {
@@ -126,7 +118,6 @@ class TransferService : LifecycleService() {
                         // fallback to small upload path if size unknown
                         val bytes = contentResolver.openInputStream(uri)?.use(InputStream::readBytes) ?: ByteArray(0)
                         if (bytes.isEmpty()) error("读取文件失败")
-                        Log.w(TAG, "Large upload fallback to small path nid=$nid name=$fileName size=${bytes.size}")
                         filesRepository.uploadSmallFile(
                             parentId = parentId,
                             token = "Bearer $token",
@@ -134,7 +125,7 @@ class TransferService : LifecycleService() {
                             mimeType = guessMime(fileName),
                             bytes = bytes
                         )
-                                finishUpload(this@TransferService, nid, fileName, status = Status.SUCCESS)
+                        finishUpload(this@TransferService, nid, fileName, status = Status.SUCCESS)
                         sendUploadCompletedBroadcast(parentId)
                     } else {
                         val item = filesRepository.uploadLargeFile(
@@ -162,17 +153,12 @@ class TransferService : LifecycleService() {
                                 updateUploadProgress(this@TransferService, nid, fileName, uploaded, total)
                             }
                         )
-                                finishUpload(this@TransferService, nid, item.name ?: fileName, status = Status.SUCCESS)
+                        finishUpload(this@TransferService, nid, item.name ?: fileName, status = Status.SUCCESS)
                         sendUploadCompletedBroadcast(parentId)
-                        Log.i(
-                            TAG,
-                            "Large upload success nid=$nid name=$fileName uploaded=$totalBytes itemId=${item.id}"
-                        )
                     }
                 }
             } catch (e: Exception) {
                 val cancelled = cancelFlag.get() || e is CancellationException
-                Log.w(TAG, "Large upload result nid=$nid name=$fileName cancelled=$cancelled", e.takeUnless { cancelled })
                 val status = if (cancelled) Status.CANCELLED else Status.FAILED
                 finishUpload(this@TransferService, nid, fileName, status = status, message = if (cancelled) "已取消" else e.message)
                 Log.e(TAG, "Large upload failed: $fileName", e)
@@ -205,7 +191,6 @@ class TransferService : LifecycleService() {
 
         val notificationId = ((System.currentTimeMillis() % Int.MAX_VALUE)).toInt()
         val cancelFlag = AtomicBoolean(false)
-        Log.d(TAG, "beginUploadTask title=$title nid=$notificationId active=$active")
         val builder = NotificationCompat.Builder(this, "downloads")
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle(title)
@@ -256,7 +241,6 @@ class TransferService : LifecycleService() {
 
     private fun onUploadFinished() {
         val remaining = activeUploads.decrementAndGet().coerceAtLeast(0)
-        Log.d(TAG, "onUploadFinished remaining=$remaining")
         if (remaining <= 0) {
             activeUploads.set(0)
             stopForeground(STOP_FOREGROUND_REMOVE)
