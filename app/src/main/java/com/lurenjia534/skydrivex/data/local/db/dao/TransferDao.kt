@@ -32,4 +32,21 @@ interface TransferDao {
 
     @Query("SELECT * FROM transfers WHERE notification_id = :notificationId LIMIT 1")
     suspend fun findById(notificationId: Int): TransferEntity?
+
+    @Query(
+        """
+        UPDATE transfers
+        SET progress = :progress,
+            indeterminate = :indeterminate,
+            message = CASE WHEN :message IS NOT NULL THEN :message ELSE message END
+        WHERE notification_id = :notificationId AND status = :runningStatus
+        """
+    )
+    suspend fun updateProgressIfRunning(
+        notificationId: Int,
+        progress: Int?,
+        indeterminate: Boolean,
+        message: String?,
+        runningStatus: TransferStatus = TransferStatus.RUNNING
+    ): Int
 }
