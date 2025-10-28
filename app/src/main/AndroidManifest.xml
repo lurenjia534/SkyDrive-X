@@ -45,6 +45,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.activity.OobeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SkyDriveX" />
+
         <activity android:name="com.microsoft.identity.client.BrowserTabActivity"
             android:exported="true">
             <intent-filter>
