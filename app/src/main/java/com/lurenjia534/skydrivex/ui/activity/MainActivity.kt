@@ -26,14 +26,19 @@ import com.lurenjia534.skydrivex.ui.components.BottomNavBar
 import com.lurenjia534.skydrivex.ui.navigation.NavGraph
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
+import com.lurenjia534.skydrivex.data.repository.AuthConfigRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private var hasPromptedLogin = false
+    private var isUiInitialized = false
+
+    @Inject lateinit var authConfigRepository: AuthConfigRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -47,6 +52,28 @@ class MainActivity : ComponentActivity() {
             )
         )
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            val hasConfig = authConfigRepository.hasConfig()
+            if (!hasConfig) {
+                startActivity(Intent(this@MainActivity, OobeActivity::class.java))
+                finish()
+                return@launch
+            }
+            initializeUi()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isUiInitialized) {
+            viewModel.acquireTokenSilent()
+        }
+    }
+
+    private fun initializeUi() {
+        if (isUiInitialized) return
+        isUiInitialized = true
+
         viewModel.acquireTokenSilent()
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -64,17 +91,12 @@ class MainActivity : ComponentActivity() {
                         } else {
                             hasPromptedLogin = false
                         }
-                }
+                    }
             }
         }
         setContent {
             SkyDriveXAppContent(viewModel)
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewModel.acquireTokenSilent()
     }
 }
 
