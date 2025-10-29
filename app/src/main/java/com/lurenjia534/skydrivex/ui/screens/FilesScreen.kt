@@ -172,7 +172,8 @@ fun FilesScreen(
         val filter = IntentFilter(TransferService.ACTION_UPLOAD_COMPLETED)
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context?, i: Intent?) {
-                viewModel.refreshCurrent(tokenSnapshot)
+                val parentId = i?.getStringExtra(TransferService.EXTRA_PARENT_ID) ?: "root"
+                viewModel.refreshFolder(tokenSnapshot, parentId)
             }
         }
         try {

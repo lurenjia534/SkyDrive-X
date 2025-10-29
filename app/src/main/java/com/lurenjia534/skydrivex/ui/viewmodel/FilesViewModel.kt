@@ -379,26 +379,37 @@ class FilesViewModel @Inject constructor(
     fun currentFolderId(): String = stack.lastOrNull()?.id ?: "root"
 
     fun refreshCurrent(token: String) {
-        val parentId = currentFolderId()
-        cache.remove(parentId)
+        refreshFolder(token = token, folderId = currentFolderId())
+    }
+
+    fun refreshFolder(token: String, folderId: String) {
+        val targetId = folderId.ifEmpty { "root" }
+        cache.remove(targetId)
+        val isCurrentFolder = currentFolderId() == targetId
         viewModelScope.launch {
-            _filesState.value = _filesState.value.copy(isLoading = true, error = null)
+            if (isCurrentFolder) {
+                _filesState.value = _filesState.value.copy(isLoading = true, error = null)
+            }
             try {
-                val items = if (parentId == "root") {
+                val items = if (targetId == "root") {
                     filesRepository.getRootChildren("Bearer $token")
                 } else {
-                    filesRepository.getChildren(parentId, "Bearer $token")
+                    filesRepository.getChildren(targetId, "Bearer $token")
                 }
-                cache[parentId] = items
-                _filesState.value = _filesState.value.copy(
-                    items = items,
-                    isLoading = false,
-                    error = null,
-                    canGoBack = stack.size > 1,
-                    path = stack.toList()
-                )
+                cache[targetId] = items
+                if (isCurrentFolder) {
+                    _filesState.value = _filesState.value.copy(
+                        items = items,
+                        isLoading = false,
+                        error = null,
+                        canGoBack = stack.size > 1,
+                        path = stack.toList()
+                    )
+                }
             } catch (e: Exception) {
-                _filesState.value = _filesState.value.copy(isLoading = false, error = e.message)
+                if (isCurrentFolder) {
+                    _filesState.value = _filesState.value.copy(isLoading = false, error = e.message)
+                }
             }
         }
     }
