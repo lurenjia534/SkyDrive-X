@@ -22,6 +22,8 @@ class FilesViewModel @Inject constructor(
     private val filesRepository: FilesRepository,
 ) : ViewModel() {
 
+    private var currentToken: String? = null
+
     private val _filesState = MutableStateFlow(
         FilesUiState(items = null, isLoading = false, error = null, canGoBack = false, path = emptyList())
     )
@@ -70,10 +72,18 @@ class FilesViewModel @Inject constructor(
         _filesState.value = _filesState.value.copy(selectionMode = all.isNotEmpty(), selectedIds = inverted)
     }
 
-    fun loadRoot(token: String) {
+    fun loadRoot(token: String, force: Boolean = false) {
+        if (!force && currentToken == token && stack.isNotEmpty()) {
+            return
+        }
+        val tokenChanged = currentToken != token
+        currentToken = token
         exitSelectionMode()
         stack.clear()
         stack.add(Breadcrumb(id = "root", name = "根目录"))
+        if (tokenChanged) {
+            cache.clear()
+        }
         load("root") { filesRepository.getRootChildren("Bearer $token") }
     }
 
