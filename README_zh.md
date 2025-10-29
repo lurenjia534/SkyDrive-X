@@ -2,7 +2,7 @@
 
 ## 项目简介
 
-SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端，基于 Jetpack Compose 打造现代化界面，整合 MSAL 身份认证与 Microsoft Graph API，实现文件浏览、上传下载、分享与多媒体预览等完整体验。应用面向 Android 12L（API 31）及以上设备，并针对 Android 14+ 的前台数据同步、权限模型进行了适配。
+SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端，基于 Jetpack Compose Material 3 打造现代化界面，整合 MSAL 身份认证与 Microsoft Graph API，实现文件浏览、上传下载、分享与多媒体预览等完整体验。应用面向 Android 12L（API 31）及以上设备，并针对 Android 14+ 的前台数据同步、权限模型进行了适配。
 
 ## 功能特性
 
