@@ -59,7 +59,7 @@ SkyDrive X is an Android client for Microsoft 365 / OneDrive users. It delivers 
    git clone https://github.com/lurenjia534/SkyDriveX.git
    ```
 2. **Configure your Microsoft Entra app**
-   - Read the Chinese guide [MSAL授权指南.md](MSAL授权指南.md) (an English version is in progress) to register the Azure AD application, export the signing hash, and retrieve the `client_id`.
+   - Follow the English guide [MSAL_Config.md](MSAL_Config.md) (a Chinese version is available as [MSAL授权指南.md](MSAL授权指南.md)) to register the Azure AD application, export the signing hash, and retrieve the `client_id`.
    - When SkyDrive X launches for the first time it opens an OOBE wizard; enter the `client_id` there. You can revisit the wizard from the Settings page (“Modify login configuration”) to switch apps later.
 3. **Open the project**
    - Use Android Studio Koala (or newer) with Gradle 8.13.
@@ -88,7 +88,7 @@ SkyDrive X is an Android client for Microsoft 365 / OneDrive users. It delivers 
 
 ## Configuration & Usage
 
-For step-by-step Azure registration instructions (with screenshots), see [MSAL授权指南.md](MSAL授权指南.md). Complete the guide, then launch the app and follow the OOBE wizard to finish sign-in.
+For step-by-step Azure registration instructions (with screenshots), see [MSAL_Config.md](MSAL_Config.md). Complete the guide, then launch the app and follow the OOBE wizard to finish sign-in.
 
 ## Roadmap / TODO
 
