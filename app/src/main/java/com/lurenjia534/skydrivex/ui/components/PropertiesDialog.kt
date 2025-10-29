@@ -63,11 +63,13 @@ fun PropertiesDialog(
                 Spacer(Modifier.height(8.dp))
 
                 // 类型
-                val typeLabel = if (details?.folder != null) {
-                    "文件夹"
-                } else {
-                    val mt = details?.file?.mimeType
-                    if (mt.isNullOrBlank()) "文件" else "文件 (" + mt + ")"
+                val typeLabel = when {
+                    details?.folder != null -> "文件夹"
+                    details?.name?.endsWith(".apk", ignoreCase = true) == true -> "Android 安装包 (APK)"
+                    else -> {
+                        val mt = details?.file?.mimeType
+                        if (mt.isNullOrBlank()) "文件" else "文件 ($mt)"
+                    }
                 }
                 OutlinedTextField(
                     value = typeLabel,
