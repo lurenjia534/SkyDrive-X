@@ -1,4 +1,27 @@
-# SkyDrive X
+# SkyDrive X - Material 3 OneDrive client for Android
+
+<p align="center">
+  <a href="README.md">English</a> |
+  <a href="README_zh.md">中文</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/lurenjia534/SkyDrive-X/releases">
+    <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="version" />
+  </a>
+  <img src="https://img.shields.io/badge/platform-Android-brightgreen" alt="platform" />
+  <img src="https://img.shields.io/badge/language-Kotlin-orange" alt="language" />
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-AGPL--3.0-success" alt="license" />
+  </a>
+  <a href="https://github.com/lurenjia534/SkyDrive-X/stargazers">
+    <img src="https://img.shields.io/github/stars/lurenjia534/SkyDrive-X?style=flat-square" alt="GitHub stars" />
+  </a>
+  <a href="https://github.com/lurenjia534/SkyDrive-X/issues">
+    <img src="https://img.shields.io/github/issues-raw/lurenjia534/SkyDrive-X" alt="open issues" />
+  </a>
+  <img src="https://img.shields.io/github/last-commit/lurenjia534/SkyDrive-X" alt="last commit" />
+</p>
 
 [中文说明 README_zh.md](README_zh.md)
 
