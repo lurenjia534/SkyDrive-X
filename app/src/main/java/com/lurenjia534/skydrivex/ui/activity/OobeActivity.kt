@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,6 +39,8 @@ import com.lurenjia534.skydrivex.ui.viewmodel.OobeUiState
 import com.lurenjia534.skydrivex.ui.viewmodel.OobeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
+enum class OobeMode { INITIAL, UPDATE }
+
 @AndroidEntryPoint
 class OobeActivity : ComponentActivity() {
 
@@ -45,51 +49,83 @@ class OobeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        val mode = intent.getStringExtra(EXTRA_MODE)?.let { value ->
+            runCatching { OobeMode.valueOf(value) }.getOrNull()
+        } ?: OobeMode.INITIAL
+
         setContent {
             SkyDriveXTheme {
                 OobeRoute(
                     viewModel = viewModel,
-                    onCompleted = {
-                        val intent = Intent(this, MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                            putExtra(MainActivity.EXTRA_SKIP_TOKEN_CHECK, true)
+                    mode = mode,
+                    onCompleted = { shouldLogin ->
+                        when (mode) {
+                            OobeMode.INITIAL -> {
+                                val intent = Intent(this, MainActivity::class.java).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                    putExtra(MainActivity.EXTRA_SKIP_TOKEN_CHECK, true)
+                                    putExtra(MainActivity.EXTRA_REQUEST_SIGN_IN, shouldLogin)
+                                }
+                                startActivity(intent)
+                                finish()
+                            }
+
+                            OobeMode.UPDATE -> {
+                                if (shouldLogin) {
+                                    val intent = Intent(this, MainActivity::class.java).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                                        putExtra(MainActivity.EXTRA_SKIP_TOKEN_CHECK, true)
+                                        putExtra(MainActivity.EXTRA_REQUEST_SIGN_IN, true)
+                                    }
+                                    startActivity(intent)
+                                }
+                                finish()
+                            }
                         }
-                        startActivity(intent)
-                        finish()
                     }
                 )
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_MODE = "mode"
     }
 }
 
 @Composable
 fun OobeRoute(
     viewModel: OobeViewModel = hiltViewModel(),
-    onCompleted: () -> Unit
+    mode: OobeMode,
+    onCompleted: (shouldLogin: Boolean) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             if (event is OobeEvent.Completed) {
-                onCompleted()
+                onCompleted(event.shouldLogin)
             }
         }
     }
 
     OobeScreen(
         uiState = uiState,
+        mode = mode,
         onClientIdChanged = viewModel::onClientIdChanged,
-        onSubmit = viewModel::submit
+        onSubmitLogin = viewModel::submitAndLogin,
+        onSubmitOnly = viewModel::submitOnly
     )
 }
 
 @Composable
 fun OobeScreen(
     uiState: OobeUiState,
+    mode: OobeMode,
     onClientIdChanged: (String) -> Unit,
-    onSubmit: () -> Unit
+    onSubmitLogin: () -> Unit,
+    onSubmitOnly: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     Surface(
@@ -103,7 +139,7 @@ fun OobeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "首次启动配置",
+                text = if (mode == OobeMode.INITIAL) "首次启动配置" else "更新登录配置",
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(
@@ -164,19 +200,37 @@ fun OobeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = onSubmit,
-                enabled = !uiState.isSaving,
-                modifier = Modifier
-                    .align(Alignment.End)
-            ) {
-                Text(
-                    text = when {
-                        uiState.isSaving -> "保存中…"
-                        uiState.hasExistingConfig -> "更新配置"
-                        else -> "保存并继续"
+            when (mode) {
+                OobeMode.INITIAL -> {
+                    Button(
+                        onClick = onSubmitLogin,
+                        enabled = !uiState.isSaving,
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text(text = if (uiState.isSaving) "保存中…" else "登陆")
                     }
-                )
+                }
+                OobeMode.UPDATE -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = onSubmitOnly,
+                            enabled = !uiState.isSaving
+                        ) {
+                            Text(text = "更新配置")
+                        }
+
+                        Button(
+                            onClick = onSubmitLogin,
+                            enabled = !uiState.isSaving
+                        ) {
+                            Text(text = if (uiState.isSaving) "保存中…" else "更新配置并登陆")
+                        }
+                    }
+                }
             }
         }
     }
