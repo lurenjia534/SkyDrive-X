@@ -92,17 +92,16 @@ SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端�
 
 > **提示**：若是企业租户，请确认账号具备 `Files.ReadWrite`、`User.Read` 权限，并在 Azure Portal 中授予管理员同意。
 
-## 开发与调试建议
+## 配置速览
 
-- **令牌管理**：`MainViewModel` 自动在应用进入前台时刷新令牌，调试时可观察 Logcat `MainViewModel` / `AuthManager` 输出。
-- **API 调试**：`FilesRepository` 通过 Retrofit 与 OkHttp 拦截器封装 Graph API 调用，可借助 Stetho / Charles 进行抓包。
-- **通知与传输记录**：`TransferTracker` 使用 Room 持久化进度，数据库位于 `data/data/<package>/databases/transfer_db`，可通过 Android Studio Database Inspector 查看。
-- **Compose 预览**：`SkyDriveXAppContent`、`FilesRow` 等组件包含 `@Preview`，便于快速迭代 UI。
-- **Media3 解码**：默认启用 Jellyfin FFmpeg 扩展，若某些格式无法播放，可检查 `VideoPlayerViewModel` / `AudioPlayerViewModel` 中打印的解码器名称。
+1. **注册 Azure 应用**：参阅 [MSAL授权指南.md](MSAL授权指南.md) 创建应用，选择“多租户 + 个人账号”，记录生成的 `client_id`。
+2. **配置 Android 重定向 URI**：在“身份验证 → 添加平台 → Android”填写包名 `com.lurenjia534.skydrivex` 与签名哈希 `rZDXYaNZmghPivXu+4dDWNfayVo=`。
+3. **授权权限**：在“API 权限”中添加委托权限 `Files.ReadWrite`（保留默认的 `User.Read`），如为企业租户请授予管理员同意。
+4. **运行应用**：安装 SkyDrive X，首次启动在 OOBE 向导输入 `client_id` 并登录。需要切换配置时，可在设置页点击“修改登陆配置”重新进入向导。
 
 ## 常见问题
 
-- **登录后空白或闪退**：请确认 `auth_config.json` 与 `AndroidManifest.xml` 的签名一致，并确保应用签名证书与 Azure 上配置匹配。
+- **登录后空白或闪退**：请确认安装包的包名与签名哈希与 Azure 中登记的信息一致，如需更换 `client_id` 可在设置页重新进入 OOBE 向导。
 - **缩略图缺失**：企业租户可能不返回 `thumbnails` 字段，`FilesRepository` 已实现回退逻辑，但需要 Graph API 正确授权。
 - **上传大文件失败**：检查网络状况及可用空间；服务会在失败时通过通知提示错误原因，可在 `TransferService` 日志定位。
 - **通知无法显示**：Android 13+ 需要显式授予通知权限，可在应用设置中开启，或在设置页点击检测按钮跳转授权。

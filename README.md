@@ -94,17 +94,16 @@ SkyDrive X is an Android client for Microsoft 365 / OneDrive users. It delivers 
 
 > **Note**: For enterprise tenants ensure the account has `Files.ReadWrite` and `User.Read` permissions and that admin consent is granted in the Azure portal.
 
-## Development & Debug Tips
+## Configuration Quick Reference
 
-- **Token lifecycle**: `MainViewModel` refreshes tokens when the app resumes; monitor Logcat tags `MainViewModel` / `AuthManager` during troubleshooting.
-- **API debugging**: `FilesRepository` uses Retrofit and an OkHttp interceptor—tools like Stetho or Charles can inspect outbound Graph requests.
-- **Notifications & transfers**: `TransferTracker` persists progress states in Room. The database lives at `data/data/<package>/databases/transfer_db`, viewable via Android Studio’s Database Inspector.
-- **Compose previews**: Components such as `SkyDriveXAppContent` and `FilesRow` include `@Preview` annotations for quick iteration.
-- **Media3 decoding**: The Jellyfin FFmpeg extension is enabled by default. If specific formats fail, check logs from `VideoPlayerViewModel` / `AudioPlayerViewModel` to see which decoder was selected.
+1. **Register Azure AD app** – Follow [MSAL_Config.md](MSAL_Config.md) to create the application, choose multitenant + personal accounts, and keep the generated `client_id`.
+2. **Add Android redirect URI** – Configure package name `com.lurenjia534.skydrivex` and signature hash `rZDXYaNZmghPivXu+4dDWNfayVo=` under *Authentication → Add platform → Android*.
+3. **Grant permissions** – In *API permissions*, add delegated `Files.ReadWrite` (keep `User.Read`) and grant admin consent if required by your tenant.
+4. **Run the app** – Install SkyDrive X, enter the `client_id` in the OOBE wizard, and sign in. You can revisit the wizard from Settings → *Modify login configuration* whenever you need to switch apps.
 
 ## FAQ
 
-- **Blank screen or crash after sign-in**: Verify that `auth_config.json` and the `BrowserTabActivity` signature hash match the signing certificate registered in Azure.
+- **Blank screen or crash after sign-in**: Ensure the package name and signature hash you registered in Azure match the build you are installing, and re-run the OOBE wizard from Settings if you need to update the `client_id`.
 - **Missing thumbnails**: Some enterprise tenants omit `thumbnails`. `FilesRepository` falls back to additional Graph calls; ensure the app has the necessary Graph permissions.
 - **Large upload failures**: Check connectivity and device storage. Foreground notifications report error messages; inspect `TransferService` logs for details.
 - **Notifications not appearing**: Android 13+ requires explicit notification permission. Enable it in system settings or use the in-app settings shortcut.
