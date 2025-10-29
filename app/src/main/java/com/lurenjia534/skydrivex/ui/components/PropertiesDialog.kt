@@ -65,7 +65,7 @@ fun PropertiesDialog(
                 // 类型
                 val typeLabel = when {
                     details?.folder != null -> "文件夹"
-                    details?.name?.endsWith(".apk", ignoreCase = true) == true -> "Android 安装包 (APK)"
+                    details?.name?.endsWith(".apk", ignoreCase = true) == true -> "Android 安装包 (客户端基于文件扩展名判断)"
                     else -> {
                         val mt = details?.file?.mimeType
                         if (mt.isNullOrBlank()) "文件" else "文件 ($mt)"
