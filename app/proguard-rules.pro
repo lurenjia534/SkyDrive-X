@@ -37,3 +37,29 @@
 -dontwarn net.jcip.annotations.GuardedBy
 -dontwarn net.jcip.annotations.Immutable
 -dontwarn net.jcip.annotations.ThreadSafe
+
+# --- Retrofit 3 / Moshi -----------------------------------------------------
+# Retrofit 3.0.0 (Preview) still relies on reflection for interface methods.
+# Keep service interfaces and retain method annotations.
+-keep class com.lurenjia534.skydrivex.data.remote.** { *; }
+-keepclassmembers interface * {
+    @retrofit2.http.* <methods>;
+}
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+
+# Moshi generates JsonAdapter classes at compile time; keep them and any
+# @JsonClass annotated models to avoid being stripped by R8.
+-keep @com.squareup.moshi.JsonClass class * { *; }
+-if class * extends com.squareup.moshi.JsonAdapter
+-keep class <1> { *; }
+-if class * extends com.squareup.moshi.JsonAdapter$Factory
+-keep class <1> { *; }
+-keepclasseswithmembers class * {
+    @com.squareup.moshi.FromJson <methods>;
+}
+-keepclasseswithmembers class * {
+    @com.squareup.moshi.ToJson <methods>;
+}
+
+# Our DTO packages are consumed via Moshi adapters – keep them intact.
+-keep class com.lurenjia534.skydrivex.data.model.** { *; }
