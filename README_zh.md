@@ -89,7 +89,7 @@ SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端�
 
 > 如需更多界面参考，可查看 `pic/` 目录中的示意图。
 
-![主界面示例](pic/oGkqm6TQfml7x.png)
+![主界面示例](pic/应用注册3.png)
 ![MSAL 配置示例](pic/UG70swpbJkgAI.png)
 
 ## 路线图 / TODO

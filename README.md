@@ -91,7 +91,7 @@ SkyDrive X is an Android client for Microsoft 365 / OneDrive users. It delivers 
 
 > Additional screenshots are available under the `pic/` directory.
 
-![Main screen](pic/oGkqm6TQfml7x.png)
+![Main screen](pic/应用注册3.png)
 ![MSAL configuration](pic/UG70swpbJkgAI.png)
 
 ## Roadmap / TODO
