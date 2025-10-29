@@ -128,4 +128,4 @@ Contributions via issues and pull requests are welcome. Please ensure:
 
 ## License
 
-This project is licensed under the `GNU Affero General Public License v3.0 (AGPL-3.0)`. See the `LICENSE` file for details. When distributing, modifying, or offering the software as a network service, you must comply with the license terms and keep the same license and copyright notices in derivative works.
+SkyDrive X is distributed under the **GNU Affero General Public License v3.0**. See [LICENSE](LICENSE) for the full text. If you distribute modified versions or offer the software as a service, you must make the source available under the same AGPL-3.0 terms and preserve the original copyright and license notices.

@@ -126,4 +126,4 @@ SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端�
 
 ## 许可证
 
-本项目使用 `GNU Affero General Public License v3.0 (AGPL-3.0)` 进行授权，详情请参阅仓库根目录中的 `LICENSE` 文件。进行分发、修改或提供在线服务时，请确保遵循该许可证的要求，并在衍生作品中保留相同的许可协议与版权声明。
+SkyDrive X 以 **GNU Affero General Public License v3.0** 发布。完整条款请参阅 [LICENSE](LICENSE)。如果你修改后分发或以服务形式提供本项目，必须将源代码以相同的 AGPL-3.0 条款公开，并保留原始的版权与许可声明。
