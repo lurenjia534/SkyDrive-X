@@ -21,8 +21,8 @@ data class OobeUiState(
     val hasExistingConfig: Boolean = false
 )
 
-sealed interface OobeEvent {
-    data object Completed : OobeEvent
+sealed class OobeEvent {
+    data class Completed(val shouldLogin: Boolean) : OobeEvent()
 }
 
 @HiltViewModel
@@ -53,7 +53,11 @@ class OobeViewModel @Inject constructor(
         _uiState.update { it.copy(clientId = value, clientIdError = null) }
     }
 
-    fun submit() {
+    fun submitAndLogin() = submit(shouldLogin = true)
+
+    fun submitOnly() = submit(shouldLogin = false)
+
+    private fun submit(shouldLogin: Boolean) {
         val trimmed = _uiState.value.clientId.trim()
         if (!isValidClientId(trimmed)) {
             _uiState.update { it.copy(clientIdError = "请输入有效的 Client ID（GUID）") }
@@ -64,7 +68,7 @@ class OobeViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true, clientIdError = null) }
             authConfigRepository.saveClientId(trimmed)
             _uiState.update { it.copy(isSaving = false, hasExistingConfig = true) }
-            _events.emit(OobeEvent.Completed)
+            _events.emit(OobeEvent.Completed(shouldLogin))
         }
     }
 
