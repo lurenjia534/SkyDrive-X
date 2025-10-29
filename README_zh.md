@@ -38,6 +38,13 @@ SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端�
 - 主题与偏好：DataStore 持久化深色模式、下载目录等用户偏好；Room 记录传输历史，重启后仍可追踪状态。
 - 设置信息页涵盖账号信息、配额、通知授权检测等辅助功能。
 
+## 配置速览
+
+1. **注册 Azure 应用**：参阅 [MSAL授权指南.md](MSAL授权指南.md) 创建应用，选择“多租户 + 个人账号”，记录生成的 `client_id`。
+2. **配置 Android 重定向 URI**：在“身份验证 → 添加平台 → Android”填写包名 `com.lurenjia534.skydrivex` 与签名哈希 `rZDXYaNZmghPivXu+4dDWNfayVo=`。
+3. **授权权限**：在“API 权限”中添加委托权限 `Files.ReadWrite`（保留默认的 `User.Read`），如为企业租户请授予管理员同意。
+4. **运行应用**：安装 SkyDrive X，首次启动在 OOBE 向导输入 `client_id` 并登录。需要切换配置时，可在设置页点击“修改登陆配置”重新进入向导。
+
 ## 技术栈
 
 - **语言与基础**：Kotlin 2.2.20、Android Gradle Plugin 8.13.0、Compile/Target SDK 36、Min SDK 31。
@@ -91,13 +98,6 @@ SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端�
    - 如需单元测试：`./gradlew test`（需本地具备完整 Android 环境）
 
 > **提示**：若是企业租户，请确认账号具备 `Files.ReadWrite`、`User.Read` 权限，并在 Azure Portal 中授予管理员同意。
-
-## 配置速览
-
-1. **注册 Azure 应用**：参阅 [MSAL授权指南.md](MSAL授权指南.md) 创建应用，选择“多租户 + 个人账号”，记录生成的 `client_id`。
-2. **配置 Android 重定向 URI**：在“身份验证 → 添加平台 → Android”填写包名 `com.lurenjia534.skydrivex` 与签名哈希 `rZDXYaNZmghPivXu+4dDWNfayVo=`。
-3. **授权权限**：在“API 权限”中添加委托权限 `Files.ReadWrite`（保留默认的 `User.Read`），如为企业租户请授予管理员同意。
-4. **运行应用**：安装 SkyDrive X，首次启动在 OOBE 向导输入 `client_id` 并登录。需要切换配置时，可在设置页点击“修改登陆配置”重新进入向导。
 
 ## 常见问题
 

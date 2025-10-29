@@ -39,6 +39,13 @@ SkyDrive X is an Android client for Microsoft 365 / OneDrive users. It delivers 
 - Preview photos (Coil 3), audio (Media3 + FFmpeg extension), and video (Media3 Compose UI with orientation and playback speed controls).
 - Preferences and theme: DataStore for dark mode / download location, Room for transfer history to survive restarts, and a settings page for account information, quota, and notification status checks.
 
+## Configuration Quick Reference
+
+1. **Register Azure AD app** – Follow [MSAL_Config.md](MSAL_Config.md) to create the application, choose multitenant + personal accounts, and keep the generated `client_id`.
+2. **Add Android redirect URI** – Configure package name `com.lurenjia534.skydrivex` and signature hash `rZDXYaNZmghPivXu+4dDWNfayVo=` under *Authentication → Add platform → Android*.
+3. **Grant permissions** – In *API permissions*, add delegated `Files.ReadWrite` (keep `User.Read`) and grant admin consent if required by your tenant.
+4. **Run the app** – Install SkyDrive X, enter the `client_id` in the OOBE wizard, and sign in. You can revisit the wizard from Settings → *Modify login configuration* whenever you need to switch apps.
+
 ## Tech Stack
 
 - **Language & base**: Kotlin 2.2.20, Android Gradle Plugin 8.13.0, compile/target SDK 36, min SDK 31.
@@ -93,13 +100,6 @@ SkyDrive X is an Android client for Microsoft 365 / OneDrive users. It delivers 
    - Unit tests: `./gradlew test` (requires a full local Android environment)
 
 > **Note**: For enterprise tenants ensure the account has `Files.ReadWrite` and `User.Read` permissions and that admin consent is granted in the Azure portal.
-
-## Configuration Quick Reference
-
-1. **Register Azure AD app** – Follow [MSAL_Config.md](MSAL_Config.md) to create the application, choose multitenant + personal accounts, and keep the generated `client_id`.
-2. **Add Android redirect URI** – Configure package name `com.lurenjia534.skydrivex` and signature hash `rZDXYaNZmghPivXu+4dDWNfayVo=` under *Authentication → Add platform → Android*.
-3. **Grant permissions** – In *API permissions*, add delegated `Files.ReadWrite` (keep `User.Read`) and grant admin consent if required by your tenant.
-4. **Run the app** – Install SkyDrive X, enter the `client_id` in the OOBE wizard, and sign in. You can revisit the wizard from Settings → *Modify login configuration* whenever you need to switch apps.
 
 ## FAQ
 
