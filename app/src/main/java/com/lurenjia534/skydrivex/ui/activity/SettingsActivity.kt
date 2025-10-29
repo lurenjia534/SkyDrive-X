@@ -248,6 +248,26 @@ fun SettingsScreen(
                 }
             }
 
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = {
+                            val intent = Intent(activity, OobeActivity::class.java).apply {
+                                putExtra(OobeActivity.EXTRA_MODE, OobeMode.UPDATE.name)
+                            }
+                            activity.startActivity(intent)
+                        }
+                    ) {
+                        Text("修改登陆配置")
+                    }
+                }
+            }
+
             // OneDrive 信息
             if (account != null) {
                 item { SectionHeader("OneDrive 信息") }
