@@ -57,9 +57,8 @@ SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端�
    git clone https://github.com/lurenjia534/SkyDriveX.git
    ```
 2. **配置 Microsoft Entra 应用**
-   - 参照仓库中的 `MSAL授权指南.md` 注册 Azure AD 应用、生成签名并获取 `client_id` 与重定向 URI。
-   - 将生成的 `client_id` 与 `redirect_uri` 写入 `app/src/main/res/raw/auth_config.json`。
-   - 在 `AndroidManifest.xml` 的 `BrowserTabActivity` 节点中更新签名路径。
+   - 请阅读仓库内的 [MSAL授权指南.md](MSAL授权指南.md)，按照步骤在 Azure Portal 注册应用、导出签名哈希并获取 `client_id`。
+   - 首次启动 SkyDrive X 时会进入 OOBE 向导，输入 `client_id` 后即可完成绑定；若需更换配置，可在应用设置页选择“修改登陆配置”。
 3. **打开工程**
    - 使用 Android Studio Koala (或更高) / Gradle 8.13。
    - 确保安装 Android 14 (API 34) 及以上 SDK，并启用 Android 15 (API 35/36) 预览以便编译。
@@ -85,12 +84,9 @@ SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端�
 - **上传大文件失败**：检查网络状况及可用空间；服务会在失败时通过通知提示错误原因，可在 `TransferService` 日志定位。
 - **通知无法显示**：Android 13+ 需要显式授予通知权限，可在应用设置中开启，或在设置页点击检测按钮跳转授权。
 
-## 截图
+## 如何配置并使用 App
 
-> 如需更多界面参考，可查看 `pic/` 目录中的示意图。
-
-![主界面示例](pic/应用注册3.png)
-![MSAL 配置示例](pic/UG70swpbJkgAI.png)
+详细的 Azure 应用注册与客户端配置步骤，请参阅 [MSAL授权指南.md](MSAL授权指南.md)。文档中包含所有界面示意与常见问题解答，按步骤完成后首次启动应用即可通过 OOBE 向导完成登录。
 
 ## 路线图 / TODO
 
