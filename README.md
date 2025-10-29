@@ -69,16 +69,18 @@ SkyDrive X is an Android client for Microsoft 365 / OneDrive users. It delivers 
 ```text
 .
 ├── app
-│   ├── build.gradle.kts                 # Module configuration and dependencies
+│   ├── build.gradle.kts                 # Android module configuration
 │   └── src/main/java/com/lurenjia534/skydrivex
-│       ├── auth                         # MSAL login & token handling
-│       ├── data                         # Graph API, Room, DataStore
+│       ├── SkyDriveXApp.kt              # @HiltAndroidApp application class
+│       ├── auth                         # MSAL login & token management
+│       ├── data                         # Graph API, repositories, Room/DataStore
 │       ├── di                           # Hilt modules
-│       ├── ui                           # Compose activities, screens, components
-│       └── SkyDriveXApp.kt              # @HiltAndroidApp entry point
+│       ├── work                         # WorkManager jobs (index sync, etc.)
+│       └── ui                           # Compose activities, screens, components
 ├── gradle/libs.versions.toml            # Centralized dependency versions
-├── MSAL授权指南.md                      # Azure AD registration & signing steps (Chinese)
-├── README.md                            # English README (this file)
+├── MSAL_Config.md                       # Azure AD setup guide (English)
+├── MSAL授权指南.md                      # Azure AD setup guide (Chinese)
+├── README.md                            # English README
 └── README_zh.md                         # Chinese README
 ```
 

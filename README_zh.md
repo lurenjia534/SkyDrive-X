@@ -68,16 +68,19 @@ SkyDrive X 是一个面向 Microsoft 365 / OneDrive 用户的 Android 客户端�
 ```text
 .
 ├── app
-│   ├── build.gradle.kts                 # 模块配置、依赖声明
+│   ├── build.gradle.kts                 # Android 模块配置
 │   └── src/main/java/com/lurenjia534/skydrivex
+│       ├── SkyDriveXApp.kt              # @HiltAndroidApp 应用入口
 │       ├── auth                         # MSAL 登录与令牌管理
-│       ├── data                         # 数据层（Graph API、Room、DataStore）
+│       ├── data                         # Graph API、Repository、Room/DataStore
 │       ├── di                           # Hilt Module
-│       ├── ui                           # Compose Activity / Screen / Component
-│       └── SkyDriveXApp.kt              # @HiltAndroidApp 启动入口
-├── gradle/libs.versions.toml            # 版本统一管理
-├── MSAL授权指南.md                      # 详细的 Azure AD 注册与签名配置步骤
-└── README.md
+│       ├── work                         # WorkManager 任务（索引同步等）
+│       └── ui                           # Compose Activity / Screen / Component
+├── gradle/libs.versions.toml            # 依赖版本集中管理
+├── MSAL_Config.md                       # Azure 配置英文指南
+├── MSAL授权指南.md                      # Azure 配置中文指南
+├── README.md                            # 英文说明
+└── README_zh.md                         # 中文说明
 ```
 
 ## 快速开始
