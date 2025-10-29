@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Image
@@ -566,6 +567,7 @@ fun FilesScreen(
                             Box {
                                 ListItem(
                                     leadingContent = {
+                                    val isApk = item.name?.endsWith(".apk", ignoreCase = true) == true
                                     if (selectionMode && itemId != null) {
                                         Checkbox(
                                             checked = selected,
@@ -577,29 +579,36 @@ fun FilesScreen(
                                             contentDescription = null,
                                         )
                                     } else {
-                                        val thumbUrl = try {
-                                            val sets = item.thumbnails
-                                            val first = sets?.firstOrNull()
-                                            first?.smallSquare?.url
-                                                ?: first?.small?.url
-                                                ?: first?.mediumSquare?.url
-                                                ?: first?.medium?.url
-                                                ?: first?.largeSquare?.url
-                                                ?: first?.large?.url
-                                        } catch (_: Exception) { null }
-                                        if (thumbUrl.isNullOrBlank()) {
+                                        if (isApk) {
                                             Icon(
-                                                imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
-                                                contentDescription = null,
+                                                imageVector = Icons.Outlined.Android,
+                                                contentDescription = null
                                             )
                                         } else {
-                                            // 使用 Coil 显示缩略图
-                                            androidx.compose.foundation.Image(
-                                                painter = coil3.compose.rememberAsyncImagePainter(thumbUrl),
-                                                contentDescription = null,
-                                                modifier = Modifier
-                                                    .size(40.dp),
-                                            )
+                                            val thumbUrl = try {
+                                                val sets = item.thumbnails
+                                                val first = sets?.firstOrNull()
+                                                first?.smallSquare?.url
+                                                    ?: first?.small?.url
+                                                    ?: first?.mediumSquare?.url
+                                                    ?: first?.medium?.url
+                                                    ?: first?.largeSquare?.url
+                                                    ?: first?.large?.url
+                                            } catch (_: Exception) { null }
+                                            if (thumbUrl.isNullOrBlank()) {
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
+                                                    contentDescription = null,
+                                                )
+                                            } else {
+                                                // 使用 Coil 显示缩略图
+                                                androidx.compose.foundation.Image(
+                                                    painter = coil3.compose.rememberAsyncImagePainter(thumbUrl),
+                                                    contentDescription = null,
+                                                    modifier = Modifier
+                                                        .size(40.dp),
+                                                )
+                                            }
                                         }
                                     }
                                 },
