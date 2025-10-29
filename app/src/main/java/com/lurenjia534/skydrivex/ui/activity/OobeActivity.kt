@@ -52,6 +52,7 @@ class OobeActivity : ComponentActivity() {
                     onCompleted = {
                         val intent = Intent(this, MainActivity::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            putExtra(MainActivity.EXTRA_SKIP_TOKEN_CHECK, true)
                         }
                         startActivity(intent)
                         finish()

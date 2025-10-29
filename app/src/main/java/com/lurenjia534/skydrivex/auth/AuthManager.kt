@@ -33,6 +33,8 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 @Singleton
 class AuthManager @Inject constructor(
@@ -101,6 +103,34 @@ class AuthManager @Inject constructor(
 
     fun getCurrentAccount(callback: ISingleAccountPublicClientApplication.CurrentAccountCallback) {
         singleAccountApp?.getCurrentAccountAsync(callback)
+    }
+
+    suspend fun hasCachedAccount(): Boolean {
+        val initialized = awaitInitialization()
+        if (!initialized) return false
+        val app = singleAccountApp ?: return false
+
+        return suspendCancellableCoroutine { continuation ->
+            app.getCurrentAccountAsync(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
+                override fun onAccountLoaded(activeAccount: IAccount?) {
+                    if (continuation.isActive) {
+                        continuation.resume(activeAccount != null)
+                    }
+                }
+
+                override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
+                    if (continuation.isActive) {
+                        continuation.resume(currentAccount != null)
+                    }
+                }
+
+                override fun onError(exception: MsalException) {
+                    if (continuation.isActive) {
+                        continuation.resume(false)
+                    }
+                }
+            })
+        }
     }
 
     private suspend fun initializeMsal(config: AuthConfig) {

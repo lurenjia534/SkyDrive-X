@@ -26,6 +26,7 @@ import com.lurenjia534.skydrivex.ui.components.BottomNavBar
 import com.lurenjia534.skydrivex.ui.navigation.NavGraph
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
+import com.lurenjia534.skydrivex.auth.AuthManager
 import com.lurenjia534.skydrivex.data.repository.AuthConfigRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -37,8 +38,10 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private var hasPromptedLogin = false
     private var isUiInitialized = false
+    private var skipTokenCheck: Boolean = false
 
     @Inject lateinit var authConfigRepository: AuthConfigRepository
+    @Inject lateinit var authManager: AuthManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -52,12 +55,19 @@ class MainActivity : ComponentActivity() {
             )
         )
         super.onCreate(savedInstanceState)
+        skipTokenCheck = intent?.getBooleanExtra(EXTRA_SKIP_TOKEN_CHECK, false) ?: false
         lifecycleScope.launch {
             val hasConfig = authConfigRepository.hasConfig()
             if (!hasConfig) {
-                startActivity(Intent(this@MainActivity, OobeActivity::class.java))
-                finish()
+                startOobeAndFinish()
                 return@launch
+            }
+            if (!skipTokenCheck) {
+                val hasToken = authManager.hasCachedAccount()
+                if (!hasToken) {
+                    startOobeAndFinish()
+                    return@launch
+                }
             }
             initializeUi()
         }
@@ -97,6 +107,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             SkyDriveXAppContent(viewModel)
         }
+    }
+
+    private fun startOobeAndFinish() {
+        startActivity(Intent(this@MainActivity, OobeActivity::class.java))
+        finish()
+    }
+
+    companion object {
+        const val EXTRA_SKIP_TOKEN_CHECK = "skip_token_check"
     }
 }
 
