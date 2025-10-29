@@ -17,28 +17,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.lurenjia534.skydrivex.auth.AuthManager
+import com.lurenjia534.skydrivex.data.repository.AuthConfigRepository
+import com.lurenjia534.skydrivex.ui.activity.OobeMode.INITIAL
 import com.lurenjia534.skydrivex.ui.components.BottomNavBar
 import com.lurenjia534.skydrivex.ui.navigation.NavGraph
 import com.lurenjia534.skydrivex.ui.theme.SkyDriveXTheme
 import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
-import com.lurenjia534.skydrivex.auth.AuthManager
-import com.lurenjia534.skydrivex.data.repository.AuthConfigRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
-    private var hasPromptedLogin = false
     private var isUiInitialized = false
     private var skipTokenCheck: Boolean = false
+    private var shouldRequestSignIn: Boolean = false
 
     @Inject lateinit var authConfigRepository: AuthConfigRepository
     @Inject lateinit var authManager: AuthManager
@@ -52,10 +50,11 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.auto(
                 lightScrim = Color.Transparent.toArgb(),
                 darkScrim  = Color.Transparent.toArgb()
-            )
+        )
         )
         super.onCreate(savedInstanceState)
         skipTokenCheck = intent?.getBooleanExtra(EXTRA_SKIP_TOKEN_CHECK, false) ?: false
+        shouldRequestSignIn = intent?.getBooleanExtra(EXTRA_REQUEST_SIGN_IN, false) ?: false
         lifecycleScope.launch {
             val hasConfig = authConfigRepository.hasConfig()
             if (!hasConfig) {
@@ -77,6 +76,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         if (isUiInitialized) {
             viewModel.acquireTokenSilent()
+            maybeTriggerSignIn()
         }
     }
 
@@ -85,37 +85,34 @@ class MainActivity : ComponentActivity() {
         isUiInitialized = true
 
         viewModel.acquireTokenSilent()
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(
-                    viewModel.isAccountInitialized,
-                    viewModel.account
-                ) { initialized, account -> initialized to account }
-                    .collect { (initialized, account) ->
-                        if (!initialized) return@collect
-                        if (account == null) {
-                            if (!hasPromptedLogin) {
-                                hasPromptedLogin = true
-                                startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
-                            }
-                        } else {
-                            hasPromptedLogin = false
-                        }
-                    }
-            }
-        }
         setContent {
             SkyDriveXAppContent(viewModel)
         }
+        maybeTriggerSignIn()
     }
 
     private fun startOobeAndFinish() {
-        startActivity(Intent(this@MainActivity, OobeActivity::class.java))
+        startActivity(
+            Intent(this@MainActivity, OobeActivity::class.java).apply {
+                putExtra(OobeActivity.EXTRA_MODE, INITIAL.name)
+            }
+        )
         finish()
+    }
+
+    private fun maybeTriggerSignIn() {
+        if (!shouldRequestSignIn) return
+        shouldRequestSignIn = false
+        lifecycleScope.launch {
+            if (authManager.awaitInitialization()) {
+                viewModel.signIn(this@MainActivity)
+            }
+        }
     }
 
     companion object {
         const val EXTRA_SKIP_TOKEN_CHECK = "skip_token_check"
+        const val EXTRA_REQUEST_SIGN_IN = "request_sign_in"
     }
 }
 
