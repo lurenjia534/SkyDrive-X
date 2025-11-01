@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.ksp)    // ← 用 alias
 }
 
-val appVersionName = "1.0"
+val appVersionName = "1.1"
 
 android {
     namespace = "com.lurenjia534.skydrivex"
