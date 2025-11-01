@@ -69,6 +69,11 @@
             android:theme="@style/Theme.SkyDriveX" />
 
         <activity
+            android:name=".ui.activity.PhotoSyncActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SkyDriveX" />
+
+        <activity
             android:name=".ui.activity.AboutActivity"
             android:exported="false"
             android:theme="@style/Theme.SkyDriveX" />
