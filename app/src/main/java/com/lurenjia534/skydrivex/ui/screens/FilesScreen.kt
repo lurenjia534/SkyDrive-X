@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -165,6 +166,13 @@ fun FilesScreen(
     var showBulkDeleteDialog by remember { mutableStateOf(false) }
     var moveTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // id, currentName
     var showMoveSheet by remember { mutableStateOf(false) }
+    val backEnabled = uiState.selectionMode || (uiState.canGoBack && token != null)
+    BackHandler(enabled = backEnabled) {
+        when {
+            uiState.selectionMode -> viewModel.exitSelectionMode()
+            uiState.canGoBack && token != null -> viewModel.goBack(token)
+        }
+    }
 
     // Listen for upload completion broadcast to refresh current folder
     DisposableEffect(token) {
