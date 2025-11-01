@@ -32,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.outlined.Launch
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -656,6 +657,22 @@ fun SettingsScreen(
 
             // 应用设置
             item { SectionHeader("应用设置") }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
+                        leadingContent = { Icon(imageVector = Icons.Outlined.PhotoLibrary, contentDescription = null) },
+                        headlineContent = { Text("相册同步") },
+                        supportingContent = { Text("管理本地照片的自动同步设置") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val intent = Intent(activity, PhotoSyncActivity::class.java)
+                                activity.startActivity(intent)
+                            }
+                    )
+                }
+            }
+            item { Spacer(Modifier.height(1.dp)) }
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                     ListItem(
