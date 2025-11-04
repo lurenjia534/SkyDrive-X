@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Edit
@@ -166,6 +167,7 @@ fun FilesScreen(
     var showBulkDeleteDialog by remember { mutableStateOf(false) }
     var moveTarget by remember { mutableStateOf<Pair<String, String?>?>(null) } // id, currentName
     var showMoveSheet by remember { mutableStateOf(false) }
+    var showBulkMoveSheet by remember { mutableStateOf(false) }
     val backEnabled = uiState.selectionMode || (uiState.canGoBack && token != null)
     BackHandler(enabled = backEnabled) {
         when {
@@ -450,6 +452,21 @@ fun FilesScreen(
                         Icon(
                             imageVector = Icons.Rounded.Download,
                             contentDescription = "下载所选"
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            if (token == null) {
+                                scope.launch { snackbarHostState.showSnackbar("未登录，无法移动") }
+                            } else {
+                                showBulkMoveSheet = true
+                            }
+                        },
+                        enabled = selectedCount > 0 && token != null
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.DriveFileMove,
+                            contentDescription = "移动所选"
                         )
                     }
                     IconButton(
@@ -1075,6 +1092,46 @@ fun FilesScreen(
                     runCatching { viewModel.renameItem(id, token, newName) }
                         .onSuccess { snackbarHostState.showSnackbar("已重命名为：$newName") }
                         .onFailure { snackbarHostState.showSnackbar(it.message ?: "重命名失败") }
+                }
+            }
+        )
+    }
+
+    if (showBulkMoveSheet && token != null) {
+        MoveItemSheet(
+            token = token,
+            visible = showBulkMoveSheet,
+            allowRename = false,
+            onDismiss = { showBulkMoveSheet = false },
+            onConfirm = { folderId, _ ->
+                scope.launch {
+                    snackbarHostState.showSnackbar("正在移动…")
+                    runCatching {
+                        viewModel.moveSelected(
+                            token = token,
+                            newParentId = folderId
+                        )
+                    }.onSuccess { result ->
+                        val successCount = result.succeeded.size
+                        val failedCount = result.failed.size
+                        val message = when {
+                            failedCount == 0 -> "已移动 $successCount 项"
+                            successCount == 0 -> {
+                                val err = result.failed.firstOrNull()?.second
+                                "移动失败：${err ?: "未知错误"}"
+                            }
+                            else -> "部分成功：$successCount 项成功，$failedCount 项失败"
+                        }
+                        snackbarHostState.showSnackbar(message)
+                        if (failedCount > 0) {
+                            val detail = result.failed.firstOrNull()?.second
+                            if (!detail.isNullOrBlank()) {
+                                snackbarHostState.showSnackbar(detail)
+                            }
+                        }
+                    }.onFailure {
+                        snackbarHostState.showSnackbar(it.message ?: "移动失败")
+                    }
                 }
             }
         )
