@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -313,6 +314,7 @@ fun FilesScreen(
     ) { padding ->
         val contentModifier = modifier.fillMaxSize().padding(padding)
         val listState = rememberLazyListState()
+        val emptyScrollState = rememberScrollState()
         // Pull-to-refresh (downward) using nested scroll + M3 LoadingIndicator
         val density = LocalDensity.current
         var pullOffset by remember { mutableFloatStateOf(0f) }
@@ -555,7 +557,10 @@ fun FilesScreen(
                                 searchQuery = ""
                                 viewModel.clearSearch()
                             },
-                            modifier = Modifier.weight(1f).fillMaxWidth()
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .verticalScroll(emptyScrollState)
                         )
                     } else {
                         EmptyState(
@@ -569,7 +574,10 @@ fun FilesScreen(
                                 newFolderName = ""
                                 showNewFolderDialog = true
                             },
-                            modifier = Modifier.weight(1f).fillMaxWidth()
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .verticalScroll(emptyScrollState)
                         )
                     }
                 }
