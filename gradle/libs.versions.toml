@@ -17,6 +17,10 @@ work = "2.11.0"
 retrofit = "3.0.0"
 okhttp = "5.2.1"
 coil3 = "3.3.0"
+moshi = "1.15.2"
+msal = "7.1.0"
+materialIconsExtended = "1.7.8"
+composePlaceholderMaterial3 = "1.0.12"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,6 +48,10 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 coil3-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil3" }
 coil3-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil3" }
+moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
+msal = { group = "com.microsoft.identity.client", name = "msal", version.ref = "msal" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
+compose-placeholder-material3 = { group = "com.eygraber", name = "compose-placeholder-material3", version.ref = "composePlaceholderMaterial3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
