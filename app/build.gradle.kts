@@ -55,7 +55,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.moshi.kotlin)
-    implementation("androidx.datastore:datastore-preferences:1.1.7")
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.msal)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.compose.placeholder.material3)
