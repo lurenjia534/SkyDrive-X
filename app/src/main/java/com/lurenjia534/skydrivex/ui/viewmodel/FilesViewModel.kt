@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lurenjia534.skydrivex.data.model.driveitem.DriveItemDto
 import com.lurenjia534.skydrivex.data.repository.FilesRepository
+import com.lurenjia534.skydrivex.data.repository.BatchMoveResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.lurenjia534.skydrivex.ui.state.FilesUiState
 import com.lurenjia534.skydrivex.ui.state.Breadcrumb
@@ -358,6 +359,24 @@ class FilesViewModel @Inject constructor(
                 _filesState.value = _filesState.value.copy(error = e.message)
             }
         }
+    }
+
+    suspend fun moveSelected(
+        token: String,
+        newParentId: String,
+        renameMap: Map<String, String?> = emptyMap()
+    ): BatchMoveResult {
+        val ids = _filesState.value.selectedIds.toList()
+        if (ids.isEmpty()) return BatchMoveResult(0, emptyList(), emptyList())
+        val result = filesRepository.moveItems(
+            itemIds = ids,
+            token = "Bearer $token",
+            newParentId = newParentId,
+            renameMap = renameMap
+        )
+        exitSelectionMode()
+        refreshCurrent(token)
+        return result
     }
 
     suspend fun getDownloadUrl(itemId: String, token: String): String? {
