@@ -7,6 +7,8 @@ import com.lurenjia534.skydrivex.data.local.auth.AuthConfigDatabase
 import com.lurenjia534.skydrivex.data.local.db.TransferDatabase
 import com.lurenjia534.skydrivex.data.local.db.dao.TransferDao
 import com.lurenjia534.skydrivex.data.local.db.TransferRepository
+import com.lurenjia534.skydrivex.data.local.photosync.PhotoSyncDao
+import com.lurenjia534.skydrivex.data.local.photosync.PhotoSyncDatabase
 import com.lurenjia534.skydrivex.ui.notification.TransferTracker
 import dagger.Module
 import dagger.Provides
@@ -49,6 +51,19 @@ object DatabaseModule {
 
     @Provides
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @Singleton
+    fun providePhotoSyncDatabase(
+        @ApplicationContext context: Context
+    ): PhotoSyncDatabase = Room.databaseBuilder(
+        context,
+        PhotoSyncDatabase::class.java,
+        "photo_sync_db"
+    ).build()
+
+    @Provides
+    fun providePhotoSyncDao(database: PhotoSyncDatabase): PhotoSyncDao = database.photoSyncDao()
 
     @Provides
     @Singleton

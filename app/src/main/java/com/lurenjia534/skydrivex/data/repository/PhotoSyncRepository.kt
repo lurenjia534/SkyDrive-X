@@ -84,7 +84,9 @@ class PhotoSyncRepository @Inject constructor(
             MediaStore.Files.FileColumns.DURATION,
             MediaStore.Files.FileColumns.DATE_TAKEN,
             MediaStore.Files.FileColumns.DATE_ADDED,
-            MediaStore.Files.FileColumns.DISPLAY_NAME
+            MediaStore.Files.FileColumns.DATE_MODIFIED,
+            MediaStore.Files.FileColumns.DISPLAY_NAME,
+            MediaStore.Files.FileColumns.SIZE
         )
         val selection = buildString {
             append(MediaStore.Files.FileColumns.BUCKET_ID)
@@ -128,6 +130,8 @@ class PhotoSyncRepository @Inject constructor(
             val durationIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DURATION)
             val dateTakenIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_TAKEN)
             val dateAddedIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_ADDED)
+            val dateModifiedIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED)
+            val sizeIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idIndex)
                 val ownerBucketId = cursor.getString(bucketIdIndex) ?: continue
@@ -138,6 +142,9 @@ class PhotoSyncRepository @Inject constructor(
                 val duration = if (isVideo) cursor.getLong(durationIndex) else 0L
                 val dateTaken = cursor.getLong(dateTakenIndex).takeIf { it > 0 }
                     ?: (cursor.getLong(dateAddedIndex) * 1000)
+                val dateModified = cursor.getLong(dateModifiedIndex).takeIf { it > 0 }?.times(1000)
+                    ?: dateTaken
+                val size = cursor.getLong(sizeIndex)
                 val baseUri = if (isVideo) videosBase else imagesBase
                 val uri = ContentUris.withAppendedId(baseUri, id)
                 items += LocalMediaItem(
@@ -148,7 +155,9 @@ class PhotoSyncRepository @Inject constructor(
                     mimeType = mime,
                     isVideo = isVideo,
                     durationMillis = duration,
-                    takenAtMillis = dateTaken
+                    takenAtMillis = dateTaken,
+                    modifiedAtMillis = dateModified ?: dateTaken,
+                    sizeBytes = size
                 )
             }
         }

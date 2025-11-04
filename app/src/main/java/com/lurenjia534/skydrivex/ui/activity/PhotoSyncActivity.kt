@@ -51,6 +51,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -161,7 +162,8 @@ fun PhotoSyncScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    onToggleBackup = viewModel::toggleBackup
+                    onToggleBackup = viewModel::toggleBackup,
+                    onBackupNow = viewModel::backupNow
                 )
             }
 
@@ -214,6 +216,7 @@ fun PhotoSyncScreen(
                     items(albums) { album ->
                         AlbumCard(
                             album = album,
+                            backupEnabled = uiState.backupFlags[album.bucketId] ?: false,
                             onClick = { viewModel.openAlbum(album) }
                         )
                     }
@@ -227,6 +230,7 @@ fun PhotoSyncScreen(
 @Composable
 private fun AlbumCard(
     album: LocalAlbum,
+    backupEnabled: Boolean,
     onClick: () -> Unit
 ) {
     Card(
@@ -281,9 +285,12 @@ private fun AlbumCard(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = remember(album.itemCount) { "${album.itemCount} 项内容 · 备份已关闭" },
+                text = remember(album.itemCount, backupEnabled) {
+                    val status = if (backupEnabled) "备份已开启" else "备份未开启"
+                    "${album.itemCount} 项内容 · $status"
+                },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (backupEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -296,7 +303,8 @@ private fun AlbumCard(
 private fun AlbumDetailContent(
     state: PhotoSyncViewModel.AlbumDetailUiState,
     modifier: Modifier = Modifier,
-    onToggleBackup: (Boolean) -> Unit
+    onToggleBackup: (Boolean) -> Unit,
+    onBackupNow: () -> Unit
 ) {
     LazyColumn(
         modifier = modifier,
@@ -317,13 +325,17 @@ private fun AlbumDetailContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                androidx.compose.material3.TextButton(onClick = onBackupNow) {
+                    Text("立即备份")
+                }
                 Switch(
                     checked = state.backupEnabled,
                     onCheckedChange = onToggleBackup,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                         checkedTrackColor = MaterialTheme.colorScheme.primary
-                    )
+                    ),
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
             Divider(modifier = Modifier.padding(top = 12.dp))

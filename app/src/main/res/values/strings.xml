@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">SkyDrive X</string>
     <string name="app_version_name">1.1</string>
+    <string name="photo_backup_notification_title">%1$s 正在备份</string>
+    <string name="photo_backup_notification_progress">%1$d / %2$d 个项目</string>
+    <string name="photo_backup_notification_scanning">正在扫描相册…</string>
+    <string name="photo_backup_completed_title">%1$s 备份完成</string>
+    <string name="photo_backup_completed_success">成功上传 %1$d 个项目</string>
+    <string name="photo_backup_completed_partial">上传成功 %1$d 个，失败 %2$d 个</string>
 </resources>

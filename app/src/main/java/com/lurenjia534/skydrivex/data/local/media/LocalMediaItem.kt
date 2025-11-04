@@ -11,4 +11,6 @@ data class LocalMediaItem(
     val isVideo: Boolean,
     val durationMillis: Long,
     val takenAtMillis: Long,
+    val modifiedAtMillis: Long,
+    val sizeBytes: Long
 )

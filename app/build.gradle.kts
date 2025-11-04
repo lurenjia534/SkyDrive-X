@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.androidx.lifecycle.service)
     ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
     implementation(libs.retrofit2)
     implementation(libs.retrofit2.converter.moshi)
     implementation(libs.okhttp)

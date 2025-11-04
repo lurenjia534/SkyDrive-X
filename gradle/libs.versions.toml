@@ -22,6 +22,7 @@ msal = "7.1.0"
 materialIconsExtended = "1.7.8"
 composePlaceholderMaterial3 = "1.0.12"
 datastore = "1.1.7"
+androidxHilt = "1.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -54,6 +55,8 @@ msal = { group = "com.microsoft.identity.client", name = "msal", version.ref = "
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 compose-placeholder-material3 = { group = "com.eygraber", name = "compose-placeholder-material3", version.ref = "composePlaceholderMaterial3" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "androidxHilt" }
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "androidxHilt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

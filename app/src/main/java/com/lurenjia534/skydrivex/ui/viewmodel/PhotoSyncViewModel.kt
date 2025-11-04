@@ -9,8 +9,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lurenjia534.skydrivex.data.local.media.LocalAlbum
 import com.lurenjia534.skydrivex.data.local.media.LocalMediaItem
+import com.lurenjia534.skydrivex.data.local.photosync.PhotoSyncLocalDataSource
 import com.lurenjia534.skydrivex.data.repository.PhotoSyncRepository
 import com.lurenjia534.skydrivex.ui.state.PhotoSyncUiState
+import com.lurenjia534.skydrivex.work.PhotoBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
@@ -27,6 +29,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class PhotoSyncViewModel @Inject constructor(
     private val repository: PhotoSyncRepository,
+    private val localDataSource: PhotoSyncLocalDataSource,
+    private val scheduler: PhotoBackupScheduler,
     @ApplicationContext private val context: Context,
     private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
@@ -50,9 +54,18 @@ class PhotoSyncViewModel @Inject constructor(
     private val _albumDetailState = MutableStateFlow(AlbumDetailUiState())
     val albumDetailState = _albumDetailState.asStateFlow()
 
-    private val albumBackupStates = mutableMapOf<String, Boolean>()
-
     init {
+        viewModelScope.launch {
+            localDataSource.observeAlbumPreferences().collect { prefs ->
+                val mapping = prefs.associate { it.bucketId to it.enabled }
+                _uiState.value = _uiState.value.copy(backupFlags = mapping)
+                val current = _albumDetailState.value.album
+                if (current != null) {
+                    val enabled = mapping[current.bucketId] ?: false
+                    _albumDetailState.value = _albumDetailState.value.copy(backupEnabled = enabled)
+                }
+            }
+        }
         refresh()
     }
 
@@ -132,7 +145,7 @@ class PhotoSyncViewModel @Inject constructor(
     }
 
     fun openAlbum(album: LocalAlbum) {
-        val backupEnabled = albumBackupStates[album.bucketId] ?: false
+        val backupEnabled = _uiState.value.backupFlags[album.bucketId] ?: false
         _albumDetailState.value = AlbumDetailUiState(
             album = album,
             isLoading = true,
@@ -167,9 +180,24 @@ class PhotoSyncViewModel @Inject constructor(
 
     fun toggleBackup(enabled: Boolean) {
         val current = _albumDetailState.value.album ?: return
-        albumBackupStates[current.bucketId] = enabled
         _albumDetailState.value = _albumDetailState.value.copy(backupEnabled = enabled)
-        // TODO: Persist preference and trigger sync scheduling
+        viewModelScope.launch(ioDispatcher) {
+            localDataSource.setAlbumPreference(
+                bucketId = current.bucketId,
+                albumName = current.displayName ?: current.bucketId,
+                enabled = enabled
+            )
+        }
+        if (enabled) {
+            scheduler.enqueueAlbum(current.bucketId, current.displayName ?: current.bucketId)
+        } else {
+            scheduler.cancelAlbum(current.bucketId)
+        }
+    }
+
+    fun backupNow() {
+        val current = _albumDetailState.value.album ?: return
+        scheduler.enqueueAlbum(current.bucketId, current.displayName ?: current.bucketId)
     }
 
     private fun buildSections(items: List<LocalMediaItem>): List<AlbumSection> {
