@@ -40,6 +40,7 @@ class PhotoBackupManager @Inject constructor(
         albumName: String,
         onProgress: suspend (completed: Int, total: Int) -> Unit = { _, _ -> }
     ): BackupResult {
+        Log.d(TAG, "backupAlbum start bucket=$bucketId name=$albumName")
         val rootFolderId = ensureRootFolder(bearerToken)
         val albumFolderId = ensureAlbumFolder(
             bearerToken = bearerToken,
@@ -49,6 +50,7 @@ class PhotoBackupManager @Inject constructor(
         )
 
         val items = photoSyncRepository.loadAlbumItems(bucketId)
+        Log.d(TAG, "backupAlbum scan bucket=$bucketId total=${items.size}")
         if (items.isEmpty()) {
             onProgress(0, 0)
             return BackupResult(0, 0, 0)
@@ -62,6 +64,7 @@ class PhotoBackupManager @Inject constructor(
                 UploadStatus.PENDING, UploadStatus.FAILED -> true
             }
         }
+        Log.d(TAG, "backupAlbum pending bucket=$bucketId count=${toUpload.size}")
 
         if (toUpload.isEmpty()) {
             onProgress(items.size, items.size)
@@ -81,6 +84,7 @@ class PhotoBackupManager @Inject constructor(
             }
             if (result.isSuccess) {
                 val itemId = result.getOrNull()
+                Log.d(TAG, "upload success uri=${media.uri}")
                 localDataSource.markUpload(
                     contentUri = media.uri.toString(),
                     bucketId = bucketId,
@@ -92,7 +96,7 @@ class PhotoBackupManager @Inject constructor(
                 )
                 success += 1
             } else {
-                Log.e(TAG, "Failed to upload ${media.uri}: ${result.exceptionOrNull()?.message}")
+                Log.e(TAG, "upload failed uri=${media.uri}", result.exceptionOrNull())
                 localDataSource.markUpload(
                     contentUri = media.uri.toString(),
                     bucketId = bucketId,
@@ -107,23 +111,40 @@ class PhotoBackupManager @Inject constructor(
             completed += 1
             onProgress(completed, total)
         }
+        Log.d(TAG, "backupAlbum done bucket=$bucketId success=$success failed=$failed total=$total")
         return BackupResult(success, failed, total)
     }
 
     private suspend fun ensureRootFolder(bearerToken: String): String {
         val cached = localDataSource.getAlbumFolder(ROOT_BUCKET_ID)
         val expectedPath = "/$ROOT_FOLDER_NAME"
+        Log.d(TAG, "ensureRootFolder cached=$cached expected=$expectedPath")
         if (cached != null && cached.remotePath == expectedPath) {
-            return cached.remoteFolderId
+            val exists = folderExists(bearerToken, cached.remoteFolderId)
+            if (exists) {
+                return cached.remoteFolderId
+            }
+            Log.w(TAG, "ensureRootFolder cached folder missing remotely, recreating")
         }
         val children = filesRepository.getRootChildren(bearerToken).filter { it.folder != null }
         val existing = children.firstOrNull { it.name.equals(ROOT_FOLDER_NAME, ignoreCase = true) }
-        val folderId = (existing ?: filesRepository.createFolder(
-            parentId = "root",
-            token = bearerToken,
-            name = ROOT_FOLDER_NAME,
-            conflictBehavior = "rename"
-        )).id ?: error("Failed to resolve root folder id")
+        val folderId = if (existing != null && existing.id != null) {
+            Log.d(TAG, "ensureRootFolder found remote id=${existing.id}")
+            existing.id
+        } else {
+            Log.d(TAG, "ensureRootFolder creating new root folder")
+            val created = filesRepository.createFolder(
+                parentId = "root",
+                token = bearerToken,
+                name = ROOT_FOLDER_NAME,
+                conflictBehavior = "rename"
+            )
+            created.id ?: error("Failed to resolve root folder id")
+        }
+        if (cached != null && cached.remotePath != expectedPath) {
+            Log.d(TAG, "ensureRootFolder path changed, reset root bucket uploads")
+            localDataSource.resetUploadsForBucket(ROOT_BUCKET_ID)
+        }
 
         localDataSource.setAlbumFolder(
             bucketId = ROOT_BUCKET_ID,
@@ -142,17 +163,30 @@ class PhotoBackupManager @Inject constructor(
     ): String {
         val safeName = slug(albumName)
         val expectedPath = "/$ROOT_FOLDER_NAME/$safeName"
-        localDataSource.getAlbumFolder(bucketId)?.let { mapping ->
-            if (mapping.remotePath == expectedPath) return mapping.remoteFolderId
+        val existingMapping = localDataSource.getAlbumFolder(bucketId)
+        Log.d(TAG, "ensureAlbumFolder cached=$existingMapping expected=$expectedPath")
+        if (existingMapping != null && existingMapping.remotePath == expectedPath) {
+            val exists = folderExists(bearerToken, existingMapping.remoteFolderId)
+            if (exists) {
+                return existingMapping.remoteFolderId
+            }
+            Log.w(TAG, "ensureAlbumFolder cached folder missing remotely, recreating bucket=$bucketId")
         }
         val children = filesRepository.getChildren(rootFolderId, bearerToken).filter { it.folder != null }
         val existing = children.firstOrNull { it.name.equals(safeName, ignoreCase = false) }
-        val folderId = (existing ?: filesRepository.createFolder(
-            parentId = rootFolderId,
-            token = bearerToken,
-            name = safeName,
-            conflictBehavior = "rename"
-        )).id ?: error("Failed to resolve album folder id")
+        val folderId = if (existing != null && existing.id != null) {
+            Log.d(TAG, "ensureAlbumFolder found remote id=${existing.id}")
+            existing.id
+        } else {
+            Log.d(TAG, "ensureAlbumFolder creating folder for $safeName")
+            val created = filesRepository.createFolder(
+                parentId = rootFolderId,
+                token = bearerToken,
+                name = safeName,
+                conflictBehavior = "rename"
+            )
+            created.id ?: error("Failed to resolve album folder id")
+        }
 
         localDataSource.setAlbumFolder(
             bucketId = bucketId,
@@ -160,7 +194,24 @@ class PhotoBackupManager @Inject constructor(
             folderId = folderId,
             remotePath = expectedPath
         )
+        if (existingMapping != null && existingMapping.remotePath != expectedPath) {
+            Log.d(TAG, "ensureAlbumFolder path changed, reset bucket=$bucketId uploads")
+            localDataSource.resetUploadsForBucket(bucketId)
+        } else if (existingMapping != null) {
+            Log.d(TAG, "ensureAlbumFolder remote folder recreated, reset bucket=$bucketId uploads")
+            localDataSource.resetUploadsForBucket(bucketId)
+        }
         return folderId
+    }
+
+    private suspend fun folderExists(bearerToken: String, folderId: String): Boolean {
+        return runCatching {
+            val item = filesRepository.getItemBasic(folderId, bearerToken)
+            item.folder != null
+        }.getOrElse {
+            Log.w(TAG, "folderExists failed for id=$folderId : ${it.message}")
+            false
+        }
     }
 
     private suspend fun uploadSingleMedia(

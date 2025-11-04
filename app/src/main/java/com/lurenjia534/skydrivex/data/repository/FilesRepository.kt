@@ -143,6 +143,9 @@ class FilesRepository @Inject constructor(
     suspend fun getItemDetails(itemId: String, token: String): DriveItemDto =
         graphApiService.getItemDetails(itemId = itemId, token = token)
 
+    suspend fun getItemBasic(itemId: String, token: String): DriveItemDto =
+        graphApiService.getItemBasic(itemId = itemId, token = token)
+
     suspend fun createShareLink(
         itemId: String,
         token: String,

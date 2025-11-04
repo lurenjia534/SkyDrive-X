@@ -65,4 +65,9 @@ class PhotoSyncLocalDataSource @Inject constructor(
             )
         )
     }
+
+    suspend fun resetUploadsForBucket(bucketId: String) {
+        android.util.Log.d("PhotoBackup", "resetUploadsForBucket bucket=$bucketId")
+        dao.deleteByBucket(bucketId)
+    }
 }

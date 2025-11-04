@@ -32,4 +32,10 @@ interface PhotoSyncDao {
 
     @Query("DELETE FROM media_uploads WHERE status = :status AND bucketId = :bucketId")
     suspend fun deleteByStatus(bucketId: String, status: UploadStatus)
+
+    @Query("UPDATE media_uploads SET status = :status WHERE bucketId = :bucketId")
+    suspend fun updateStatusForBucket(bucketId: String, status: UploadStatus)
+
+    @Query("DELETE FROM media_uploads WHERE bucketId = :bucketId")
+    suspend fun deleteByBucket(bucketId: String)
 }
