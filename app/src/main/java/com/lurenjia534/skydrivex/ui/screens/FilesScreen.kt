@@ -380,6 +380,11 @@ fun FilesScreen(
         }
         val itemsToShow = if (searchQuery.isBlank()) uiState.items else uiState.searchResults
         val filteredItems = itemsToShow.orEmpty()
+        val imageEntries = remember(filteredItems) {
+            filteredItems.filter { it.file?.mimeType?.startsWith("image/") == true && !it.id.isNullOrEmpty() }
+        }
+        val imageIdsForPreview = remember(imageEntries) { ArrayList(imageEntries.mapNotNull { it.id }) }
+        val imageNamesForPreview = remember(imageEntries) { ArrayList(imageEntries.map { it.name ?: "" }) }
         val isBusy = if (searchQuery.isBlank()) uiState.isLoading else uiState.isSearching
         val errorNow = if (searchQuery.isBlank()) uiState.error else uiState.searchError
         // 统一用 Column 包裹，顶部放搜索/标题/面包屑，底部权重占满显示列表
@@ -765,14 +770,18 @@ fun FilesScreen(
                                                         onClick = {
                                                             val id = item.id
                                                             if (id != null) {
-                                                                val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
-                                                                val intent = Intent(context, ImagePreviewActivity::class.java)
-                                                                intent.putExtra(ImagePreviewActivity.EXTRA_ITEM_ID, id)
-                                                                intent.putExtra(ImagePreviewActivity.EXTRA_NAME, encodedName)
-                                                                context.startActivity(intent)
-                                                            } else {
-                                                                scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
-                                                            }
+                                                            val encodedName = java.net.URLEncoder.encode(item.name ?: "", "UTF-8")
+                                                            val intent = Intent(context, ImagePreviewActivity::class.java)
+                                                            val index = imageIdsForPreview.indexOf(id).takeIf { it >= 0 } ?: 0
+                                                            intent.putExtra(ImagePreviewActivity.EXTRA_ITEM_ID, id)
+                                                            intent.putExtra(ImagePreviewActivity.EXTRA_NAME, encodedName)
+                                                            intent.putStringArrayListExtra(ImagePreviewActivity.EXTRA_IMAGE_IDS, ArrayList(imageIdsForPreview))
+                                                            intent.putStringArrayListExtra(ImagePreviewActivity.EXTRA_IMAGE_NAMES, ArrayList(imageNamesForPreview))
+                                                            intent.putExtra(ImagePreviewActivity.EXTRA_IMAGE_INDEX, index)
+                                                            context.startActivity(intent)
+                                                        } else {
+                                                            scope.launch { snackbarHostState.showSnackbar("无法预览：缺少条目ID") }
+                                                        }
                                                             expanded = false
                                                         },
                                                         leadingIcon = { Icon(Icons.Outlined.Image, contentDescription = null) }
@@ -901,8 +910,12 @@ fun FilesScreen(
                                                 when {
                                                     (mime != null && mime.startsWith("image/")) || isImageByExt -> {
                                                         val intent = Intent(context, ImagePreviewActivity::class.java)
+                                                        val index = imageIdsForPreview.indexOf(id).takeIf { it >= 0 } ?: 0
                                                         intent.putExtra(ImagePreviewActivity.EXTRA_ITEM_ID, id)
                                                         intent.putExtra(ImagePreviewActivity.EXTRA_NAME, encodedName)
+                                                        intent.putStringArrayListExtra(ImagePreviewActivity.EXTRA_IMAGE_IDS, ArrayList(imageIdsForPreview))
+                                                        intent.putStringArrayListExtra(ImagePreviewActivity.EXTRA_IMAGE_NAMES, ArrayList(imageNamesForPreview))
+                                                        intent.putExtra(ImagePreviewActivity.EXTRA_IMAGE_INDEX, index)
                                                         context.startActivity(intent)
                                                     }
                                                     (mime != null && mime.startsWith("video/")) || isVideoByExt -> {

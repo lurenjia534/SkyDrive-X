@@ -22,6 +22,9 @@ class ImagePreviewActivity : ComponentActivity() {
 
         val itemId = intent.getStringExtra(EXTRA_ITEM_ID)
         val nameEncoded = intent.getStringExtra(EXTRA_NAME)
+        val imageIdList = intent.getStringArrayListExtra(EXTRA_IMAGE_IDS) ?: arrayListOf()
+        val imageNameList = intent.getStringArrayListExtra(EXTRA_IMAGE_NAMES) ?: arrayListOf()
+        val initialIndex = intent.getIntExtra(EXTRA_IMAGE_INDEX, imageIdList.indexOf(itemId).takeIf { it >= 0 } ?: 0)
 
         setContent {
             val isDark by mainViewModel.isDarkMode.collectAsState(initial = false)
@@ -29,6 +32,9 @@ class ImagePreviewActivity : ComponentActivity() {
                 ImagePreviewScreen(
                     itemId = itemId,
                     nameEncoded = nameEncoded,
+                    imageIds = imageIdList,
+                    imageNames = imageNameList,
+                    initialIndex = initialIndex,
                     onBack = { finish() }
                 )
             }
@@ -38,6 +44,8 @@ class ImagePreviewActivity : ComponentActivity() {
     companion object {
         const val EXTRA_ITEM_ID = "extra_item_id"
         const val EXTRA_NAME = "extra_name"
+        const val EXTRA_IMAGE_IDS = "extra_image_ids"
+        const val EXTRA_IMAGE_NAMES = "extra_image_names"
+        const val EXTRA_IMAGE_INDEX = "extra_image_index"
     }
 }
-

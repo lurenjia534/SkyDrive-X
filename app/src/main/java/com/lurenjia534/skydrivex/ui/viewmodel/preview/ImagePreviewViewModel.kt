@@ -8,6 +8,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @HiltViewModel
@@ -15,28 +16,38 @@ class ImagePreviewViewModel @Inject constructor(
     private val filesRepository: FilesRepository,
 ) : ViewModel() {
 
-    private val _imageUrl = MutableStateFlow<String?>(null)
-    val imageUrl: StateFlow<String?> = _imageUrl.asStateFlow()
+    private val _imageUrls = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val imageUrls: StateFlow<Map<String, String?>> = _imageUrls.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _loadingIds = MutableStateFlow<Set<String>>(emptySet())
+    val loadingIds: StateFlow<Set<String>> = _loadingIds.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val _errors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val errors: StateFlow<Map<String, String>> = _errors.asStateFlow()
 
-    fun load(itemId: String, token: String) {
+    fun ensureLoaded(itemId: String, token: String) {
+        if (_imageUrls.value.containsKey(itemId) || _loadingIds.value.contains(itemId)) return
         viewModelScope.launch {
-            _error.value = null
-            _imageUrl.value = null
-            _isLoading.value = true
+            _loadingIds.update { it + itemId }
+            _errors.update { it - itemId }
             try {
                 val url = filesRepository.getDownloadUrl(itemId, "Bearer $token")
-                _imageUrl.value = url
+                _imageUrls.update { it + (itemId to url) }
             } catch (e: Exception) {
-                _error.value = e.message
+                _errors.update { it + (itemId to (e.message ?: "加载失败")) }
             } finally {
-                _isLoading.value = false
+                _loadingIds.update { it - itemId }
             }
         }
+    }
+
+    fun clearError(itemId: String) {
+        _errors.update { it - itemId }
+    }
+
+    fun resetCache() {
+        _imageUrls.value = emptyMap()
+        _loadingIds.value = emptySet()
+        _errors.value = emptyMap()
     }
 }
