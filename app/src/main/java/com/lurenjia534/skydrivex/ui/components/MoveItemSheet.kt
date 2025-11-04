@@ -43,13 +43,16 @@ fun MoveItemSheet(
     token: String,
     visible: Boolean,
     initialName: String? = null,
+    allowRename: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (targetFolderId: String, newName: String?) -> Unit,
     viewModel: FolderPickerViewModel = hiltViewModel()
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val uiState by viewModel.state.collectAsState()
-    var newName by remember { mutableStateOf(initialName ?: "") }
+    var newName by remember(visible, initialName, allowRename) {
+        mutableStateOf(if (allowRename) initialName ?: "" else "")
+    }
 
     LaunchedEffect(visible) {
         if (visible) viewModel.start(token)
@@ -70,7 +73,8 @@ fun MoveItemSheet(
                     Text(text = "选择目标文件夹", style = MaterialTheme.typography.titleMedium)
                 }
                 TextButton(onClick = {
-                    onConfirm(viewModel.currentFolderId(), newName.ifBlank { null })
+                    val providedName = if (allowRename) newName.ifBlank { null } else null
+                    onConfirm(viewModel.currentFolderId(), providedName)
                     onDismiss()
                 }) { Text("选择此位置") }
             }
@@ -82,15 +86,16 @@ fun MoveItemSheet(
             })
 
             Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = newName,
-                onValueChange = { newName = it },
-                singleLine = true,
-                label = { Text("新名称（可选）") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(8.dp))
+            if (allowRename) {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    singleLine = true,
+                    label = { Text("新名称（可选）") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+            }
             when {
                 uiState.isLoading -> {
                     Text("加载中…")
@@ -137,7 +142,8 @@ fun MoveItemSheet(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) { Text("取消") }
                 TextButton(onClick = {
-                    onConfirm(viewModel.currentFolderId(), newName.ifBlank { null })
+                    val providedName = if (allowRename) newName.ifBlank { null } else null
+                    onConfirm(viewModel.currentFolderId(), providedName)
                     onDismiss()
                 }) { Text("移动",fontWeight = FontWeight.Bold) }
             }
@@ -175,4 +181,3 @@ private fun BreadcrumbBar(
         }
     }
 }
-
