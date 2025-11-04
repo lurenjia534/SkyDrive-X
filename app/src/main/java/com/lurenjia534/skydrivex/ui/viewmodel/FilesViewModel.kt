@@ -24,6 +24,7 @@ class FilesViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var currentToken: String? = null
+    private var rootDriveId: String? = null
 
     private val _filesState = MutableStateFlow(
         FilesUiState(items = null, isLoading = false, error = null, canGoBack = false, path = emptyList())
@@ -37,6 +38,34 @@ class FilesViewModel @Inject constructor(
         val state = _filesState.value
         val source = state.searchResults ?: state.items
         return source.orEmpty().mapNotNull { it.id }.toSet()
+    }
+
+    private suspend fun ensureRootId(token: String) {
+        if (rootDriveId != null) return
+        val resolved = runCatching {
+            filesRepository.getRootId("Bearer $token")
+        }.getOrNull()
+        if (!resolved.isNullOrBlank()) {
+            rootDriveId = resolved
+        }
+    }
+
+    private suspend fun cacheKeyFor(token: String, folderId: String): String {
+        ensureRootId(token)
+        val normalized = folderId.ifBlank { "root" }
+        val rootId = rootDriveId
+        return when {
+            normalized == "root" -> "root"
+            rootId != null && normalized == rootId -> "root"
+            else -> normalized
+        }
+    }
+
+    private fun clearDestinationCache(cacheKey: String, folderId: String) {
+        cache.remove(cacheKey)
+        if (cacheKey != folderId) {
+            cache.remove(folderId)
+        }
     }
 
     fun enterSelectionMode(initial: String? = null) {
@@ -84,6 +113,7 @@ class FilesViewModel @Inject constructor(
         stack.add(Breadcrumb(id = "root", name = "根目录"))
         if (tokenChanged) {
             cache.clear()
+            rootDriveId = null
         }
         load("root") { filesRepository.getRootChildren("Bearer $token") }
     }
@@ -374,8 +404,16 @@ class FilesViewModel @Inject constructor(
             newParentId = newParentId,
             renameMap = renameMap
         )
+        val destCacheKey = cacheKeyFor(token, newParentId)
+        if (result.succeeded.isNotEmpty()) {
+            clearDestinationCache(destCacheKey, newParentId)
+        }
         exitSelectionMode()
         refreshCurrent(token)
+        if (result.succeeded.isNotEmpty() && destCacheKey != currentFolderId()) {
+            val refreshId = if (destCacheKey == "root") "" else newParentId
+            refreshFolder(token, refreshId)
+        }
         return result
     }
 
@@ -554,8 +592,14 @@ class FilesViewModel @Inject constructor(
             newParentId = newParentId,
             newName = newName
         )
+        val destCacheKey = cacheKeyFor(token, newParentId)
+        clearDestinationCache(destCacheKey, newParentId)
         // 移动后刷新当前目录（无论移动入/移出，至少确保当前视图更新）
         refreshCurrent(token)
+        if (destCacheKey != currentFolderId()) {
+            val refreshId = if (destCacheKey == "root") "" else newParentId
+            refreshFolder(token, refreshId)
+        }
         return moved
     }
 
