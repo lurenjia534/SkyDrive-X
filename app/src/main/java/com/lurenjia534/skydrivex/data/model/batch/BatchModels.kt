@@ -4,6 +4,7 @@
 package com.lurenjia534.skydrivex.data.model.batch
 
 import com.squareup.moshi.JsonClass
+import com.lurenjia534.skydrivex.data.model.driveitem.MoveItemBody
 
 @JsonClass(generateAdapter = true)
 data class BatchRequest(
@@ -15,7 +16,8 @@ data class BatchSubRequest(
     val id: String,
     val method: String,
     val url: String,
-    val headers: Map<String, String>? = null
+    val headers: Map<String, String>? = null,
+    val body: MoveItemBody? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -26,5 +28,6 @@ data class BatchResponse(
 @JsonClass(generateAdapter = true)
 data class BatchSubResponse(
     val id: String,
-    val status: Int
+    val status: Int,
+    val body: Map<String, Any?>? = null
 )
