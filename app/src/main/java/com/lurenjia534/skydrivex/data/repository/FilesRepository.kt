@@ -29,8 +29,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import com.lurenjia534.skydrivex.data.model.batch.BatchRequest
 import com.lurenjia534.skydrivex.data.model.batch.BatchSubRequest
+import com.lurenjia534.skydrivex.data.model.batch.BatchSubResponse
 
 private const val TAG_UPLOAD_SESSION = "UploadSession"
+private const val GRAPH_BATCH_LIMIT = 20
+
+data class BatchMoveResult(
+    val total: Int,
+    val succeeded: List<String>,
+    val failed: List<Pair<String, String>>
+)
 
 @Singleton
 class FilesRepository @Inject constructor(
@@ -99,14 +107,10 @@ class FilesRepository @Inject constructor(
     suspend fun deleteFilesBatch(itemIds: List<String>, token: String): Map<String, Int> {
         if (itemIds.isEmpty()) return emptyMap()
         val result = mutableMapOf<String, Int>()
-        var counter = 1
-        itemIds.chunked(20).forEach { chunk ->
-            val idMapping = mutableMapOf<String, String>()
+        itemIds.chunked(GRAPH_BATCH_LIMIT).forEach { chunk ->
             val requests = chunk.map { itemId ->
-                val requestId = (counter++).toString()
-                idMapping[requestId] = itemId
                 BatchSubRequest(
-                    id = requestId,
+                    id = itemId,
                     method = "DELETE",
                     url = "/me/drive/items/$itemId"
                 )
@@ -115,21 +119,22 @@ class FilesRepository @Inject constructor(
                 token = token,
                 body = BatchRequest(requests)
             )
-            val errors = mutableListOf<Pair<String, Int>>()
+            handleBatchDeleteErrors(response.responses)
             response.responses.forEach { sub ->
-                val originalId = idMapping[sub.id] ?: return@forEach
-                result[originalId] = sub.status
-                val ok = sub.status in 200..299 || sub.status == 404
-                if (!ok) {
-                    errors += originalId to sub.status
+                if (sub.status in 200..299 || sub.status == 404) {
+                    result[sub.id] = sub.status
                 }
-            }
-            if (errors.isNotEmpty()) {
-                val summary = errors.joinToString { (id, status) -> "$id:$status" }
-                throw IllegalStateException("批量删除失败: $summary")
             }
         }
         return result
+    }
+
+    private fun handleBatchDeleteErrors(responses: List<BatchSubResponse>) {
+        val failures = responses.filterNot { it.status in 200..299 || it.status == 404 }
+        if (failures.isNotEmpty()) {
+            val summary = failures.joinToString { "${it.id}(status=${it.status})" }
+            throw IllegalStateException("批量删除失败: $summary")
+        }
     }
 
     suspend fun getDownloadUrl(itemId: String, token: String): String? =
@@ -449,6 +454,72 @@ class FilesRepository @Inject constructor(
             token = token,
             body = body
         )
+    }
+
+    suspend fun moveItems(
+        itemIds: List<String>,
+        token: String,
+        newParentId: String,
+        renameMap: Map<String, String?> = emptyMap()
+    ): BatchMoveResult {
+        if (itemIds.isEmpty()) return BatchMoveResult(0, emptyList(), emptyList())
+        if (itemIds.size == 1) {
+            val id = itemIds.first()
+            moveItem(
+                itemId = id,
+                token = token,
+                newParentId = newParentId,
+                newName = renameMap[id]
+            )
+            return BatchMoveResult(
+                total = 1,
+                succeeded = listOf(id),
+                failed = emptyList()
+            )
+        }
+        val succeeded = mutableListOf<String>()
+        val failed = mutableListOf<Pair<String, String>>()
+        itemIds.chunked(GRAPH_BATCH_LIMIT).forEach { chunk ->
+            val requests = chunk.map { itemId ->
+                BatchSubRequest(
+                    id = itemId,
+                    method = "PATCH",
+                    url = "/me/drive/items/$itemId",
+                    headers = mapOf("Content-Type" to "application/json"),
+                    body = MoveItemBody(
+                        parentReference = ParentReferenceUpdate(id = newParentId),
+                        name = renameMap[itemId]
+                    )
+                )
+            }
+            val response = graphApiService.batch(
+                token = token,
+                body = BatchRequest(requests)
+            )
+            response.responses.forEach { sub ->
+                if (sub.status in 200..299) {
+                    succeeded += sub.id
+                } else {
+                    failed += sub.id to extractBatchError(sub.body)
+                }
+            }
+        }
+        return BatchMoveResult(
+            total = itemIds.size,
+            succeeded = succeeded,
+            failed = failed
+        )
+    }
+
+    private fun extractBatchError(body: Map<String, Any?>?): String {
+        val error = body?.get("error") as? Map<*, *>
+        val code = error?.get("code") as? String
+        val message = error?.get("message") as? String
+        if (!code.isNullOrBlank() && !message.isNullOrBlank()) {
+            return "$code: $message"
+        }
+        if (!message.isNullOrBlank()) return message
+        return "Graph request failed"
     }
 
     // Rename item by PATCH with only name field
