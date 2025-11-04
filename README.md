@@ -23,7 +23,6 @@
   <img src="https://img.shields.io/github/last-commit/lurenjia534/SkyDrive-X" alt="last commit" />
 </p>
 
-[中文说明 README_zh.md](README_zh.md)
 
 ## Overview
 
