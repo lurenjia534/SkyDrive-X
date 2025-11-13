@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
@@ -50,9 +49,16 @@ import com.lurenjia534.skydrivex.ui.notification.TransferTracker
 fun HomeScreen() {
     val context = LocalContext.current
     val entries by TransferTracker.entries.collectAsState()
-    val sorted = remember(entries) {
-        entries.sortedByDescending { it.startedAt }
+    val (runningEntries, finishedEntries) = remember(entries) {
+        val running = entries
+            .filter { it.status == TransferTracker.Status.RUNNING }
+            .sortedByDescending { it.startedAt }
+        val finished = entries
+            .filter { it.status != TransferTracker.Status.RUNNING }
+            .sortedByDescending { it.completedAt ?: it.startedAt }
+        running to finished
     }
+    val isEmpty = runningEntries.isEmpty() && finishedEntries.isEmpty()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -63,8 +69,7 @@ fun HomeScreen() {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(text = "传输管理器", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.weight(1f))
-            val hasFinished = sorted.any { it.status != TransferTracker.Status.RUNNING }
-            if (hasFinished) {
+            if (finishedEntries.isNotEmpty()) {
                 TextButton(onClick = { TransferTracker.clearFinished() }) {
                     Icon(Icons.Outlined.Delete, contentDescription = "清除完成")
                     Spacer(modifier = Modifier.width(4.dp))
@@ -72,7 +77,7 @@ fun HomeScreen() {
                 }
             }
         }
-        if (sorted.isEmpty()) {
+        if (isEmpty) {
             Box(
                 modifier = Modifier
                     .fillMaxSize(),
@@ -85,8 +90,17 @@ fun HomeScreen() {
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(sorted, key = { it.notificationId }) { entry ->
-                    TransferItemCard(entry = entry, context = context)
+                if (runningEntries.isNotEmpty()) {
+                    item { SectionTitle(text = "正在进行中") }
+                    items(runningEntries, key = { entry -> "running-${entry.notificationId}" }) { entry ->
+                        TransferItemCard(entry = entry, context = context)
+                    }
+                }
+                if (finishedEntries.isNotEmpty()) {
+                    item { SectionTitle(text = "已完成") }
+                    items(finishedEntries, key = { entry -> "finished-${entry.notificationId}" }) { entry ->
+                        TransferItemCard(entry = entry, context = context)
+                    }
                 }
             }
         }
@@ -239,4 +253,17 @@ private fun StatusChip(text: String, color: Color) {
             fontWeight = FontWeight.Medium
         )
     }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+    )
 }
