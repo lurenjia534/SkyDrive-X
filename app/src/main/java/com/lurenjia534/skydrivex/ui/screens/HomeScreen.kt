@@ -2,7 +2,6 @@ package com.lurenjia534.skydrivex.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.lurenjia534.skydrivex.ui.components.EmptyState
 import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.notification.TransferTracker
 
@@ -78,13 +79,12 @@ fun HomeScreen() {
             }
         }
         if (isEmpty) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "暂无传输任务", style = MaterialTheme.typography.bodyLarge)
-            }
+            EmptyState(
+                icon = Icons.Outlined.CloudDownload,
+                title = "暂无传输任务",
+                subtitle = "开始上传或下载文件后，进度会显示在这里，实时掌握传输状态。",
+                modifier = Modifier.fillMaxSize()
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
