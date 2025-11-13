@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/lurenjia534/SkyDrive-X/releases">
-    <img src="https://img.shields.io/badge/version-1.2-blue" alt="版本" />
+    <img src="https://img.shields.io/badge/version-1.2.1-blue" alt="版本" />
   </a>
   <img src="https://img.shields.io/badge/platform-Android-brightgreen" alt="平台" />
   <img src="https://img.shields.io/badge/language-Kotlin-orange" alt="语言" />
