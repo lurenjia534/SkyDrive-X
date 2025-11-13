@@ -47,7 +47,7 @@ import com.lurenjia534.skydrivex.ui.notification.DownloadRegistry
 import com.lurenjia534.skydrivex.ui.notification.TransferTracker
 
 @Composable
-fun HomeScreen() {
+fun TransferManagerScreen() {
     val context = LocalContext.current
     val entries by TransferTracker.entries.collectAsState()
     val (runningEntries, finishedEntries) = remember(entries) {

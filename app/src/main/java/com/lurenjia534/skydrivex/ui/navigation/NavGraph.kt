@@ -10,7 +10,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.lurenjia534.skydrivex.ui.screens.FilesScreen
-import com.lurenjia534.skydrivex.ui.screens.HomeScreen
+import com.lurenjia534.skydrivex.ui.screens.TransferManagerScreen
 import com.lurenjia534.skydrivex.ui.screens.preview.ImagePreviewScreen
 import com.lurenjia534.skydrivex.ui.screens.preview.VideoPreviewScreen
 import com.lurenjia534.skydrivex.ui.screens.preview.AudioPreviewScreen
@@ -28,7 +28,7 @@ fun NavGraph(
         modifier = modifier
     ) {
         composable(NavDestination.Home.route) {
-            HomeScreen()
+            TransferManagerScreen()
         }
         composable(NavDestination.Files.route) {
             val token by viewModel.token.collectAsState()
