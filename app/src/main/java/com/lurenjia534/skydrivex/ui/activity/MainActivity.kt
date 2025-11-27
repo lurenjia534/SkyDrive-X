@@ -31,11 +31,18 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * 应用主入口页：负责在进入 Compose 界面前校验配置与账号缓存，
+ * 必要时跳转到首登/配置流程，并在需要时触发静默或交互式登录。
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
+    // 确保 UI 只初始化一次，避免重复 setContent
     private var isUiInitialized = false
+    // 从启动参数注入：是否跳过令牌缓存校验（如从 OOBE 返回时）
     private var skipTokenCheck: Boolean = false
+    // 从启动参数注入：回到首页后是否主动弹出登录
     private var shouldRequestSignIn: Boolean = false
 
     @Inject lateinit var authConfigRepository: AuthConfigRepository
@@ -56,11 +63,13 @@ class MainActivity : ComponentActivity() {
         skipTokenCheck = intent?.getBooleanExtra(EXTRA_SKIP_TOKEN_CHECK, false) ?: false
         shouldRequestSignIn = intent?.getBooleanExtra(EXTRA_REQUEST_SIGN_IN, false) ?: false
         lifecycleScope.launch {
+            // 1. 配置缺失则跳转引导页
             val hasConfig = authConfigRepository.hasConfig()
             if (!hasConfig) {
                 startOobeAndFinish()
                 return@launch
             }
+            // 2. 若未要求跳过校验，则检查是否已有缓存账号
             if (!skipTokenCheck) {
                 val hasToken = authManager.hasCachedAccount()
                 if (!hasToken) {
@@ -75,7 +84,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (isUiInitialized) {
-            viewModel.acquireTokenSilent()
+            viewModel.refreshAccounts()
             maybeTriggerSignIn()
         }
     }
@@ -84,7 +93,7 @@ class MainActivity : ComponentActivity() {
         if (isUiInitialized) return
         isUiInitialized = true
 
-        viewModel.acquireTokenSilent()
+        viewModel.refreshAccounts()
         setContent {
             SkyDriveXAppContent(viewModel)
         }

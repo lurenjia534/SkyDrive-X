@@ -56,7 +56,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -67,6 +66,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lurenjia534.skydrivex.ui.settings.components.AccountManagerSheet
 import com.lurenjia534.skydrivex.ui.settings.components.CopyableListItem
 import com.lurenjia534.skydrivex.ui.settings.components.CopyableCustomItem
 import com.lurenjia534.skydrivex.ui.settings.components.SectionHeader
@@ -81,6 +81,9 @@ import com.lurenjia534.skydrivex.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
+/**
+ * 设置页 Activity：只负责创建 Compose 内容并托管 [MainViewModel]，其余逻辑交由 Composable 处理。
+ */
 class SettingsActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
@@ -106,6 +109,10 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
+/**
+ * 设置页主界面，集中呈现账户、OneDrive 信息、偏好设置及权限管理。
+ * 内部包含多处状态收集与副作用处理（复制、SnackBar、权限申请等）。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -115,9 +122,9 @@ fun SettingsScreen(
 ) {
     val driveState by viewModel.driveState.collectAsState()
     val userState  by viewModel.userState.collectAsState()
-    val account by viewModel.account.collectAsState()
+    val activeAccount by viewModel.activeAccount.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
     val token by viewModel.token.collectAsState()
-    val scope = rememberCoroutineScope()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val areNotificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
     val downloadPref by viewModel.downloadPreference.collectAsState()
@@ -127,7 +134,9 @@ fun SettingsScreen(
     val clipboard = LocalClipboard.current
     var pendingSnack by remember { mutableStateOf<String?>(null) }
     var pendingCopy by remember { mutableStateOf<String?>(null) }
+    var showAccountManagerSheet by remember { mutableStateOf(false) }
 
+    // 选择自定义下载目录的 launcher：申请持久化读写授权后写入偏好
     val pickFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
         onResult = { uri: Uri? ->
@@ -145,6 +154,7 @@ fun SettingsScreen(
     )
 
     // Launcher to request media permissions (photos/videos, with partial access on Android 14+)
+    // 媒体权限 launcher：Android 13/14 拆分权限，回传结果后统一提示
     val mediaPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
@@ -177,11 +187,24 @@ fun SettingsScreen(
                 pendingSnack = null
             }
         }
+        LaunchedEffect(Unit) {
+            viewModel.refreshAccounts(triggerTokenRefresh = false)
+        }
         LaunchedEffect(pendingCopy) {
             pendingCopy?.let { text ->
                 clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("copy", text)))
                 pendingCopy = null
             }
+        }
+        if (showAccountManagerSheet) {
+            AccountManagerSheet(
+                accounts = accounts,
+                activeAccount = activeAccount,
+                onSetActive = viewModel::setActiveAccount,
+                onRemove = viewModel::removeAccount,
+                onAddAccount = { viewModel.signIn(activity) },
+                onDismiss = { showAccountManagerSheet = false }
+            )
         }
         LazyColumn(
             modifier = Modifier
@@ -191,59 +214,63 @@ fun SettingsScreen(
         ) {
             // 账户分组
             item { SectionHeader("账户") }
-            if (account == null) {
-                item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
-                        ListItem(
-                            leadingContent = { Icon(imageVector = Icons.Outlined.AccountCircle, contentDescription = null) },
-                            headlineContent = { Text("您尚未登录") },
-                            supportingContent = { Text("登录以使用完整功能") }
-                        )
-                    }
-                }
-                item { Spacer(Modifier.height(1.dp)) }
-                item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
-                        ListItem(
-                            leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.Login, contentDescription = null) },
-                            headlineContent = { Text("登录") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { viewModel.signIn(activity) }
-                        )
-                    }
-                }
-            } else {
-                item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
-                        ListItem(
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
                         leadingContent = { Icon(imageVector = Icons.Outlined.AccountCircle, contentDescription = null) },
-                        headlineContent = { Text("当前账户") },
+                        headlineContent = { Text(if (activeAccount == null) "暂无激活账户" else "当前账户") },
                         supportingContent = {
                             Text(
-                                account!!.username,
+                                activeAccount?.username ?: "登录或选择一个账户以继续",
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        )
-                    }
+                    )
                 }
+            }
+            item { Spacer(Modifier.height(1.dp)) }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
+                        leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.Login, contentDescription = null) },
+                        headlineContent = { Text("添加 / 登录账户") },
+                        supportingContent = { Text("支持缓存多个账户，激活后使用") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.signIn(activity) }
+                    )
+                }
+            }
+            item { Spacer(Modifier.height(1.dp)) }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
+                    ListItem(
+                        leadingContent = { Icon(imageVector = Icons.Outlined.AccountCircle, contentDescription = null) },
+                        headlineContent = { Text("管理账户") },
+                        supportingContent = { Text("已保存 ${accounts.size} 个账户，可切换激活或移除") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showAccountManagerSheet = true }
+                    )
+                }
+            }
+            if (activeAccount != null) {
                 item { Spacer(Modifier.height(1.dp)) }
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                         ListItem(
-                        leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
-                        headlineContent = {
-                            Text(
-                                text = "退出登录",
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.signOut() }
+                            leadingContent = { Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
+                            headlineContent = {
+                                Text(
+                                    text = "退出当前账户",
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.signOut() }
                         )
                     }
                 }
@@ -270,7 +297,7 @@ fun SettingsScreen(
             }
 
             // OneDrive 信息
-            if (account != null) {
+            if (activeAccount != null) {
                 item { SectionHeader("OneDrive 信息") }
                 when {
                     driveState.isLoading -> {
@@ -455,7 +482,7 @@ fun SettingsScreen(
             }
 
             // 个人信息
-            if (account != null) {
+            if (activeAccount != null) {
                 item { SectionHeader("个人信息") }
                 when {
                     userState.isLoading -> {
@@ -791,6 +818,7 @@ fun SettingsScreen(
             item { SectionHeader("权限") }
             item {
                 run {
+                    // 按系统版本组合需申请的媒体权限，并生成状态文案
                     val hasImages = if (Build.VERSION.SDK_INT >= 33) {
                         ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
                     } else {

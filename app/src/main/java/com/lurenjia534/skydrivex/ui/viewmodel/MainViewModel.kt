@@ -9,6 +9,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lurenjia534.skydrivex.auth.AuthManager
+import com.lurenjia534.skydrivex.data.local.ActiveAccountPreferenceRepository
 import com.lurenjia534.skydrivex.data.local.ThemePreferenceRepository
 import com.lurenjia534.skydrivex.data.local.DownloadPreferenceRepository
 import com.lurenjia534.skydrivex.data.local.DownloadLocationPreference
@@ -16,7 +17,6 @@ import com.lurenjia534.skydrivex.data.repository.UserRepository
 import com.microsoft.identity.client.AuthenticationCallback
 import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.IAuthenticationResult
-import com.microsoft.identity.client.ISingleAccountPublicClientApplication
 import com.microsoft.identity.client.SilentAuthenticationCallback
 import com.microsoft.identity.client.exception.MsalException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,17 +32,27 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.lurenjia534.skydrivex.auth.MsalScopes
 
+/**
+ * 主界面 ViewModel：
+ * - 负责管理账户列表、激活账户及 MSAL 令牌生命周期
+ * - 拉取 OneDrive 用户与驱动器信息并暴露 UI 状态
+ * - 同时维护主题、下载目录、通知权限等用户偏好
+ */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val authManager: AuthManager,
+    private val activeAccountPreferenceRepository: ActiveAccountPreferenceRepository,
     private val themePreferenceRepository: ThemePreferenceRepository,
     private val downloadPreferenceRepository: DownloadPreferenceRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _account = MutableStateFlow<IAccount?>(null)
-    val account: StateFlow<IAccount?> = _account.asStateFlow()
+    private val _accounts = MutableStateFlow<List<IAccount>>(emptyList())
+    val accounts: StateFlow<List<IAccount>> = _accounts.asStateFlow()
+
+    private val _activeAccount = MutableStateFlow<IAccount?>(null)
+    val activeAccount: StateFlow<IAccount?> = _activeAccount.asStateFlow()
 
     private val _isAccountInitialized = MutableStateFlow(false)
     val isAccountInitialized: StateFlow<Boolean> = _isAccountInitialized.asStateFlow()
@@ -73,35 +83,12 @@ class MainViewModel @Inject constructor(
     val areNotificationsEnabled: StateFlow<Boolean> = _areNotificationsEnabled.asStateFlow()
 
     init {
+        // 初始化时预先检测通知权限，并等待 MSAL 准备完成
         checkNotificationStatus()
         viewModelScope.launch {
             val initialized = authManager.awaitInitialization()
             if (initialized) {
-                authManager.getCurrentAccount(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
-                    override fun onAccountLoaded(activeAccount: IAccount?) {
-                        _account.value = activeAccount
-                        if (activeAccount != null) {
-                            acquireTokenSilent()
-                        }
-                        _isAccountInitialized.value = true
-                    }
-
-                    override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
-                        _account.value = currentAccount
-                        if (currentAccount != null) {
-                            acquireTokenSilent()
-                        } else {
-                            _userState.value = UserUiState(data = null, isLoading = false, error = null)
-                            _driveState.value = DriveUiState(data = null, isLoading = false, error = null)
-                        }
-                        _isAccountInitialized.value = true
-                    }
-
-                    override fun onError(exception: MsalException) {
-                        Log.e("MainViewModel", "Load account error", exception)
-                        _isAccountInitialized.value = true
-                    }
-                })
+                refreshAccounts()
             } else {
                 _userState.value = UserUiState(data = null, isLoading = false, error = "MSAL initialization failed")
                 _driveState.value = DriveUiState(data = null, isLoading = false, error = "MSAL initialization failed")
@@ -110,11 +97,42 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 重新拉取本地缓存的账户列表，并恢复/更新激活账户。
+     * triggerTokenRefresh 控制是否在切换账户时自动拉取新令牌。
+     */
+    fun refreshAccounts(triggerTokenRefresh: Boolean = true) {
+        viewModelScope.launch {
+            val initialized = authManager.awaitInitialization()
+            if (!initialized) {
+                _accounts.value = emptyList()
+                setActiveAccountInternal(null, triggerTokenRefresh = false)
+                _userState.value = UserUiState(data = null, isLoading = false, error = "MSAL initialization failed")
+                _driveState.value = DriveUiState(data = null, isLoading = false, error = "MSAL initialization failed")
+                _isAccountInitialized.value = true
+                return@launch
+            }
+
+            val list = authManager.loadAccounts()
+            _accounts.value = list
+            val savedId = activeAccountPreferenceRepository.getActiveAccountId()
+            val candidate = list.find { it.id == savedId } ?: list.firstOrNull()
+            setActiveAccountInternal(candidate, triggerTokenRefresh)
+            _isAccountInitialized.value = true
+        }
+    }
+
+    /**
+     * 触发交互式登录；成功后立即刷新账户列表并拉取用户/驱动器数据。
+     */
     fun signIn(activity: Activity) {
         authManager.signIn(activity, MsalScopes.DEFAULT, object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
-                _account.value = authenticationResult.account
-                loadData(authenticationResult.accessToken)
+                viewModelScope.launch {
+                    setActiveAccountInternal(authenticationResult.account, triggerTokenRefresh = false)
+                    refreshAccounts(triggerTokenRefresh = false)
+                    loadData(authenticationResult.accessToken)
+                }
             }
 
             override fun onError(exception: MsalException) {
@@ -127,11 +145,17 @@ class MainViewModel @Inject constructor(
         })
     }
 
+    /**
+     * 交互式拉取新令牌（无需强制选择账户），用于手动刷新。
+     */
     fun acquireToken(activity: Activity) {
         authManager.acquireToken(activity, MsalScopes.DEFAULT, object : AuthenticationCallback {
             override fun onSuccess(authenticationResult: IAuthenticationResult) {
-                _account.value = authenticationResult.account
-                loadData(authenticationResult.accessToken)
+                viewModelScope.launch {
+                    setActiveAccountInternal(authenticationResult.account, triggerTokenRefresh = false)
+                    refreshAccounts(triggerTokenRefresh = false)
+                    loadData(authenticationResult.accessToken)
+                }
             }
 
             override fun onError(exception: MsalException) {
@@ -144,17 +168,36 @@ class MainViewModel @Inject constructor(
         })
     }
 
+    /**
+     * 基于当前激活账户静默获取令牌，若无账户则清空 UI 数据。
+     */
     fun acquireTokenSilent() {
-        _account.value?.let { account ->
+        val account = _activeAccount.value
+        if (account != null) {
             acquireTokenSilentInternal(account)
-        } ?: run {
-            // 当前无缓存账户：清空数据并等待用户交互登录
-            _userState.value  = UserUiState(data = null, isLoading = false, error = "No cached account")
-            _driveState.value = DriveUiState(data = null, isLoading = false, error = "No cached account")
+        } else {
+            clearUserData(message = "No active account")
+            clearDriveData(message = "No active account")
         }
     }
 
-    // 真正执行静默刷新的内部方法（必须拿到 account）
+    fun setActiveAccount(account: IAccount) {
+        viewModelScope.launch { setActiveAccountInternal(account, triggerTokenRefresh = true) }
+    }
+
+    fun removeAccount(account: IAccount) {
+        viewModelScope.launch {
+            val removed = authManager.removeAccount(account)
+            if (!removed) {
+                Log.e("MainViewModel", "Remove account failed")
+            }
+            refreshAccounts(triggerTokenRefresh = true)
+        }
+    }
+
+    /**
+     * 真正执行静默令牌刷新，期间将用户与驱动器状态标记为加载中。
+     */
     private fun acquireTokenSilentInternal(account: IAccount) {
         _userState.value  = UserUiState(data = null, isLoading = true, error = null)
         _driveState.value = DriveUiState(data = null, isLoading = true, error = null)
@@ -163,37 +206,54 @@ class MainViewModel @Inject constructor(
             if (authManager.awaitInitialization()) {
                 authManager.acquireTokenSilent(account, MsalScopes.DEFAULT, object : SilentAuthenticationCallback {
                     override fun onSuccess(authenticationResult: IAuthenticationResult) {
-                        _account.value = authenticationResult.account
+                        viewModelScope.launch {
+                            setActiveAccountInternal(authenticationResult.account, triggerTokenRefresh = false)
+                        }
                         loadData(authenticationResult.accessToken)
                     }
 
                     override fun onError(exception: MsalException) {
                         Log.e("MainViewModel", "Silent token error", exception)
-
-                        // 如果是 MsalUiRequiredException 可以提示 UI 去调用交互登录
-                        _userState.value  = UserUiState(data = null, isLoading = false, error = exception.message)
-                        _driveState.value = DriveUiState(data = null, isLoading = false, error = exception.message)
+                        clearUserData(message = exception.message)
+                        clearDriveData(message = exception.message)
                     }
                 })
             } else {
-                _userState.value  = UserUiState(data = null, isLoading = false, error = "MSAL initialization failed")
-                _driveState.value = DriveUiState(data = null, isLoading = false, error = "MSAL initialization failed")
+                clearUserData(message = "MSAL initialization failed")
+                clearDriveData(message = "MSAL initialization failed")
             }
         }
     }
 
+    /**
+     * 移除激活账户或直接清理数据，退出登录。
+     */
     fun signOut() {
-        authManager.signOut(object : ISingleAccountPublicClientApplication.SignOutCallback {
-            override fun onSignOut() {
-                _account.value = null
-                _userState.value = UserUiState(data = null, isLoading = false, error = null)
-                _driveState.value = DriveUiState(data = null, isLoading = false, error = null)
-            }
+        _activeAccount.value?.let { removeAccount(it) } ?: run {
+            clearUserData()
+            clearDriveData()
+        }
+    }
 
-            override fun onError(exception: MsalException) {
-                Log.e("MainViewModel", "Sign out error", exception)
-            }
-        })
+    /**
+     * 更新激活账户及本地存储；可按需触发静默拉取新令牌。
+     */
+    private suspend fun setActiveAccountInternal(account: IAccount?, triggerTokenRefresh: Boolean) {
+        _activeAccount.value = account
+        if (account == null) {
+            activeAccountPreferenceRepository.clearActiveAccountId()
+            _token.value = null
+            lastToken = null
+            clearUserData()
+            clearDriveData()
+            return
+        }
+
+        activeAccountPreferenceRepository.setActiveAccountId(account.id)
+
+        if (triggerTokenRefresh) {
+            acquireTokenSilentInternal(account)
+        }
     }
 
     fun setDarkMode(enabled: Boolean) {
@@ -233,6 +293,17 @@ class MainViewModel @Inject constructor(
         context.startActivity(intent)
     }
 
+    private fun clearUserData(message: String? = null) {
+        _userState.value = UserUiState(data = null, isLoading = false, error = message)
+    }
+
+    private fun clearDriveData(message: String? = null) {
+        _driveState.value = DriveUiState(data = null, isLoading = false, error = message)
+    }
+
+    /**
+     * 将令牌写入状态并并行加载用户和驱动器信息。
+     */
     private fun loadData(token: String) {
         lastToken = token
         _token.value = token

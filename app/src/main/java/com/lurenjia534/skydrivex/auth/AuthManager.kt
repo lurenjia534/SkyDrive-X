@@ -15,7 +15,7 @@ import com.microsoft.identity.client.AcquireTokenSilentParameters
 import com.microsoft.identity.client.AuthenticationCallback
 import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.IPublicClientApplication
-import com.microsoft.identity.client.ISingleAccountPublicClientApplication
+import com.microsoft.identity.client.IMultipleAccountPublicClientApplication
 import com.microsoft.identity.client.Prompt
 import com.microsoft.identity.client.PublicClientApplication
 import com.microsoft.identity.client.SilentAuthenticationCallback
@@ -36,6 +36,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
+/**
+ * 负责创建并管理 MSAL 多账户客户端的中枢类：
+ * - 监听授权配置的变化，按需重建 PublicClientApplication
+ * - 提供交互式/静默获取令牌、账户查询与移除等能力
+ * - 通过 [initializationState] 暴露初始化成功与否，外部需先等待初始化完成
+ */
 @Singleton
 class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -43,13 +49,14 @@ class AuthManager @Inject constructor(
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var singleAccountApp: ISingleAccountPublicClientApplication? = null
+    private var multipleAccountApp: IMultipleAccountPublicClientApplication? = null
     private val initializationState = MutableStateFlow<Boolean?>(null)
 
     init {
+        // 监听配置流：配置变更时重新构建 MSAL 客户端，并重置初始化状态
         scope.launch {
             authConfigRepository.configFlow.collectLatest { config ->
-                singleAccountApp = null
+                multipleAccountApp = null
                 initializationState.value = null
 
                 if (config == null) {
@@ -66,6 +73,9 @@ class AuthManager @Inject constructor(
         .filterNotNull()
         .first()
 
+    /**
+     * 打开账户选择器进行交互式登录，适合首次登录或切换账户。
+     */
     fun signIn(activity: Activity, scopes: Array<String>, callback: AuthenticationCallback) {
         val parameters = AcquireTokenParameters.Builder()
             .startAuthorizationFromActivity(activity)
@@ -73,18 +83,24 @@ class AuthManager @Inject constructor(
             .withPrompt(Prompt.SELECT_ACCOUNT)
             .withCallback(callback)
             .build()
-        singleAccountApp?.acquireToken(parameters)
+        multipleAccountApp?.acquireToken(parameters)
     }
 
+    /**
+     * 交互式获取令牌（不强制弹出账户选择），可用于刷新过期令牌。
+     */
     fun acquireToken(activity: Activity, scopes: Array<String>, callback: AuthenticationCallback) {
         val parameters = AcquireTokenParameters.Builder()
             .startAuthorizationFromActivity(activity)
             .withScopes(scopes.toList())
             .withCallback(callback)
             .build()
-        singleAccountApp?.acquireToken(parameters)
+        multipleAccountApp?.acquireToken(parameters)
     }
 
+    /**
+     * 静默获取令牌：优先复用缓存，失败再交给回调决定是否走交互式流程。
+     */
     fun acquireTokenSilent(account: IAccount, scopes: Array<String>, callback: SilentAuthenticationCallback) {
         val tenantAuthority = account.authority
 
@@ -94,33 +110,65 @@ class AuthManager @Inject constructor(
             .withScopes(scopes.toList())
             .withCallback(callback)
             .build()
-        singleAccountApp?.acquireTokenSilentAsync(parameters)
+        multipleAccountApp?.acquireTokenSilentAsync(parameters)
     }
 
-    fun signOut(callback: ISingleAccountPublicClientApplication.SignOutCallback) {
-        singleAccountApp?.signOut(callback)
-    }
+    suspend fun hasCachedAccount(): Boolean = loadAccounts().isNotEmpty()
 
-    fun getCurrentAccount(callback: ISingleAccountPublicClientApplication.CurrentAccountCallback) {
-        singleAccountApp?.getCurrentAccountAsync(callback)
-    }
-
-    suspend fun hasCachedAccount(): Boolean {
+    suspend fun loadAccounts(): List<IAccount> {
         val initialized = awaitInitialization()
-        if (!initialized) return false
-        val app = singleAccountApp ?: return false
+        if (!initialized) return emptyList()
+        val app = multipleAccountApp ?: return emptyList()
 
         return suspendCancellableCoroutine { continuation ->
-            app.getCurrentAccountAsync(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
-                override fun onAccountLoaded(activeAccount: IAccount?) {
+            app.getAccounts(object : IPublicClientApplication.LoadAccountsCallback {
+                override fun onTaskCompleted(result: List<IAccount>) {
                     if (continuation.isActive) {
-                        continuation.resume(activeAccount != null)
+                        continuation.resume(result)
                     }
                 }
 
-                override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
+                override fun onError(exception: MsalException) {
                     if (continuation.isActive) {
-                        continuation.resume(currentAccount != null)
+                        continuation.resume(emptyList())
+                    }
+                }
+            })
+        }
+    }
+
+    suspend fun getAccountById(homeAccountId: String): IAccount? {
+        val initialized = awaitInitialization()
+        if (!initialized) return null
+        val app = multipleAccountApp ?: return null
+
+        return suspendCancellableCoroutine { continuation ->
+            app.getAccount(homeAccountId, object : IMultipleAccountPublicClientApplication.GetAccountCallback {
+                override fun onTaskCompleted(result: IAccount?) {
+                    if (continuation.isActive) {
+                        continuation.resume(result)
+                    }
+                }
+
+                override fun onError(exception: MsalException) {
+                    if (continuation.isActive) {
+                        continuation.resume(null)
+                    }
+                }
+            })
+        }
+    }
+
+    suspend fun removeAccount(account: IAccount): Boolean {
+        val initialized = awaitInitialization()
+        if (!initialized) return false
+        val app = multipleAccountApp ?: return false
+
+        return suspendCancellableCoroutine { continuation ->
+            app.removeAccount(account, object : IMultipleAccountPublicClientApplication.RemoveAccountCallback {
+                override fun onRemoved() {
+                    if (continuation.isActive) {
+                        continuation.resume(true)
                     }
                 }
 
@@ -133,15 +181,18 @@ class AuthManager @Inject constructor(
         }
     }
 
+    /**
+     * 用最新配置创建 MSAL 客户端。必须在主线程调用。
+     */
     private suspend fun initializeMsal(config: AuthConfig) {
         val configFile = writeRuntimeConfig(config)
         withContext(Dispatchers.Main) {
-            PublicClientApplication.createSingleAccountPublicClientApplication(
+            PublicClientApplication.createMultipleAccountPublicClientApplication(
                 context,
                 configFile,
-                object : IPublicClientApplication.ISingleAccountApplicationCreatedListener {
-                    override fun onCreated(application: ISingleAccountPublicClientApplication) {
-                        singleAccountApp = application
+                object : IPublicClientApplication.IMultipleAccountApplicationCreatedListener {
+                    override fun onCreated(application: IMultipleAccountPublicClientApplication) {
+                        multipleAccountApp = application
                         initializationState.value = true
                     }
 
@@ -154,6 +205,9 @@ class AuthManager @Inject constructor(
         }
     }
 
+    /**
+     * 根据存储的客户端 ID 动态生成配置文件，写入应用私有目录。
+     */
     private suspend fun writeRuntimeConfig(config: AuthConfig): File = withContext(Dispatchers.IO) {
         val json = buildJsonConfig(config.clientId)
         val file = File(context.filesDir, AUTH_CONFIG_FILE_NAME)
